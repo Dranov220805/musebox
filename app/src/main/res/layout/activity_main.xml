@@ -4,15 +4,15 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/black"
+    android:background="@color/white"
     tools:context=".activities.MainActivity">
 
     <!-- App Logo -->
     <ImageView
         android:id="@+id/logo"
-        android:layout_width="120dp"
-        android:layout_height="120dp"
-        android:src="@drawable/baseline_30fps_select_24"
+        android:layout_width="150dp"
+        android:layout_height="150dp"
+        android:src="@drawable/musebox_logo"
         android:contentDescription="App Logo"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toTopOf="@+id/appName"
@@ -26,7 +26,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="MuseBox"
-        android:textColor="@android:color/white"
+        android:textColor="@color/musebox_green"
         android:textSize="32sp"
         android:textStyle="bold"
         app:layout_constraintTop_toBottomOf="@id/logo"
@@ -76,7 +76,7 @@
         android:text="Log In"
         android:textAllCaps="false"
         android:textSize="18sp"
-        android:backgroundTint="@color/spotify_green"
+        android:backgroundTint="@color/musebox_green"
         android:textColor="@android:color/white"
         app:layout_constraintTop_toBottomOf="@id/passwordField"
         app:layout_constraintStart_toStartOf="parent"
