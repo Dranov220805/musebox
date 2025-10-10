@@ -1,20 +1,18 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
-    <style name="Base.Theme.MuseBox" parent="Theme.Material3.DayNight.NoActionBar">
+    <style name="Base.Theme.MuseBox" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <!-- Customize your light theme here. -->
         <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
-    </style>
-
-<!--    <style name="Theme.MuseBox" parent="Base.Theme.MuseBox" />-->
-    <style name="BaseTheme.MuseBox" parent="Theme.MaterialComponents.DayNight.NoActionBar" />
-    <style name="Theme.MuseBox" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <!-- app colors -->
         <item name="colorPrimary">@color/colorAccent</item>
         <item name="colorPrimaryVariant">@color/colorPrimaryDark</item>
         <item name="colorOnPrimary">@color/white</item>
 
-        <!-- make sure action bar is disabled -->
+        <!-- action bar disabled -->
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
+
+        <item name="android:statusBarColor">@android:color/white</item>
+        <item name="android:windowLightStatusBar">true</item>
     </style>
 </resources>

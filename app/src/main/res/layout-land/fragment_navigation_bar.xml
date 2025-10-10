@@ -2,17 +2,18 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/navigation_bar"
-    android:layout_width="match_parent"
-    android:layout_height="56dp"
-    android:orientation="horizontal"
+    android:layout_width="72dp"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
     android:background="@color/musebox_green"
-    android:elevation="6dp">
+    android:elevation="6dp"
+    android:gravity="center_horizontal">
 
     <!-- Home -->
     <LinearLayout
         android:id="@+id/nav_home"
-        android:layout_width="0dp"
-        android:layout_height="match_parent"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
         android:layout_weight="1"
         android:gravity="center"
         android:orientation="vertical"
@@ -31,16 +32,16 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/home"
-            android:textSize="12sp"
+            android:textSize="10sp"
             android:textColor="@android:color/white"
-            android:paddingTop="2dp" />
+            android:paddingTop="4dp" />
     </LinearLayout>
 
     <!-- Search -->
     <LinearLayout
         android:id="@+id/nav_search"
-        android:layout_width="0dp"
-        android:layout_height="match_parent"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
         android:layout_weight="1"
         android:gravity="center"
         android:orientation="vertical"
@@ -59,16 +60,16 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/search"
-            android:textSize="12sp"
+            android:textSize="10sp"
             android:textColor="@android:color/white"
-            android:paddingTop="2dp" />
+            android:paddingTop="4dp" />
     </LinearLayout>
 
-    <!-- Search -->
+    <!-- Create -->
     <LinearLayout
-        android:id="@+id/nav_search"
-        android:layout_width="0dp"
-        android:layout_height="match_parent"
+        android:id="@+id/nav_create"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
         android:layout_weight="1"
         android:gravity="center"
         android:orientation="vertical"
@@ -87,16 +88,16 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/create"
-            android:textSize="12sp"
+            android:textSize="10sp"
             android:textColor="@android:color/white"
-            android:paddingTop="2dp" />
+            android:paddingTop="4dp" />
     </LinearLayout>
 
     <!-- Playlist -->
     <LinearLayout
         android:id="@+id/nav_playlist"
-        android:layout_width="0dp"
-        android:layout_height="match_parent"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
         android:layout_weight="1"
         android:gravity="center"
         android:orientation="vertical"
@@ -115,16 +116,16 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/playlist"
-            android:textSize="12sp"
+            android:textSize="10sp"
             android:textColor="@android:color/white"
-            android:paddingTop="2dp" />
+            android:paddingTop="4dp" />
     </LinearLayout>
 
     <!-- Profile -->
     <LinearLayout
         android:id="@+id/nav_profile"
-        android:layout_width="0dp"
-        android:layout_height="match_parent"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
         android:layout_weight="1"
         android:gravity="center"
         android:orientation="vertical"
@@ -143,9 +144,9 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/profile"
-            android:textSize="12sp"
+            android:textSize="10sp"
             android:textColor="@android:color/white"
-            android:paddingTop="2dp" />
+            android:paddingTop="4dp" />
     </LinearLayout>
 
 </LinearLayout>
