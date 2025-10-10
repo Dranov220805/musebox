@@ -2,7 +2,8 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    <color name="spotify_green">#1DB954</color>
+    <color name="musebox_green">#00c4cc</color>
     <color name="colorPrimaryDark">#202124</color>
     <color name="colorAccent">#FF9800</color>
+    <color name="darker_gray">#A0A0A0</color>
 </resources>

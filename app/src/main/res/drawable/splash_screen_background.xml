@@ -1,0 +1,15 @@
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item android:drawable="@color/white" />
+    <!--    Background-->
+    <item android:drawable="?attr/colorSurface" />
+    <!-- Scaled logo -->
+    <item
+        android:width="300dp"
+        android:height="300dp"
+        android:gravity="center">
+        <bitmap
+            android:src="@drawable/musebox_logo_nobg"
+            android:gravity="center" />
+    </item>
+</layer-list>
