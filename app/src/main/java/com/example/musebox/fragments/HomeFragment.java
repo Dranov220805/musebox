@@ -47,6 +47,10 @@ public class HomeFragment extends Fragment {
     private OnSongSelectedListener listener;
 
     private static final int REQUEST_PERMISSION = 200;
+    private static final int PAGE_SIZE = 50; // Load 50 songs at a time
+    private int currentOffset = 0;
+    private boolean isLoading = false;
+    private boolean hasMoreData = true;
 
     @Override
     public void onAttach(@NonNull Context context) {
@@ -71,9 +75,31 @@ public class HomeFragment extends Fragment {
 
         dbHelper = new SongDatabaseHelper(requireContext());
 
-        recyclerSongs.setLayoutManager(new LinearLayoutManager(requireContext()));
+        LinearLayoutManager layoutManager = new LinearLayoutManager(requireContext());
+        recyclerSongs.setLayoutManager(layoutManager);
         adapter = new SongAdapter(new ArrayList<>());
         recyclerSongs.setAdapter(adapter);
+
+        // Add scroll listener for pagination
+        recyclerSongs.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
+                super.onScrolled(recyclerView, dx, dy);
+
+                if (dy > 0) { // Scrolling down
+                    int visibleItemCount = layoutManager.getChildCount();
+                    int totalItemCount = layoutManager.getItemCount();
+                    int firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition();
+
+                    if (!isLoading && hasMoreData) {
+                        if ((visibleItemCount + firstVisibleItemPosition) >= totalItemCount - 5) {
+                            // Load more when 5 items from bottom
+                            loadMoreSongs();
+                        }
+                    }
+                }
+            }
+        });
 
         // Set the click listener for song items
         adapter.setOnSongClickListener(song -> {
@@ -187,20 +213,46 @@ public class HomeFragment extends Fragment {
     }
 
     private void loadSongsFromDatabase() {
-        List<Song> songs = dbHelper.getAllSongs();
-        if (songs.isEmpty()) {
+        // Reset pagination
+        currentOffset = 0;
+        hasMoreData = true;
+        adapter.clearSongs();
+
+        // Update song count
+        int totalCount = dbHelper.getSongCount();
+        if (totalCount == 0) {
             scrollContent.setVisibility(View.GONE);
             emptyView.setVisibility(View.VISIBLE);
             tvSongCount.setText("0 songs");
         } else {
             scrollContent.setVisibility(View.VISIBLE);
             emptyView.setVisibility(View.GONE);
-            adapter.setSongs(songs);
+            tvSongCount.setText(totalCount + (totalCount == 1 ? " song" : " songs"));
 
-            // Update song count
-            int count = songs.size();
-            tvSongCount.setText(count + (count == 1 ? " song" : " songs"));
+            // Load first page
+            loadMoreSongs();
         }
+    }
+
+    private void loadMoreSongs() {
+        if (isLoading || !hasMoreData)
+            return;
+
+        isLoading = true;
+
+        new Thread(() -> {
+            List<Song> songs = dbHelper.getSongsPaginated(PAGE_SIZE, currentOffset);
+
+            requireActivity().runOnUiThread(() -> {
+                if (songs.isEmpty()) {
+                    hasMoreData = false;
+                } else {
+                    adapter.addSongs(songs);
+                    currentOffset += songs.size();
+                }
+                isLoading = false;
+            });
+        }).start();
     }
 
     @Override

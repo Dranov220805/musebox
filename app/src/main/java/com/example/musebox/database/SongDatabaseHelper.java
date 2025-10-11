@@ -61,9 +61,8 @@ public class SongDatabaseHelper extends SQLiteOpenHelper {
     public boolean songExists(String uri) {
         SQLiteDatabase db = this.getReadableDatabase();
         Cursor cursor = db.rawQuery(
-            "SELECT * FROM " + TABLE_SONGS + " WHERE " + KEY_URI + " = ?",
-            new String[]{uri}
-        );
+                "SELECT * FROM " + TABLE_SONGS + " WHERE " + KEY_URI + " = ?",
+                new String[] { uri });
         boolean exists = cursor.getCount() > 0;
         cursor.close();
         db.close();
@@ -84,20 +83,19 @@ public class SongDatabaseHelper extends SQLiteOpenHelper {
     public int[] addSongsIfNotExistBatch(List<Song> songs) {
         int newCount = 0;
         int duplicateCount = 0;
-        
+
         SQLiteDatabase db = this.getWritableDatabase();
         db.beginTransaction();
         try {
             for (Song song : songs) {
                 // Check if exists using a query within the transaction
                 Cursor cursor = db.rawQuery(
-                    "SELECT 1 FROM " + TABLE_SONGS + " WHERE " + KEY_URI + " = ? LIMIT 1",
-                    new String[]{song.getUri()}
-                );
-                
+                        "SELECT 1 FROM " + TABLE_SONGS + " WHERE " + KEY_URI + " = ? LIMIT 1",
+                        new String[] { song.getUri() });
+
                 boolean exists = cursor.moveToFirst();
                 cursor.close();
-                
+
                 if (!exists) {
                     // Insert the song
                     ContentValues values = new ContentValues();
@@ -117,19 +115,58 @@ public class SongDatabaseHelper extends SQLiteOpenHelper {
             db.endTransaction();
             db.close();
         }
-        
-        return new int[]{newCount, duplicateCount};
+
+        return new int[] { newCount, duplicateCount };
     }
-//
-//    public long insertSong(Song song) {
-//        SQLiteDatabase db = this.getWritableDatabase();
-//        ContentValues values = new ContentValues();
-//        values.put(COLUMN_TITLE, song.getTitle());
-//        values.put(COLUMN_ARTIST, song.getArtist());
-//        values.put(COLUMN_URI, song.getUri());
-//        values.put(COLUMN_DURATION, song.getDuration());
-//        return db.insert(TABLE_SONGS, null, values);
-//    }
+
+    // Get total count of songs
+    public int getSongCount() {
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM " + TABLE_SONGS, null);
+        int count = 0;
+        if (cursor.moveToFirst()) {
+            count = cursor.getInt(0);
+        }
+        cursor.close();
+        db.close();
+        return count;
+    }
+
+    // Get songs with pagination (limit and offset)
+    public List<Song> getSongsPaginated(int limit, int offset) {
+        List<Song> songs = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        Cursor cursor = db.rawQuery(
+                "SELECT * FROM " + TABLE_SONGS + " ORDER BY " + KEY_TITLE + " ASC LIMIT ? OFFSET ?",
+                new String[] { String.valueOf(limit), String.valueOf(offset) });
+
+        if (cursor.moveToFirst()) {
+            do {
+                Song song = new Song(
+                        cursor.getString(0), // id
+                        cursor.getString(1), // title
+                        cursor.getString(2), // artist
+                        cursor.getString(3), // uri
+                        cursor.getLong(4) // duration
+                );
+                songs.add(song);
+            } while (cursor.moveToNext());
+        }
+        cursor.close();
+        db.close();
+        return songs;
+    }
+    //
+    // public long insertSong(Song song) {
+    // SQLiteDatabase db = this.getWritableDatabase();
+    // ContentValues values = new ContentValues();
+    // values.put(COLUMN_TITLE, song.getTitle());
+    // values.put(COLUMN_ARTIST, song.getArtist());
+    // values.put(COLUMN_URI, song.getUri());
+    // values.put(COLUMN_DURATION, song.getDuration());
+    // return db.insert(TABLE_SONGS, null, values);
+    // }
 
     public List<Song> getAllSongs() {
         List<Song> songList = new ArrayList<>();
@@ -139,11 +176,11 @@ public class SongDatabaseHelper extends SQLiteOpenHelper {
         if (cursor.moveToFirst()) {
             do {
                 Song song = new Song(
-                        cursor.getString(0),  // id
-                        cursor.getString(1),  // title
-                        cursor.getString(2),  // artist
-                        cursor.getString(3),  // uri
-                        cursor.getLong(4)     // duration
+                        cursor.getString(0), // id
+                        cursor.getString(1), // title
+                        cursor.getString(2), // artist
+                        cursor.getString(3), // uri
+                        cursor.getLong(4) // duration
                 );
                 songList.add(song);
             } while (cursor.moveToNext());

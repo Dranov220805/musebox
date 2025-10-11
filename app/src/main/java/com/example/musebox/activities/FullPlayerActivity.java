@@ -27,6 +27,7 @@ public class FullPlayerActivity extends AppCompatActivity {
 
     private Handler progressHandler = new Handler();
     private Runnable progressRunnable;
+    private String lastSongTitle = "";
 
     private ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
@@ -80,6 +81,13 @@ public class FullPlayerActivity extends AppCompatActivity {
                         txtTotalTime.setText(formatTime(duration));
                     }
 
+                    // Check if song changed
+                    String currentTitle = musicService.getCurrentSongTitle();
+                    if (currentTitle != null && !currentTitle.equals(lastSongTitle)) {
+                        lastSongTitle = currentTitle;
+                        updateUI();
+                    }
+
                     updatePlayPauseButton();
                 }
                 progressHandler.postDelayed(this, 500);
@@ -99,12 +107,16 @@ public class FullPlayerActivity extends AppCompatActivity {
         btnFullPrevious.setOnClickListener(v -> {
             if (musicService != null) {
                 musicService.playPrevious();
+                // Update UI after song change
+                updateUI();
             }
         });
 
         btnFullNext.setOnClickListener(v -> {
             if (musicService != null) {
                 musicService.playNext();
+                // Update UI after song change
+                updateUI();
             }
         });
 

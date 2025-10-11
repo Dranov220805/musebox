@@ -315,7 +315,7 @@ public class HomeActivity extends AppCompatActivity
         TextView textCount = progressView.findViewById(R.id.textCount);
 
         new Thread(() -> {
-            final int[] duplicates = {0}; // Declare outside try block
+            final int[] duplicates = { 0 }; // Declare outside try block
             int newCount = 0;
 
             try {
@@ -345,7 +345,7 @@ public class HomeActivity extends AppCompatActivity
                     final int BATCH_SIZE = 50; // Process 50 songs at a time
                     List<Song> batch = new ArrayList<>();
                     int processed = 0;
-                    
+
                     runOnUiThread(() -> {
                         progressBar.setMax(total);
                         textStatus.setText("Importing from MediaStore...");
@@ -362,14 +362,14 @@ public class HomeActivity extends AppCompatActivity
                         Uri contentUri = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id);
                         Song song = new Song(title, artist, contentUri.toString(), (int) duration);
                         batch.add(song);
-                        
+
                         // Process batch when it reaches BATCH_SIZE or on last item
                         if (batch.size() >= BATCH_SIZE || !cursor.isAfterLast() && cursor.isLast()) {
                             int[] result = dbHelper.addSongsIfNotExistBatch(batch);
                             newCount += result[0];
                             duplicates[0] += result[1];
                             processed += batch.size();
-                            
+
                             // Update UI
                             int finalProcessed = processed;
                             String finalTitle = title;
@@ -378,18 +378,18 @@ public class HomeActivity extends AppCompatActivity
                                 textCount.setText(finalProcessed + " / " + total);
                                 progressBar.setProgress(finalProcessed);
                             });
-                            
+
                             batch.clear();
                         }
                     }
-                    
+
                     // Process any remaining songs
                     if (!batch.isEmpty()) {
                         int[] result = dbHelper.addSongsIfNotExistBatch(batch);
                         newCount += result[0];
                         duplicates[0] += result[1];
                         processed += batch.size();
-                        
+
                         int finalProcessed = processed;
                         runOnUiThread(() -> {
                             textCount.setText(finalProcessed + " / " + total);
@@ -415,7 +415,8 @@ public class HomeActivity extends AppCompatActivity
                 if (finalNewCount == 0 && finalDuplicates == 0) {
                     Toast.makeText(this, "No songs found", Toast.LENGTH_LONG).show();
                 } else if (finalNewCount == 0) {
-                    Toast.makeText(this, "Added 0 new songs. " + finalDuplicates + " duplicate(s) skipped.", Toast.LENGTH_LONG).show();
+                    Toast.makeText(this, "Added 0 new songs. " + finalDuplicates + " duplicate(s) skipped.",
+                            Toast.LENGTH_LONG).show();
                 } else {
                     String message = "Imported " + finalNewCount + " new song(s)";
                     if (finalDuplicates > 0) {
@@ -447,7 +448,7 @@ public class HomeActivity extends AppCompatActivity
 
         new Thread(() -> {
             List<Song> importedSongs = new ArrayList<>();
-            final int[] duplicates = {0}; // Use array to allow modification in callback
+            final int[] duplicates = { 0 }; // Use array to allow modification in callback
             int total = countAudioFiles(treeUri);
             final int totalFiles = Math.max(total, 1);
             final int BATCH_SIZE = 20; // Update UI every 20 songs
@@ -466,7 +467,7 @@ public class HomeActivity extends AppCompatActivity
                 public void onSongDetected(String name) {
                     imported++;
                     lastSongName = name;
-                    
+
                     // Update UI only every BATCH_SIZE songs or on last song
                     if (imported % BATCH_SIZE == 0 || imported == totalFiles) {
                         int finalImported = imported;
@@ -487,7 +488,8 @@ public class HomeActivity extends AppCompatActivity
                 if (newCount == 0 && finalDuplicates == 0) {
                     Toast.makeText(this, "No songs found", Toast.LENGTH_LONG).show();
                 } else if (newCount == 0) {
-                    Toast.makeText(this, "Added 0 new songs. " + finalDuplicates + " duplicate(s) skipped.", Toast.LENGTH_LONG).show();
+                    Toast.makeText(this, "Added 0 new songs. " + finalDuplicates + " duplicate(s) skipped.",
+                            Toast.LENGTH_LONG).show();
                 } else {
                     String message = "Imported " + newCount + " new song(s)";
                     if (finalDuplicates > 0) {
@@ -499,7 +501,8 @@ public class HomeActivity extends AppCompatActivity
         }).start();
     }
 
-    private void scanFolderRecursively(Uri folderUri, List<Song> importedSongs, int[] duplicates, ImportProgressCallback callback) {
+    private void scanFolderRecursively(Uri folderUri, List<Song> importedSongs, int[] duplicates,
+            ImportProgressCallback callback) {
         ContentResolver resolver = getContentResolver();
         Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(
                 folderUri, DocumentsContract.getTreeDocumentId(folderUri));
@@ -527,14 +530,14 @@ public class HomeActivity extends AppCompatActivity
                         scanFolderRecursively(fileUri, importedSongs, duplicates, callback);
                     } else if (mimeType.startsWith("audio/")) {
                         Song song = new Song(displayName, "Unknown Artist", fileUri.toString(), 0);
-                        
+
                         // Only add if not duplicate
                         if (dbHelper.addSongIfNotExists(song)) {
                             importedSongs.add(song);
                         } else {
                             duplicates[0]++;
                         }
-                        
+
                         if (callback != null)
                             callback.onSongDetected(displayName);
                     }

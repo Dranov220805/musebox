@@ -10,6 +10,8 @@ import androidx.appcompat.widget.PopupMenu;
 import androidx.recyclerview.widget.RecyclerView;
 import com.example.musebox.R;
 import com.example.musebox.models.Song;
+
+import java.util.ArrayList;
 import java.util.List;
 
 public class SongAdapter extends RecyclerView.Adapter<SongAdapter.SongViewHolder> {
@@ -43,14 +45,15 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.SongViewHolder
         holder.tvDuration.setText(String.format("%d:%02d", minutes, seconds));
 
         holder.itemView.setOnClickListener(v -> {
-            if (listener != null) listener.onSongClick(song);
+            if (listener != null)
+                listener.onSongClick(song);
         });
 
         // Menu button click
         holder.btnMenu.setOnClickListener(v -> {
             PopupMenu popup = new PopupMenu(v.getContext(), v);
             popup.inflate(R.menu.menu_song_options);
-            
+
             popup.setOnMenuItemClickListener(item -> {
                 if (menuListener != null) {
                     int itemId = item.getItemId();
@@ -67,7 +70,7 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.SongViewHolder
                 }
                 return false;
             });
-            
+
             popup.show();
         });
     }
@@ -87,13 +90,31 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.SongViewHolder
         notifyDataSetChanged();
     }
 
+    public void addSongs(List<Song> newSongs) {
+        if (songs == null) {
+            songs = new ArrayList<>();
+        }
+        int startPosition = songs.size();
+        songs.addAll(newSongs);
+        notifyItemRangeInserted(startPosition, newSongs.size());
+    }
+
+    public void clearSongs() {
+        if (songs != null) {
+            songs.clear();
+            notifyDataSetChanged();
+        }
+    }
+
     public interface OnSongClickListener {
         void onSongClick(Song song);
     }
 
     public interface OnSongMenuListener {
         void onAddToQueue(Song song);
+
         void onAddToFavourite(Song song);
+
         void onAddToPlaylist(Song song);
     }
 
