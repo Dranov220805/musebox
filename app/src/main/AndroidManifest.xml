@@ -13,6 +13,13 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Base.Theme.MuseBox">
+        
+        <!-- MusicService -->
+        <service
+            android:name=".services.MusicService"
+            android:enabled="true"
+            android:exported="false" />
+        
         <activity
             android:name=".activities.SplashActivity"
             android:exported="true"

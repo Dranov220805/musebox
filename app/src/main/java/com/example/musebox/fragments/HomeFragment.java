@@ -32,13 +32,26 @@ import java.util.List;
 
 public class HomeFragment extends Fragment {
 
+    public interface OnSongSelectedListener {
+        void onSongSelected(Song song);
+    }
+
     private RecyclerView recyclerSongs;
     private LinearLayout emptyView;
     private Button btnImport;
     private SongAdapter adapter;
     private SongDatabaseHelper dbHelper;
+    private OnSongSelectedListener listener;
 
     private static final int REQUEST_PERMISSION = 200;
+
+    @Override
+    public void onAttach(@NonNull Context context) {
+        super.onAttach(context);
+        if (context instanceof OnSongSelectedListener) {
+            listener = (OnSongSelectedListener) context;
+        }
+    }
 
     @Nullable
     @Override
@@ -56,6 +69,13 @@ public class HomeFragment extends Fragment {
         recyclerSongs.setLayoutManager(new LinearLayoutManager(requireContext()));
         adapter = new SongAdapter(new ArrayList<>());
         recyclerSongs.setAdapter(adapter);
+
+        // Set the click listener for song items
+        adapter.setOnSongClickListener(song -> {
+            if (listener != null) {
+                listener.onSongSelected(song);
+            }
+        });
 
         btnImport.setOnClickListener(v -> checkPermissionAndScan());
 
