@@ -32,7 +32,7 @@ import java.util.List;
 import android.net.Uri;
 import androidx.appcompat.app.AlertDialog;
 
-public class FavoritesActivity extends AppCompatActivity 
+public class FavoritesActivity extends AppCompatActivity
         implements NavigationBarFragment.OnNavigationItemSelectedListener {
 
     private RecyclerView recyclerView;

@@ -164,9 +164,16 @@ public class HomeFragment extends Fragment {
     }
 
     private void checkPermissionAndScan() {
-        if (ActivityCompat.checkSelfPermission(requireContext(),
-                Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(new String[] { Manifest.permission.READ_EXTERNAL_STORAGE }, REQUEST_PERMISSION);
+        // Check Android version and request appropriate permission
+        String permission;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) { // Android 13+
+            permission = Manifest.permission.READ_MEDIA_AUDIO;
+        } else {
+            permission = Manifest.permission.READ_EXTERNAL_STORAGE;
+        }
+
+        if (ActivityCompat.checkSelfPermission(requireContext(), permission) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[] { permission }, REQUEST_PERMISSION);
         } else {
             scanDeviceForAudioFiles();
         }
