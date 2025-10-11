@@ -316,6 +316,7 @@ public class HomeActivity extends AppCompatActivity
 
         new Thread(() -> {
             List<Song> importedSongs = new ArrayList<>();
+            final int[] duplicates = {0}; // Declare outside try block
 
             try {
                 ContentResolver resolver = getContentResolver();
@@ -358,8 +359,13 @@ public class HomeActivity extends AppCompatActivity
                         Uri contentUri = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id);
 
                         Song song = new Song(title, artist, contentUri.toString(), (int) duration);
-                        dbHelper.addSong(song);
-                        importedSongs.add(song);
+                        
+                        // Only add if not duplicate
+                        if (dbHelper.addSongIfNotExists(song)) {
+                            importedSongs.add(song);
+                        } else {
+                            duplicates[0]++;
+                        }
 
                         imported++;
                         int finalImported = imported;
@@ -381,9 +387,21 @@ public class HomeActivity extends AppCompatActivity
                 return;
             }
 
+            int newCount = importedSongs.size();
+            int finalDuplicates = duplicates[0];
             runOnUiThread(() -> {
                 dialog.dismiss();
-                Toast.makeText(this, "MediaStore import complete!", Toast.LENGTH_LONG).show();
+                if (newCount == 0 && finalDuplicates == 0) {
+                    Toast.makeText(this, "No songs found", Toast.LENGTH_LONG).show();
+                } else if (newCount == 0) {
+                    Toast.makeText(this, "Added 0 new songs. " + finalDuplicates + " duplicate(s) skipped.", Toast.LENGTH_LONG).show();
+                } else {
+                    String message = "Imported " + newCount + " new song(s)";
+                    if (finalDuplicates > 0) {
+                        message += ". " + finalDuplicates + " duplicate(s) skipped.";
+                    }
+                    Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+                }
             });
         }).start();
     }
@@ -408,6 +426,7 @@ public class HomeActivity extends AppCompatActivity
 
         new Thread(() -> {
             List<Song> importedSongs = new ArrayList<>();
+            final int[] duplicates = {0}; // Use array to allow modification in callback
             int total = countAudioFiles(treeUri);
             final int totalFiles = Math.max(total, 1);
 
@@ -417,7 +436,7 @@ public class HomeActivity extends AppCompatActivity
                 textCount.setText("0 / " + totalFiles);
             });
 
-            scanFolderRecursively(treeUri, importedSongs, new ImportProgressCallback() {
+            scanFolderRecursively(treeUri, importedSongs, duplicates, new ImportProgressCallback() {
                 int imported = 0;
 
                 @Override
@@ -432,17 +451,26 @@ public class HomeActivity extends AppCompatActivity
                 }
             });
 
+            int newCount = importedSongs.size();
+            int finalDuplicates = duplicates[0];
             runOnUiThread(() -> {
                 dialog.dismiss();
-                Toast.makeText(
-                        HomeActivity.this,
-                        "Imported " + importedSongs.size() + " songs successfully!",
-                        Toast.LENGTH_LONG).show();
+                if (newCount == 0 && finalDuplicates == 0) {
+                    Toast.makeText(this, "No songs found", Toast.LENGTH_LONG).show();
+                } else if (newCount == 0) {
+                    Toast.makeText(this, "Added 0 new songs. " + finalDuplicates + " duplicate(s) skipped.", Toast.LENGTH_LONG).show();
+                } else {
+                    String message = "Imported " + newCount + " new song(s)";
+                    if (finalDuplicates > 0) {
+                        message += ". " + finalDuplicates + " duplicate(s) skipped.";
+                    }
+                    Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+                }
             });
         }).start();
     }
 
-    private void scanFolderRecursively(Uri folderUri, List<Song> importedSongs, ImportProgressCallback callback) {
+    private void scanFolderRecursively(Uri folderUri, List<Song> importedSongs, int[] duplicates, ImportProgressCallback callback) {
         ContentResolver resolver = getContentResolver();
         Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(
                 folderUri, DocumentsContract.getTreeDocumentId(folderUri));
@@ -467,11 +495,17 @@ public class HomeActivity extends AppCompatActivity
                         continue;
 
                     if (DocumentsContract.Document.MIME_TYPE_DIR.equals(mimeType)) {
-                        scanFolderRecursively(fileUri, importedSongs, callback);
+                        scanFolderRecursively(fileUri, importedSongs, duplicates, callback);
                     } else if (mimeType.startsWith("audio/")) {
                         Song song = new Song(displayName, "Unknown Artist", fileUri.toString(), 0);
-                        dbHelper.addSong(song);
-                        importedSongs.add(song);
+                        
+                        // Only add if not duplicate
+                        if (dbHelper.addSongIfNotExists(song)) {
+                            importedSongs.add(song);
+                        } else {
+                            duplicates[0]++;
+                        }
+                        
                         if (callback != null)
                             callback.onSongDetected(displayName);
                     }

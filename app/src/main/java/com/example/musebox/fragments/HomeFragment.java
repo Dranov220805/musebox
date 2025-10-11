@@ -59,8 +59,8 @@ public class HomeFragment extends Fragment {
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
-                             @Nullable ViewGroup container,
-                             @Nullable Bundle savedInstanceState) {
+            @Nullable ViewGroup container,
+            @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_home, container, false);
 
         recyclerSongs = view.findViewById(R.id.recyclerSongs);
@@ -92,7 +92,8 @@ public class HomeFragment extends Fragment {
 
             @Override
             public void onAddToFavourite(Song song) {
-                Toast.makeText(requireContext(), "Added " + song.getTitle() + " to favourites", Toast.LENGTH_SHORT).show();
+                Toast.makeText(requireContext(), "Added " + song.getTitle() + " to favourites", Toast.LENGTH_SHORT)
+                        .show();
                 // TODO: Implement add to favourites functionality
             }
 
@@ -110,9 +111,9 @@ public class HomeFragment extends Fragment {
     }
 
     private void checkPermissionAndScan() {
-        if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.READ_EXTERNAL_STORAGE)
-                != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, REQUEST_PERMISSION);
+        if (ActivityCompat.checkSelfPermission(requireContext(),
+                Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[] { Manifest.permission.READ_EXTERNAL_STORAGE }, REQUEST_PERMISSION);
         } else {
             scanDeviceForAudioFiles();
         }
@@ -134,14 +135,14 @@ public class HomeFragment extends Fragment {
 
             Cursor cursor = resolver.query(uri, projection, null, null, null);
             if (cursor == null) {
-                requireActivity().runOnUiThread(() ->
-                        Toast.makeText(requireContext(), "No music found!", Toast.LENGTH_SHORT).show());
+                requireActivity().runOnUiThread(
+                        () -> Toast.makeText(requireContext(), "No music found!", Toast.LENGTH_SHORT).show());
                 return;
             }
 
             int newSongsCount = 0;
             int duplicateCount = 0;
-            
+
             while (cursor.moveToNext()) {
                 String title = cursor.getString(0);
                 String artist = cursor.getString(1);
@@ -149,10 +150,11 @@ public class HomeFragment extends Fragment {
                 int duration = cursor.getInt(3);
 
                 // Skip non-existent files
-                if (path == null) continue;
+                if (path == null)
+                    continue;
 
                 Song song = new Song(title, artist, path, duration);
-                
+
                 // Check if song was added (not a duplicate)
                 if (dbHelper.addSongIfNotExists(song)) {
                     newSongsCount++;
@@ -164,7 +166,7 @@ public class HomeFragment extends Fragment {
 
             final int finalNewCount = newSongsCount;
             final int finalDuplicateCount = duplicateCount;
-            
+
             requireActivity().runOnUiThread(() -> {
                 if (finalNewCount == 0 && finalDuplicateCount == 0) {
                     Toast.makeText(requireContext(), "No songs found on device", Toast.LENGTH_LONG).show();
@@ -194,7 +196,7 @@ public class HomeFragment extends Fragment {
             scrollContent.setVisibility(View.VISIBLE);
             emptyView.setVisibility(View.GONE);
             adapter.setSongs(songs);
-            
+
             // Update song count
             int count = songs.size();
             tvSongCount.setText(count + (count == 1 ? " song" : " songs"));
@@ -203,7 +205,7 @@ public class HomeFragment extends Fragment {
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
-                                           @NonNull int[] grantResults) {
+            @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == REQUEST_PERMISSION) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
