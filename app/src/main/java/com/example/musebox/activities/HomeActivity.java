@@ -45,13 +45,17 @@ public class HomeActivity extends AppCompatActivity
     // Mini player views
     private View miniPlayer;
     private TextView tvSongTitle;
-    private ImageButton btnPlayPause, btnSpeed;
+    private ImageButton btnPlayPause, btnSpeed, btnClose;
     private SeekBar seekBar;
     private com.example.musebox.views.CircularProgressView circularProgress;
     
     // Handler for updating progress
     private android.os.Handler progressHandler = new android.os.Handler();
     private Runnable progressRunnable;
+    
+    // Current song and playlist
+    private Song currentSong;
+    private List<Song> currentPlaylist = new ArrayList<>();
 
     // ServiceConnection to bind with MusicService
     private ServiceConnection serviceConnection = new ServiceConnection() {
@@ -77,8 +81,8 @@ public class HomeActivity extends AppCompatActivity
         miniPlayer = findViewById(R.id.includeMiniPlayer);
         tvSongTitle = miniPlayer.findViewById(R.id.txtSongTitle);
         btnPlayPause = miniPlayer.findViewById(R.id.btnPlayPause);
+        btnClose = miniPlayer.findViewById(R.id.btnClose);
         circularProgress = miniPlayer.findViewById(R.id.circularProgress);
-//        btnSpeed = miniPlayer.findViewById(R.id.btnSpeed);
 
         // Bind to MusicService
         Intent serviceIntent = new Intent(this, MusicService.class);
@@ -101,6 +105,13 @@ public class HomeActivity extends AppCompatActivity
             }
         };
 
+        // Mini player click - expand to full screen
+        miniPlayer.setOnClickListener(v -> {
+            Intent intent = new Intent(HomeActivity.this, FullPlayerActivity.class);
+            startActivity(intent);
+            overridePendingTransition(android.R.anim.slide_in_left, android.R.anim.slide_out_right);
+        });
+
         btnPlayPause.setOnClickListener(v -> {
             if (musicService != null) {
                 musicService.pauseOrResume();
@@ -112,13 +123,17 @@ public class HomeActivity extends AppCompatActivity
             }
         });
 
-//        btnSpeed.setOnClickListener(v -> {
-//            if (musicService != null) {
-//                float newSpeed = musicService.getPlaybackSpeed() == 1.0f ? 1.5f : 1.0f;
-//                musicService.setPlaybackSpeed(newSpeed);
-//                btnSpeed.setText(newSpeed + "x");
-//            }
-//        });
+        // Close button - stop playback and hide mini player
+        btnClose.setOnClickListener(v -> {
+            if (musicService != null) {
+                musicService.stopPlaybackAndRemoveNotification();
+            }
+            miniPlayer.setVisibility(View.GONE);
+            progressHandler.removeCallbacks(progressRunnable);
+        });
+
+        // Swipe down to dismiss
+        setupSwipeGesture();
 
         dbHelper = new SongDatabaseHelper(this);
 
@@ -131,6 +146,47 @@ public class HomeActivity extends AppCompatActivity
                     .replace(R.id.navigation_container, new NavigationBarFragment())
                     .commit();
         }
+    }
+
+    private void setupSwipeGesture() {
+        miniPlayer.setOnTouchListener(new android.view.View.OnTouchListener() {
+            private float startY;
+            private static final int MIN_DISTANCE = 100;
+
+            @Override
+            public boolean onTouch(android.view.View v, android.view.MotionEvent event) {
+                switch (event.getAction()) {
+                    case android.view.MotionEvent.ACTION_DOWN:
+                        startY = event.getY();
+                        return false;
+                        
+                    case android.view.MotionEvent.ACTION_UP:
+                        float endY = event.getY();
+                        float deltaY = endY - startY;
+                        
+                        if (deltaY > MIN_DISTANCE) {
+                            // Swiped down - animate and dismiss
+                            miniPlayer.animate()
+                                    .translationY(miniPlayer.getHeight())
+                                    .alpha(0f)
+                                    .setDuration(300)
+                                    .withEndAction(() -> {
+                                        if (musicService != null) {
+                                            musicService.stopPlaybackAndRemoveNotification();
+                                        }
+                                        miniPlayer.setVisibility(View.GONE);
+                                        miniPlayer.setTranslationY(0);
+                                        miniPlayer.setAlpha(1f);
+                                        progressHandler.removeCallbacks(progressRunnable);
+                                    })
+                                    .start();
+                            return true;
+                        }
+                        break;
+                }
+                return false;
+            }
+        });
     }
 
     @Override
@@ -165,8 +221,20 @@ public class HomeActivity extends AppCompatActivity
     @Override
     public void onSongSelected(Song song) {
         if (musicService != null && song != null) {
-            // Play the selected song
-            musicService.playSong(song.getUri());
+            // Store current song
+            currentSong = song;
+            
+            // Load all songs from database as playlist
+            currentPlaylist = dbHelper.getAllSongs();
+            int songIndex = currentPlaylist.indexOf(song);
+            if (songIndex == -1) songIndex = 0;
+            
+            // Set playlist in service
+            musicService.setPlaylist(currentPlaylist, songIndex);
+            
+            // Play the selected song with title and artist info
+            Uri songUri = Uri.parse(song.getUri());
+            musicService.playSong(songUri, song.getTitle(), song.getArtist());
             
             // Show mini player
             miniPlayer.setVisibility(View.VISIBLE);

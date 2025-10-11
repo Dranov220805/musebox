@@ -68,4 +68,17 @@ public class Song {
     public void setDuration(long duration) {
         this.duration = duration;
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        Song song = (Song) obj;
+        return id != null ? id.equals(song.id) : song.id == null;
+    }
+
+    @Override
+    public int hashCode() {
+        return id != null ? id.hashCode() : 0;
+    }
 }
