@@ -48,11 +48,11 @@ public class HomeActivity extends AppCompatActivity
     private ImageButton btnPlayPause, btnSpeed, btnClose;
     private SeekBar seekBar;
     private com.example.musebox.views.CircularProgressView circularProgress;
-    
+
     // Handler for updating progress
     private android.os.Handler progressHandler = new android.os.Handler();
     private Runnable progressRunnable;
-    
+
     // Current song and playlist
     private Song currentSong;
     private List<Song> currentPlaylist = new ArrayList<>();
@@ -95,7 +95,7 @@ public class HomeActivity extends AppCompatActivity
                 if (musicService != null && musicService.isPlaying()) {
                     int currentPosition = musicService.getCurrentPosition();
                     int duration = musicService.getDuration();
-                    
+
                     if (duration > 0) {
                         float progress = (currentPosition * 100f) / duration;
                         circularProgress.setProgress(progress);
@@ -159,11 +159,11 @@ public class HomeActivity extends AppCompatActivity
                     case android.view.MotionEvent.ACTION_DOWN:
                         startY = event.getY();
                         return false;
-                        
+
                     case android.view.MotionEvent.ACTION_UP:
                         float endY = event.getY();
                         float deltaY = endY - startY;
-                        
+
                         if (deltaY > MIN_DISTANCE) {
                             // Swiped down - animate and dismiss
                             miniPlayer.animate()
@@ -194,7 +194,7 @@ public class HomeActivity extends AppCompatActivity
         super.onDestroy();
         // Stop progress updates
         progressHandler.removeCallbacks(progressRunnable);
-        
+
         if (isBound) {
             unbindService(serviceConnection);
             isBound = false;
@@ -223,32 +223,33 @@ public class HomeActivity extends AppCompatActivity
         if (musicService != null && song != null) {
             // Store current song
             currentSong = song;
-            
+
             // Load all songs from database as playlist
             currentPlaylist = dbHelper.getAllSongs();
             int songIndex = currentPlaylist.indexOf(song);
-            if (songIndex == -1) songIndex = 0;
-            
+            if (songIndex == -1)
+                songIndex = 0;
+
             // Set playlist in service
             musicService.setPlaylist(currentPlaylist, songIndex);
-            
+
             // Play the selected song with title and artist info
             Uri songUri = Uri.parse(song.getUri());
             musicService.playSong(songUri, song.getTitle(), song.getArtist());
-            
+
             // Show mini player
             miniPlayer.setVisibility(View.VISIBLE);
-            
+
             // Reset circular progress
             circularProgress.setProgress(0);
-            
+
             // Start progress updates
             progressHandler.post(progressRunnable);
-            
+
             // Update UI
             tvSongTitle.setText(song.getTitle());
             btnPlayPause.setImageResource(R.drawable.ic_pause);
-            
+
             Toast.makeText(this, "Playing: " + song.getTitle(), Toast.LENGTH_SHORT).show();
         } else {
             Toast.makeText(this, "Music service not available", Toast.LENGTH_SHORT).show();
@@ -259,10 +260,18 @@ public class HomeActivity extends AppCompatActivity
     public void onNavigationItemSelected(String item) {
         Fragment selected = null;
         switch (item) {
-            case "home": selected = new HomeFragment(); break;
-            case "search": selected = new SearchFragment(); break;
-            case "playlist": selected = new PlaylistFragment(); break;
-            case "profile": selected = new ProfileFragment(); break;
+            case "home":
+                selected = new HomeFragment();
+                break;
+            case "search":
+                selected = new SearchFragment();
+                break;
+            case "playlist":
+                selected = new PlaylistFragment();
+                break;
+            case "profile":
+                selected = new ProfileFragment();
+                break;
         }
 
         if (selected != null) {
@@ -366,7 +375,8 @@ public class HomeActivity extends AppCompatActivity
             } catch (Exception e) {
                 e.printStackTrace();
                 runOnUiThread(() -> {
-                    Toast.makeText(this, "Error using MediaStore. Falling back to folder scan.", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Error using MediaStore. Falling back to folder scan.", Toast.LENGTH_SHORT)
+                            .show();
                 });
                 dialog.dismiss();
                 importMusicFromFolder(folderUri);
@@ -411,6 +421,7 @@ public class HomeActivity extends AppCompatActivity
 
             scanFolderRecursively(treeUri, importedSongs, new ImportProgressCallback() {
                 int imported = 0;
+
                 @Override
                 public void onSongDetected(String name) {
                     imported++;
@@ -428,8 +439,7 @@ public class HomeActivity extends AppCompatActivity
                 Toast.makeText(
                         HomeActivity.this,
                         "Imported " + importedSongs.size() + " songs successfully!",
-                        Toast.LENGTH_LONG
-                ).show();
+                        Toast.LENGTH_LONG).show();
             });
         }).start();
     }
@@ -437,11 +447,10 @@ public class HomeActivity extends AppCompatActivity
     private void scanFolderRecursively(Uri folderUri, List<Song> importedSongs, ImportProgressCallback callback) {
         ContentResolver resolver = getContentResolver();
         Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(
-                folderUri, DocumentsContract.getTreeDocumentId(folderUri)
-        );
+                folderUri, DocumentsContract.getTreeDocumentId(folderUri));
 
         try (Cursor cursor = resolver.query(childrenUri,
-                new String[]{
+                new String[] {
                         DocumentsContract.Document.COLUMN_DOCUMENT_ID,
                         DocumentsContract.Document.COLUMN_DISPLAY_NAME,
                         DocumentsContract.Document.COLUMN_MIME_TYPE
@@ -456,7 +465,8 @@ public class HomeActivity extends AppCompatActivity
 
                     Uri fileUri = DocumentsContract.buildDocumentUriUsingTree(folderUri, docId);
 
-                    if (mimeType == null) continue;
+                    if (mimeType == null)
+                        continue;
 
                     if (DocumentsContract.Document.MIME_TYPE_DIR.equals(mimeType)) {
                         scanFolderRecursively(fileUri, importedSongs, callback);
@@ -464,7 +474,8 @@ public class HomeActivity extends AppCompatActivity
                         Song song = new Song(displayName, "Unknown Artist", fileUri.toString(), 0);
                         dbHelper.addSong(song);
                         importedSongs.add(song);
-                        if (callback != null) callback.onSongDetected(displayName);
+                        if (callback != null)
+                            callback.onSongDetected(displayName);
                     }
                 }
             }
@@ -477,11 +488,10 @@ public class HomeActivity extends AppCompatActivity
         int count = 0;
         ContentResolver resolver = getContentResolver();
         Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(
-                folderUri, DocumentsContract.getTreeDocumentId(folderUri)
-        );
+                folderUri, DocumentsContract.getTreeDocumentId(folderUri));
 
         try (Cursor cursor = resolver.query(childrenUri,
-                new String[]{
+                new String[] {
                         DocumentsContract.Document.COLUMN_DOCUMENT_ID,
                         DocumentsContract.Document.COLUMN_MIME_TYPE
                 },
@@ -493,7 +503,8 @@ public class HomeActivity extends AppCompatActivity
                     String mimeType = cursor.getString(1);
                     Uri fileUri = DocumentsContract.buildDocumentUriUsingTree(folderUri, docId);
 
-                    if (mimeType == null) continue;
+                    if (mimeType == null)
+                        continue;
 
                     if (DocumentsContract.Document.MIME_TYPE_DIR.equals(mimeType)) {
                         count += countAudioFiles(fileUri);

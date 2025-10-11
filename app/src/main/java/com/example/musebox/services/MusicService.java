@@ -28,21 +28,21 @@ public class MusicService extends Service {
     private final IBinder binder = new LocalBinder();
     private MediaPlayer mediaPlayer;
     private boolean isPrepared = false;
-    
+
     // Notification constants
     private static final String CHANNEL_ID = "MusicPlaybackChannel";
     private static final int NOTIFICATION_ID = 1;
-    
+
     // Actions for notification buttons
     public static final String ACTION_PLAY_PAUSE = "com.example.musebox.ACTION_PLAY_PAUSE";
     public static final String ACTION_NEXT = "com.example.musebox.ACTION_NEXT";
     public static final String ACTION_PREVIOUS = "com.example.musebox.ACTION_PREVIOUS";
     public static final String ACTION_STOP = "com.example.musebox.ACTION_STOP";
-    
+
     // Current song info
     private String currentSongTitle = "No song playing";
     private String currentSongArtist = "Unknown Artist";
-    
+
     // Playlist management
     private java.util.List<com.example.musebox.models.Song> playlist = new java.util.ArrayList<>();
     private int currentSongIndex = -1;
@@ -93,11 +93,10 @@ public class MusicService extends Service {
             NotificationChannel channel = new NotificationChannel(
                     CHANNEL_ID,
                     "Music Playback",
-                    NotificationManager.IMPORTANCE_LOW
-            );
+                    NotificationManager.IMPORTANCE_LOW);
             channel.setDescription("Controls for music playback");
             channel.setShowBadge(false);
-            
+
             NotificationManager manager = getSystemService(NotificationManager.class);
             if (manager != null) {
                 manager.createNotificationChannel(channel);
@@ -110,7 +109,7 @@ public class MusicService extends Service {
     /** Play song from Uri with title and artist **/
     public void playSong(Uri songUri, String title, String artist) {
         stopCurrent();
-        
+
         currentSongTitle = title != null ? title : "Unknown Song";
         currentSongArtist = artist != null ? artist : "Unknown Artist";
 
@@ -120,7 +119,7 @@ public class MusicService extends Service {
             mediaPlayer.prepare();
             mediaPlayer.start();
             isPrepared = true;
-            
+
             // Show notification when song starts
             showNotification();
         } catch (IOException e) {
@@ -135,13 +134,15 @@ public class MusicService extends Service {
 
     /** Play song from local path **/
     public void playSong(String path) {
-        if (path == null) return;
+        if (path == null)
+            return;
         playSong(Uri.fromFile(new File(path)));
     }
 
     /** Toggle pause/resume **/
     public void pauseOrResume() {
-        if (mediaPlayer == null || !isPrepared) return;
+        if (mediaPlayer == null || !isPrepared)
+            return;
 
         if (mediaPlayer.isPlaying()) {
             mediaPlayer.pause();
@@ -154,13 +155,14 @@ public class MusicService extends Service {
     /** Stop and release current media player **/
     public void stopCurrent() {
         if (mediaPlayer != null) {
-            if (mediaPlayer.isPlaying()) mediaPlayer.stop();
+            if (mediaPlayer.isPlaying())
+                mediaPlayer.stop();
             mediaPlayer.release();
             mediaPlayer = null;
             isPrepared = false;
         }
     }
-    
+
     /** Stop playback and remove notification **/
     public void stopPlaybackAndRemoveNotification() {
         stopCurrent();
@@ -182,43 +184,45 @@ public class MusicService extends Service {
     public int getDuration() {
         return (mediaPlayer != null && isPrepared) ? mediaPlayer.getDuration() : 0;
     }
-    
+
     /** Seek to position **/
     public void seekTo(int position) {
         if (mediaPlayer != null && isPrepared) {
             mediaPlayer.seekTo(position);
         }
     }
-    
+
     /** Get current song title **/
     public String getCurrentSongTitle() {
         return currentSongTitle;
     }
-    
+
     /** Get current song artist **/
     public String getCurrentSongArtist() {
         return currentSongArtist;
     }
-    
+
     /** Set playlist **/
     public void setPlaylist(java.util.List<com.example.musebox.models.Song> songs, int startIndex) {
         this.playlist = songs;
         this.currentSongIndex = startIndex;
     }
-    
+
     /** Play next song in playlist **/
     public void playNext() {
-        if (playlist.isEmpty()) return;
-        
+        if (playlist.isEmpty())
+            return;
+
         currentSongIndex = (currentSongIndex + 1) % playlist.size();
         com.example.musebox.models.Song nextSong = playlist.get(currentSongIndex);
         playSong(android.net.Uri.parse(nextSong.getUri()), nextSong.getTitle(), nextSong.getArtist());
     }
-    
+
     /** Play previous song in playlist **/
     public void playPrevious() {
-        if (playlist.isEmpty()) return;
-        
+        if (playlist.isEmpty())
+            return;
+
         currentSongIndex = (currentSongIndex - 1 + playlist.size()) % playlist.size();
         com.example.musebox.models.Song previousSong = playlist.get(currentSongIndex);
         playSong(android.net.Uri.parse(previousSong.getUri()), previousSong.getTitle(), previousSong.getArtist());
@@ -257,51 +261,46 @@ public class MusicService extends Service {
         // Intent to open the app when notification is clicked
         Intent notificationIntent = new Intent(this, HomeActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(
-                this, 
-                0, 
+                this,
+                0,
                 notificationIntent,
-                PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
-        );
+                PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
 
         // Play/Pause action
         Intent playPauseIntent = new Intent(this, MusicService.class);
         playPauseIntent.setAction(ACTION_PLAY_PAUSE);
         PendingIntent playPausePendingIntent = PendingIntent.getService(
-                this, 
-                0, 
+                this,
+                0,
                 playPauseIntent,
-                PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
-        );
+                PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
 
         // Previous action
         Intent previousIntent = new Intent(this, MusicService.class);
         previousIntent.setAction(ACTION_PREVIOUS);
         PendingIntent previousPendingIntent = PendingIntent.getService(
-                this, 
-                1, 
+                this,
+                1,
                 previousIntent,
-                PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
-        );
+                PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
 
         // Next action
         Intent nextIntent = new Intent(this, MusicService.class);
         nextIntent.setAction(ACTION_NEXT);
         PendingIntent nextPendingIntent = PendingIntent.getService(
-                this, 
-                2, 
+                this,
+                2,
                 nextIntent,
-                PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
-        );
+                PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
 
         // Stop action
         Intent stopIntent = new Intent(this, MusicService.class);
         stopIntent.setAction(ACTION_STOP);
         PendingIntent stopPendingIntent = PendingIntent.getService(
-                this, 
-                3, 
+                this,
+                3,
                 stopIntent,
-                PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
-        );
+                PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
 
         // Determine play/pause icon
         int playPauseIcon = isPlaying() ? R.drawable.ic_pause : R.drawable.ic_play;
@@ -332,7 +331,7 @@ public class MusicService extends Service {
         stopCurrent();
         super.onDestroy();
     }
-    
+
     @Override
     public void onTaskRemoved(Intent rootIntent) {
         // App is swiped away from recent apps - stop service and remove notification
