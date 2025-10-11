@@ -21,7 +21,7 @@ public class FullPlayerActivity extends AppCompatActivity {
     private MusicService musicService;
     private boolean isBound = false;
 
-    private ImageButton btnClose, btnFullPlayPause, btnFullPrevious, btnFullNext;
+    private ImageButton btnClose, btnFullPlayPause, btnFullPrevious, btnFullNext, btnFullShuffle, btnFullRepeat;
     private SeekBar seekBarProgress;
     private TextView txtFullSongTitle, txtFullArtist, txtCurrentTime, txtTotalTime;
 
@@ -56,6 +56,8 @@ public class FullPlayerActivity extends AppCompatActivity {
         btnFullPlayPause = findViewById(R.id.btnFullPlayPause);
         btnFullPrevious = findViewById(R.id.btnFullPrevious);
         btnFullNext = findViewById(R.id.btnFullNext);
+        btnFullShuffle = findViewById(R.id.btnFullShuffle);
+        btnFullRepeat = findViewById(R.id.btnFullRepeat);
         seekBarProgress = findViewById(R.id.seekBarProgress);
         txtFullSongTitle = findViewById(R.id.txtFullSongTitle);
         txtFullArtist = findViewById(R.id.txtFullArtist);
@@ -89,6 +91,8 @@ public class FullPlayerActivity extends AppCompatActivity {
                     }
 
                     updatePlayPauseButton();
+                    updateShuffleButton();
+                    updateRepeatButton();
                 }
                 progressHandler.postDelayed(this, 500);
             }
@@ -120,6 +124,18 @@ public class FullPlayerActivity extends AppCompatActivity {
             }
         });
 
+        btnFullShuffle.setOnClickListener(v -> {
+            if (musicService != null) {
+                toggleShuffle();
+            }
+        });
+
+        btnFullRepeat.setOnClickListener(v -> {
+            if (musicService != null) {
+                cycleRepeatMode();
+            }
+        });
+
         seekBarProgress.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
@@ -143,6 +159,8 @@ public class FullPlayerActivity extends AppCompatActivity {
             txtFullSongTitle.setText(musicService.getCurrentSongTitle());
             txtFullArtist.setText(musicService.getCurrentSongArtist());
             updatePlayPauseButton();
+            updateShuffleButton();
+            updateRepeatButton();
         }
     }
 
@@ -151,6 +169,84 @@ public class FullPlayerActivity extends AppCompatActivity {
             btnFullPlayPause.setImageResource(R.drawable.ic_pause);
         } else {
             btnFullPlayPause.setImageResource(R.drawable.ic_play);
+        }
+    }
+
+    private void toggleShuffle() {
+        if (musicService == null) return;
+
+        MusicService.PlaybackMode currentMode = musicService.getPlaybackMode();
+        
+        if (currentMode == MusicService.PlaybackMode.SHUFFLE) {
+            // Turn off shuffle, go to normal mode
+            musicService.setPlaybackMode(MusicService.PlaybackMode.NORMAL);
+        } else {
+            // Turn on shuffle
+            musicService.setPlaybackMode(MusicService.PlaybackMode.SHUFFLE);
+        }
+        
+        updateShuffleButton();
+    }
+
+    private void cycleRepeatMode() {
+        if (musicService == null) return;
+
+        MusicService.PlaybackMode currentMode = musicService.getPlaybackMode();
+        
+        // Cycle: NORMAL -> REPEAT_ALL -> REPEAT_ONE -> NORMAL
+        switch (currentMode) {
+            case NORMAL:
+            case SHUFFLE:
+                musicService.setPlaybackMode(MusicService.PlaybackMode.REPEAT_ALL);
+                break;
+            case REPEAT_ALL:
+                musicService.setPlaybackMode(MusicService.PlaybackMode.REPEAT_ONE);
+                break;
+            case REPEAT_ONE:
+                musicService.setPlaybackMode(MusicService.PlaybackMode.NORMAL);
+                break;
+        }
+        
+        updateRepeatButton();
+    }
+
+    private void updateShuffleButton() {
+        if (musicService == null) return;
+
+        MusicService.PlaybackMode mode = musicService.getPlaybackMode();
+        
+        if (mode == MusicService.PlaybackMode.SHUFFLE) {
+            // Shuffle is ON - highlight the button
+            btnFullShuffle.setColorFilter(getResources().getColor(R.color.white, null));
+        } else {
+            // Shuffle is OFF - gray out the button
+            btnFullShuffle.setColorFilter(getResources().getColor(R.color.gray, null));
+        }
+    }
+
+    private void updateRepeatButton() {
+        if (musicService == null) return;
+
+        MusicService.PlaybackMode mode = musicService.getPlaybackMode();
+        
+        switch (mode) {
+            case REPEAT_ONE:
+                // Show repeat one icon and highlight
+                btnFullRepeat.setImageResource(R.drawable.ic_repeat_one);
+                btnFullRepeat.setColorFilter(getResources().getColor(R.color.white, null));
+                break;
+            case REPEAT_ALL:
+                // Show repeat all icon and highlight
+                btnFullRepeat.setImageResource(R.drawable.ic_repeat_all);
+                btnFullRepeat.setColorFilter(getResources().getColor(R.color.white, null));
+                break;
+            case NORMAL:
+            case SHUFFLE:
+            default:
+                // Show repeat all icon but gray out
+                btnFullRepeat.setImageResource(R.drawable.ic_repeat_all);
+                btnFullRepeat.setColorFilter(getResources().getColor(R.color.gray, null));
+                break;
         }
     }
 
