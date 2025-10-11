@@ -74,7 +74,8 @@ public class FavoritesActivity extends AppCompatActivity {
 
         // Setup RecyclerView
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        adapter = new SongAdapter(favoriteSongs, this::onSongClicked);
+        adapter = new SongAdapter();
+        adapter.setOnSongClickListener(this::onSongClicked);
         adapter.setMenuActionOverride((song, position) -> {
             // Override menu to show "Remove from Favorites" instead of "Delete Song"
             removeFromFavorites(song, position);

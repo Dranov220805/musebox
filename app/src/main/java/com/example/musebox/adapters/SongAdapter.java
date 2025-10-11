@@ -1,33 +1,39 @@
 package com.example.musebox.adapters;
 
+import android.net.Uri;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.appcompat.widget.PopupMenu;
+import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.example.musebox.R;
 import com.example.musebox.models.Song;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class SongAdapter extends RecyclerView.Adapter<SongAdapter.SongViewHolder> {
+/**
+ * Optimized Song adapter using ListAdapter with DiffUtil for efficient updates.
+ * Features:
+ * - DiffUtil for calculating minimal updates
+ * - Glide for asynchronous image loading with caching
+ * - ViewHolder pattern for view recycling
+ */
+public class SongAdapter extends ListAdapter<Song, SongAdapter.SongViewHolder> {
 
-    private List<Song> songs;
     private OnSongClickListener listener;
     private OnSongMenuListener menuListener;
     private MenuActionOverride menuActionOverride; // For custom menu actions (like in FavoritesActivity)
 
-    public SongAdapter(List<Song> songs) {
-        this.songs = songs;
-    }
-
-    public SongAdapter(List<Song> songs, OnSongClickListener listener) {
-        this.songs = songs;
-        this.listener = listener;
+    public SongAdapter() {
+        super(new SongDiffCallback());
     }
 
     @NonNull
@@ -40,7 +46,7 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.SongViewHolder
 
     @Override
     public void onBindViewHolder(@NonNull SongViewHolder holder, int position) {
-        Song song = songs.get(position);
+        Song song = getItem(position);
 
         holder.tvTitle.setText(song.getTitle());
         holder.tvArtist.setText(song.getArtist());
@@ -49,6 +55,9 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.SongViewHolder
         long minutes = (durationMs / 1000) / 60;
         long seconds = (durationMs / 1000) % 60;
         holder.tvDuration.setText(String.format("%d:%02d", minutes, seconds));
+
+        // Load album art asynchronously with Glide (with caching)
+        loadAlbumArt(holder.ivAlbumArt, song.getUri());
 
         holder.itemView.setOnClickListener(v -> {
             if (listener != null)
@@ -91,43 +100,44 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.SongViewHolder
         });
     }
 
-    @Override
-    public int getItemCount() {
-        return songs != null ? songs.size() : 0;
+    /**
+     * Load album art asynchronously using Glide with caching.
+     * This prevents blocking the main thread and caches images for better performance.
+     */
+    private void loadAlbumArt(ImageView imageView, String audioFilePath) {
+        // Try to load album art from audio file
+        Uri audioUri = Uri.parse(audioFilePath);
+        
+        Glide.with(imageView.getContext())
+                .load(audioUri)
+                .diskCacheStrategy(DiskCacheStrategy.ALL) // Cache both original & resized image
+                .placeholder(R.drawable.ic_music_note) // Show placeholder while loading
+                .error(R.drawable.ic_music_note) // Show default icon on error
+                .centerCrop()
+                .into(imageView);
     }
 
+    // Helper methods for compatibility with existing code
     public void setSongs(List<Song> newSongs) {
-        if (songs != null) {
-            songs.clear();
-            songs.addAll(newSongs);
-        } else {
-            songs = newSongs;
-        }
-        notifyDataSetChanged();
+        submitList(new ArrayList<>(newSongs));
     }
 
     public void addSongs(List<Song> newSongs) {
-        if (songs == null) {
-            songs = new ArrayList<>();
-        }
-        int startPosition = songs.size();
-        songs.addAll(newSongs);
-        notifyItemRangeInserted(startPosition, newSongs.size());
+        List<Song> currentList = new ArrayList<>(getCurrentList());
+        currentList.addAll(newSongs);
+        submitList(currentList);
     }
 
     public void removeSong(int position) {
-        if (songs != null && position >= 0 && position < songs.size()) {
-            songs.remove(position);
-            notifyItemRemoved(position);
-            notifyItemRangeChanged(position, songs.size());
+        List<Song> currentList = new ArrayList<>(getCurrentList());
+        if (position >= 0 && position < currentList.size()) {
+            currentList.remove(position);
+            submitList(currentList);
         }
     }
 
     public void clearSongs() {
-        if (songs != null) {
-            songs.clear();
-            notifyDataSetChanged();
-        }
+        submitList(new ArrayList<>());
     }
 
     public interface OnSongClickListener {
@@ -161,11 +171,13 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.SongViewHolder
     }
 
     static class SongViewHolder extends RecyclerView.ViewHolder {
+        ImageView ivAlbumArt;
         TextView tvTitle, tvArtist, tvDuration;
         ImageButton btnMenu;
 
         public SongViewHolder(@NonNull View itemView) {
             super(itemView);
+            ivAlbumArt = itemView.findViewById(R.id.ivAlbumArt);
             tvTitle = itemView.findViewById(R.id.tvTitle);
             tvArtist = itemView.findViewById(R.id.tvArtist);
             tvDuration = itemView.findViewById(R.id.tvDuration);

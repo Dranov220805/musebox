@@ -50,6 +50,7 @@ public class HomeFragment extends Fragment {
     private Button btnImport;
     private TextView tvSongCount;
     private TextView tvFavoritesCount;
+    private android.widget.ProgressBar progressBarLoading;
     private SongAdapter adapter;
     private SongDatabaseHelper dbHelper;
     private OnSongSelectedListener listener;
@@ -82,6 +83,7 @@ public class HomeFragment extends Fragment {
         btnImport = view.findViewById(R.id.btnImport);
         tvSongCount = view.findViewById(R.id.tvSongCount);
         tvFavoritesCount = view.findViewById(R.id.tvFavoritesCount);
+        progressBarLoading = view.findViewById(R.id.progressBarLoading);
 
         dbHelper = new SongDatabaseHelper(requireContext());
         // Ensure index exists for faster queries
@@ -96,7 +98,7 @@ public class HomeFragment extends Fragment {
         // Setup songs RecyclerView (vertical)
         LinearLayoutManager layoutManager = new LinearLayoutManager(requireContext());
         recyclerSongs.setLayoutManager(layoutManager);
-        adapter = new SongAdapter(new ArrayList<>());
+        adapter = new SongAdapter(); // Using optimized adapter with DiffUtil
         recyclerSongs.setAdapter(adapter);
 
         // Add scroll listener for pagination
@@ -272,8 +274,10 @@ public class HomeFragment extends Fragment {
 
         isLoading = true;
 
-        // Show loading indicator (optional)
-        // progressBar.setVisibility(View.VISIBLE);
+        // Show loading indicator
+        if (progressBarLoading != null) {
+            progressBarLoading.setVisibility(View.VISIBLE);
+        }
 
         new Thread(() -> {
             long startTime = System.currentTimeMillis();
@@ -296,7 +300,11 @@ public class HomeFragment extends Fragment {
                     }
                 }
                 isLoading = false;
-                // progressBar.setVisibility(View.GONE);
+
+                // Hide loading indicator
+                if (progressBarLoading != null) {
+                    progressBarLoading.setVisibility(View.GONE);
+                }
             });
         }).start();
     }

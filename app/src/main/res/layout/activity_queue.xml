@@ -20,11 +20,10 @@
             android:id="@+id/btnBack"
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:src="@drawable/ic_skip_previous"
-            android:rotation="180"
+            android:src="@drawable/ic_back"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:tint="@color/white"
-            android:contentDescription="Back" />
+            android:contentDescription="Back"
+            app:tint="@color/white" />
 
         <TextView
             android:layout_width="0dp"
@@ -40,11 +39,10 @@
             android:id="@+id/btnClearQueue"
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:src="@drawable/ic_skip_previous"
-            android:rotation="90"
+            android:src="@drawable/ic_queue_remove"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:tint="@color/white"
-            android:contentDescription="Clear Queue" />
+            android:contentDescription="Clear Queue"
+            app:tint="@color/white" />
     </LinearLayout>
 
     <!-- Currently Playing Card -->
