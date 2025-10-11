@@ -36,7 +36,6 @@
             android:name=".activities.HomeActivity"
             android:theme="@style/Theme.MuseBox.NoActionBar"
             android:exported="false"
-            android:configChanges="orientation|screenSize|keyboardHidden"
             android:windowSoftInputMode="adjustResize">
 <!--            <intent-filter>-->
 <!--                <action android:name="android.intent.action.MAIN" />-->
@@ -47,18 +46,15 @@
         <activity
             android:name=".activities.FullPlayerActivity"
             android:theme="@style/Theme.MuseBox.NoActionBar"
-            android:exported="false"
-            android:configChanges="orientation|screenSize|keyboardHidden" />
+            android:exported="false" />
         <activity
             android:name=".activities.QueueActivity"
             android:theme="@style/Theme.MuseBox.NoActionBar"
-            android:exported="false"
-            android:configChanges="orientation|screenSize|keyboardHidden" />
+            android:exported="false" />
         <activity
             android:name=".activities.FavoritesActivity"
             android:theme="@style/Theme.MuseBox.NoActionBar"
-            android:exported="false"
-            android:configChanges="orientation|screenSize|keyboardHidden" />
+            android:exported="false" />
         <activity
             android:name=".activities.MainActivity"
             android:theme="@style/Base.Theme.MuseBox"

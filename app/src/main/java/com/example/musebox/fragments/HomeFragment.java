@@ -101,25 +101,22 @@ public class HomeFragment extends Fragment {
         adapter = new SongAdapter(); // Using optimized adapter with DiffUtil
         recyclerSongs.setAdapter(adapter);
 
-        // Add scroll listener for pagination
-        recyclerSongs.addOnScrollListener(new RecyclerView.OnScrollListener() {
+        // Add scroll listener to NestedScrollView for pagination
+        scrollContent.setOnScrollChangeListener(new View.OnScrollChangeListener() {
             @Override
-            public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
-                super.onScrolled(recyclerView, dx, dy);
+            public void onScrollChange(View v, int scrollX, int scrollY, int oldScrollX, int oldScrollY) {
+                if (v instanceof androidx.core.widget.NestedScrollView) {
+                    androidx.core.widget.NestedScrollView scrollView = (androidx.core.widget.NestedScrollView) v;
+                    View child = scrollView.getChildAt(0);
+                    if (child != null) {
+                        int diff = (child.getBottom() - (scrollView.getHeight() + scrollView.getScrollY()));
 
-                if (dy > 0) { // Scrolling down
-                    int visibleItemCount = layoutManager.getChildCount();
-                    int totalItemCount = layoutManager.getItemCount();
-                    int firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition();
+                        android.util.Log.d("HomeFragment", "Scroll: diff=" + diff +
+                                ", isLoading=" + isLoading + ", hasMore=" + hasMoreData);
 
-                    android.util.Log.d("HomeFragment", "Scroll: visible=" + visibleItemCount +
-                            ", total=" + totalItemCount + ", firstPos=" + firstVisibleItemPosition +
-                            ", isLoading=" + isLoading + ", hasMore=" + hasMoreData);
-
-                    if (!isLoading && hasMoreData) {
-                        if ((visibleItemCount + firstVisibleItemPosition) >= totalItemCount - 10) {
+                        // Load more when within 500 pixels from bottom
+                        if (diff <= 500 && !isLoading && hasMoreData && scrollY > oldScrollY) {
                             android.util.Log.d("HomeFragment", "Triggering loadMoreSongs()");
-                            // Load more when 10 items from bottom
                             loadMoreSongs();
                         }
                     }

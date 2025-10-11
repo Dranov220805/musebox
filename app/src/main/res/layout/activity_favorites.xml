@@ -21,14 +21,16 @@
 
     <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="0dp"
+        android:layout_weight="1">
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recyclerFavorites"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:padding="8dp"
-            android:clipToPadding="false" />
+            android:clipToPadding="false"
+            android:paddingBottom="100dp" />
 
         <LinearLayout
             android:id="@+id/emptyView"
@@ -58,5 +60,17 @@
         </LinearLayout>
 
     </FrameLayout>
+
+    <!-- Mini Player -->
+    <include
+        android:id="@+id/includeMiniPlayer"
+        layout="@layout/fragment_miniplayer"
+        android:visibility="gone" />
+
+    <!-- Navigation Bar -->
+    <FrameLayout
+        android:id="@+id/navigation_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
 
 </LinearLayout>

@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -21,13 +22,18 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.musebox.R;
 import com.example.musebox.adapters.SongAdapter;
 import com.example.musebox.database.SongDatabaseHelper;
+import com.example.musebox.fragments.NavigationBarFragment;
 import com.example.musebox.models.Song;
 import com.example.musebox.services.MusicService;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class FavoritesActivity extends AppCompatActivity {
+import android.net.Uri;
+import androidx.appcompat.app.AlertDialog;
+
+public class FavoritesActivity extends AppCompatActivity 
+        implements NavigationBarFragment.OnNavigationItemSelectedListener {
 
     private RecyclerView recyclerView;
     private LinearLayout emptyView;
@@ -35,6 +41,17 @@ public class FavoritesActivity extends AppCompatActivity {
     private SongAdapter adapter;
     private SongDatabaseHelper dbHelper;
     private List<Song> favoriteSongs = new ArrayList<>();
+
+    // Mini player views
+    private View miniPlayer;
+    private TextView tvSongTitle;
+    private ImageButton btnPlayPause, btnQueue;
+    private com.example.musebox.views.CircularProgressView circularProgress;
+
+    // Handler for updating progress
+    private android.os.Handler progressHandler = new android.os.Handler();
+    private Runnable progressRunnable;
+    private String lastSongTitle = "";
 
     private MusicService musicService;
     private boolean serviceBound = false;
@@ -45,6 +62,7 @@ public class FavoritesActivity extends AppCompatActivity {
             MusicService.LocalBinder binder = (MusicService.LocalBinder) service;
             musicService = binder.getService();
             serviceBound = true;
+            updateMiniPlayer();
         }
 
         @Override
@@ -70,6 +88,72 @@ public class FavoritesActivity extends AppCompatActivity {
         emptyView = findViewById(R.id.emptyView);
         tvEmptyMessage = findViewById(R.id.tvEmptyMessage);
 
+        // Initialize mini player
+        miniPlayer = findViewById(R.id.includeMiniPlayer);
+        tvSongTitle = miniPlayer.findViewById(R.id.txtSongTitle);
+        btnPlayPause = miniPlayer.findViewById(R.id.btnPlayPause);
+        btnQueue = miniPlayer.findViewById(R.id.btnQueue);
+        circularProgress = miniPlayer.findViewById(R.id.circularProgress);
+
+        // Setup progress updater
+        progressRunnable = new Runnable() {
+            @Override
+            public void run() {
+                if (musicService != null) {
+                    // Check if song has changed
+                    String currentTitle = musicService.getCurrentSongTitle();
+                    if (currentTitle != null && !currentTitle.equals(lastSongTitle)) {
+                        lastSongTitle = currentTitle;
+                        updateMiniPlayer();
+                    }
+
+                    // Update play/pause button state
+                    if (musicService.isPlaying()) {
+                        btnPlayPause.setImageResource(R.drawable.ic_pause);
+                    } else {
+                        btnPlayPause.setImageResource(R.drawable.ic_play);
+                    }
+
+                    // Update progress if playing
+                    if (musicService.isPlaying()) {
+                        int currentPosition = musicService.getCurrentPosition();
+                        int duration = musicService.getDuration();
+
+                        if (duration > 0) {
+                            float progress = (currentPosition * 100f) / duration;
+                            circularProgress.setProgress(progress);
+                        }
+                    }
+                }
+                progressHandler.postDelayed(this, 100); // Update every 100ms
+            }
+        };
+
+        // Mini player click - expand to full screen
+        miniPlayer.setOnClickListener(v -> {
+            Intent intent = new Intent(FavoritesActivity.this, FullPlayerActivity.class);
+            startActivity(intent);
+            overridePendingTransition(android.R.anim.slide_in_left, android.R.anim.slide_out_right);
+        });
+
+        btnPlayPause.setOnClickListener(v -> {
+            if (musicService != null) {
+                musicService.pauseOrResume();
+                if (musicService.isPlaying()) {
+                    btnPlayPause.setImageResource(R.drawable.ic_pause);
+                } else {
+                    btnPlayPause.setImageResource(R.drawable.ic_play);
+                }
+            }
+        });
+
+        // Queue button - open queue activity
+        btnQueue.setOnClickListener(v -> {
+            Intent intent = new Intent(FavoritesActivity.this, QueueActivity.class);
+            startActivity(intent);
+            overridePendingTransition(android.R.anim.slide_in_left, android.R.anim.slide_out_right);
+        });
+
         dbHelper = new SongDatabaseHelper(this);
 
         // Setup RecyclerView
@@ -82,6 +166,13 @@ public class FavoritesActivity extends AppCompatActivity {
         });
         recyclerView.setAdapter(adapter);
 
+        // Add NavigationBarFragment
+        if (savedInstanceState == null) {
+            getSupportFragmentManager().beginTransaction()
+                    .replace(R.id.navigation_container, new NavigationBarFragment())
+                    .commit();
+        }
+
         // Bind to MusicService
         Intent intent = new Intent(this, MusicService.class);
         bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
@@ -92,9 +183,31 @@ public class FavoritesActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        // Stop progress updates
+        progressHandler.removeCallbacks(progressRunnable);
+
         if (serviceBound) {
             unbindService(serviceConnection);
             serviceBound = false;
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        // Stop updating when activity is not visible
+        progressHandler.removeCallbacks(progressRunnable);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Resume updating when activity is visible
+        if (musicService != null) {
+            // Update mini player with current song info
+            updateMiniPlayer();
+            // Start progress updates
+            progressHandler.post(progressRunnable);
         }
     }
 
@@ -107,13 +220,31 @@ public class FavoritesActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
+    // Update mini player UI with current song info from service
+    private void updateMiniPlayer() {
+        if (musicService != null) {
+            String title = musicService.getCurrentSongTitle();
+            if (title != null && !title.equals("No song playing")) {
+                tvSongTitle.setText(title);
+                miniPlayer.setVisibility(View.VISIBLE);
+
+                // Update play/pause button
+                if (musicService.isPlaying()) {
+                    btnPlayPause.setImageResource(R.drawable.ic_pause);
+                } else {
+                    btnPlayPause.setImageResource(R.drawable.ic_play);
+                }
+            }
+        }
+    }
+
     private void loadFavorites() {
         new Thread(() -> {
             List<Song> songs = dbHelper.getFavoriteSongs();
             runOnUiThread(() -> {
                 favoriteSongs.clear();
                 favoriteSongs.addAll(songs);
-                adapter.notifyDataSetChanged();
+                adapter.setSongs(favoriteSongs); // Use DiffUtil-powered method
 
                 if (favoriteSongs.isEmpty()) {
                     recyclerView.setVisibility(View.GONE);
@@ -138,9 +269,20 @@ public class FavoritesActivity extends AppCompatActivity {
                     currentSong.getTitle(),
                     currentSong.getArtist());
 
-            // Open FullPlayerActivity
-            Intent intent = new Intent(this, FullPlayerActivity.class);
-            startActivity(intent);
+            // Show mini player
+            miniPlayer.setVisibility(View.VISIBLE);
+
+            // Reset circular progress
+            circularProgress.setProgress(0);
+
+            // Start progress updates
+            progressHandler.post(progressRunnable);
+
+            // Update UI
+            tvSongTitle.setText(currentSong.getTitle());
+            btnPlayPause.setImageResource(R.drawable.ic_pause);
+
+            Toast.makeText(this, "Playing: " + currentSong.getTitle(), Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -150,7 +292,7 @@ public class FavoritesActivity extends AppCompatActivity {
             runOnUiThread(() -> {
                 if (success) {
                     favoriteSongs.remove(position);
-                    adapter.notifyItemRemoved(position);
+                    adapter.removeSong(position); // Use DiffUtil-powered method
                     Toast.makeText(this, "Removed from favorites", Toast.LENGTH_SHORT).show();
 
                     if (favoriteSongs.isEmpty()) {
@@ -161,5 +303,40 @@ public class FavoritesActivity extends AppCompatActivity {
                 }
             });
         }).start();
+    }
+
+    // NavigationBarFragment.OnNavigationItemSelectedListener implementation
+    @Override
+    public void onNavigationItemSelected(String item) {
+        Intent intent = null;
+        switch (item) {
+            case "home":
+                // Go back to HomeActivity
+                finish();
+                return;
+            case "search":
+                Toast.makeText(this, "Search feature coming soon", Toast.LENGTH_SHORT).show();
+                return;
+            case "playlist":
+                Toast.makeText(this, "Playlist feature coming soon", Toast.LENGTH_SHORT).show();
+                return;
+            case "profile":
+                Toast.makeText(this, "Profile feature coming soon", Toast.LENGTH_SHORT).show();
+                return;
+        }
+    }
+
+    @Override
+    public void onCreatePlaylistSelected() {
+        new AlertDialog.Builder(this)
+                .setTitle("Create Playlist")
+                .setMessage("Feature coming soon!")
+                .setPositiveButton("OK", null)
+                .show();
+    }
+
+    @Override
+    public void onImportMusicSelected(Uri folderUri) {
+        Toast.makeText(this, "Please import music from the Home screen", Toast.LENGTH_SHORT).show();
     }
 }
