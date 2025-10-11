@@ -7,4 +7,8 @@
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="create">Create</string>
+    <string name="playback_mode">Shuffle</string>
+    <string name="album_art">Album art</string>
+    <string name="play_pause">Play/Pause</string>
+    <string name="menu">Menu</string>
 </resources>

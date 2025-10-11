@@ -6,4 +6,16 @@
     <color name="colorPrimaryDark">#202124</color>
     <color name="colorAccent">#FF9800</color>
     <color name="darker_gray">#A0A0A0</color>
+    <color name="dark_gray">#2C2C2C</color>
+    <color name="gray">#9E9E9E</color>
+    <color name="light_gray">#BDBDBD</color>
+
+    <!-- Accent Colors -->
+    <color name="accent_blue">#2196F3</color>
+    <color name="accent_green">#4CAF50</color>
+    <color name="accent_orange">#FF9800</color>
+
+    <!-- Progress Bar / SeekBar Colors -->
+    <color name="progress_active">#FF4081</color>
+    <color name="progress_inactive">#444444</color>
 </resources>
