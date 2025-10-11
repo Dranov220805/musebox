@@ -78,6 +78,48 @@ public class SongDatabaseHelper extends SQLiteOpenHelper {
         addSong(song);
         return true; // Song was added
     }
+
+    // Optimized batch insert - much faster for importing many songs
+    // Returns array: [newCount, duplicateCount]
+    public int[] addSongsIfNotExistBatch(List<Song> songs) {
+        int newCount = 0;
+        int duplicateCount = 0;
+        
+        SQLiteDatabase db = this.getWritableDatabase();
+        db.beginTransaction();
+        try {
+            for (Song song : songs) {
+                // Check if exists using a query within the transaction
+                Cursor cursor = db.rawQuery(
+                    "SELECT 1 FROM " + TABLE_SONGS + " WHERE " + KEY_URI + " = ? LIMIT 1",
+                    new String[]{song.getUri()}
+                );
+                
+                boolean exists = cursor.moveToFirst();
+                cursor.close();
+                
+                if (!exists) {
+                    // Insert the song
+                    ContentValues values = new ContentValues();
+                    values.put(KEY_ID, song.getId());
+                    values.put(KEY_TITLE, song.getTitle());
+                    values.put(KEY_ARTIST, song.getArtist());
+                    values.put(KEY_URI, song.getUri());
+                    values.put(KEY_DURATION, song.getDuration());
+                    db.insert(TABLE_SONGS, null, values);
+                    newCount++;
+                } else {
+                    duplicateCount++;
+                }
+            }
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+            db.close();
+        }
+        
+        return new int[]{newCount, duplicateCount};
+    }
 //
 //    public long insertSong(Song song) {
 //        SQLiteDatabase db = this.getWritableDatabase();

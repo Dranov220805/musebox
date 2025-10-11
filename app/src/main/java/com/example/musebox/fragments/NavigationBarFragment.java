@@ -85,18 +85,30 @@ public class NavigationBarFragment extends Fragment {
     private void showCreateDialog() {
         if (getContext() == null) return;
 
-        String[] options = {"Create Playlist", "Scan Music"};
-        new AlertDialog.Builder(getContext())
-                .setTitle("Create")
-                .setItems(options, (dialog, which) -> {
-                    if (which == 0) {
-                        if (listener != null) listener.onCreatePlaylistSelected();
-                    } else if (which == 1) {
-                        openFolderPicker();
-                    }
-                })
-                .setNegativeButton("Cancel", null)
-                .show();
+        // Inflate custom dialog layout
+        View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_create_options, null);
+        
+        AlertDialog dialog = new AlertDialog.Builder(getContext())
+                .setView(dialogView)
+                .create();
+        
+        // Make dialog background transparent for rounded corners
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        }
+        
+        // Setup click listeners for the cards
+        dialogView.findViewById(R.id.btn_create_playlist).setOnClickListener(v -> {
+            dialog.dismiss();
+            if (listener != null) listener.onCreatePlaylistSelected();
+        });
+        
+        dialogView.findViewById(R.id.btn_import_music).setOnClickListener(v -> {
+            dialog.dismiss();
+            openFolderPicker();
+        });
+        
+        dialog.show();
     }
 
     private void openFolderPicker() {

@@ -315,8 +315,8 @@ public class HomeActivity extends AppCompatActivity
         TextView textCount = progressView.findViewById(R.id.textCount);
 
         new Thread(() -> {
-            List<Song> importedSongs = new ArrayList<>();
             final int[] duplicates = {0}; // Declare outside try block
+            int newCount = 0;
 
             try {
                 ContentResolver resolver = getContentResolver();
@@ -342,7 +342,10 @@ public class HomeActivity extends AppCompatActivity
                     }
 
                     int total = cursor.getCount();
-                    int imported = 0;
+                    final int BATCH_SIZE = 50; // Process 50 songs at a time
+                    List<Song> batch = new ArrayList<>();
+                    int processed = 0;
+                    
                     runOnUiThread(() -> {
                         progressBar.setMax(total);
                         textStatus.setText("Importing from MediaStore...");
@@ -357,22 +360,40 @@ public class HomeActivity extends AppCompatActivity
                         long duration = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION));
 
                         Uri contentUri = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id);
-
                         Song song = new Song(title, artist, contentUri.toString(), (int) duration);
+                        batch.add(song);
                         
-                        // Only add if not duplicate
-                        if (dbHelper.addSongIfNotExists(song)) {
-                            importedSongs.add(song);
-                        } else {
-                            duplicates[0]++;
+                        // Process batch when it reaches BATCH_SIZE or on last item
+                        if (batch.size() >= BATCH_SIZE || !cursor.isAfterLast() && cursor.isLast()) {
+                            int[] result = dbHelper.addSongsIfNotExistBatch(batch);
+                            newCount += result[0];
+                            duplicates[0] += result[1];
+                            processed += batch.size();
+                            
+                            // Update UI
+                            int finalProcessed = processed;
+                            String finalTitle = title;
+                            runOnUiThread(() -> {
+                                textStatus.setText("Importing: " + finalTitle);
+                                textCount.setText(finalProcessed + " / " + total);
+                                progressBar.setProgress(finalProcessed);
+                            });
+                            
+                            batch.clear();
                         }
-
-                        imported++;
-                        int finalImported = imported;
+                    }
+                    
+                    // Process any remaining songs
+                    if (!batch.isEmpty()) {
+                        int[] result = dbHelper.addSongsIfNotExistBatch(batch);
+                        newCount += result[0];
+                        duplicates[0] += result[1];
+                        processed += batch.size();
+                        
+                        int finalProcessed = processed;
                         runOnUiThread(() -> {
-                            textStatus.setText("Importing: " + title);
-                            textCount.setText(finalImported + " / " + total);
-                            progressBar.setProgress(finalImported);
+                            textCount.setText(finalProcessed + " / " + total);
+                            progressBar.setProgress(finalProcessed);
                         });
                     }
                 }
@@ -387,16 +408,16 @@ public class HomeActivity extends AppCompatActivity
                 return;
             }
 
-            int newCount = importedSongs.size();
+            int finalNewCount = newCount;
             int finalDuplicates = duplicates[0];
             runOnUiThread(() -> {
                 dialog.dismiss();
-                if (newCount == 0 && finalDuplicates == 0) {
+                if (finalNewCount == 0 && finalDuplicates == 0) {
                     Toast.makeText(this, "No songs found", Toast.LENGTH_LONG).show();
-                } else if (newCount == 0) {
+                } else if (finalNewCount == 0) {
                     Toast.makeText(this, "Added 0 new songs. " + finalDuplicates + " duplicate(s) skipped.", Toast.LENGTH_LONG).show();
                 } else {
-                    String message = "Imported " + newCount + " new song(s)";
+                    String message = "Imported " + finalNewCount + " new song(s)";
                     if (finalDuplicates > 0) {
                         message += ". " + finalDuplicates + " duplicate(s) skipped.";
                     }
@@ -429,6 +450,7 @@ public class HomeActivity extends AppCompatActivity
             final int[] duplicates = {0}; // Use array to allow modification in callback
             int total = countAudioFiles(treeUri);
             final int totalFiles = Math.max(total, 1);
+            final int BATCH_SIZE = 20; // Update UI every 20 songs
 
             runOnUiThread(() -> {
                 progressBar.setMax(totalFiles);
@@ -438,16 +460,23 @@ public class HomeActivity extends AppCompatActivity
 
             scanFolderRecursively(treeUri, importedSongs, duplicates, new ImportProgressCallback() {
                 int imported = 0;
+                String lastSongName = "";
 
                 @Override
                 public void onSongDetected(String name) {
                     imported++;
-                    int finalImported = imported;
-                    runOnUiThread(() -> {
-                        textStatus.setText("Importing: " + name);
-                        textCount.setText(finalImported + " / " + totalFiles);
-                        progressBar.setProgress(finalImported);
-                    });
+                    lastSongName = name;
+                    
+                    // Update UI only every BATCH_SIZE songs or on last song
+                    if (imported % BATCH_SIZE == 0 || imported == totalFiles) {
+                        int finalImported = imported;
+                        String finalName = lastSongName;
+                        runOnUiThread(() -> {
+                            textStatus.setText("Importing: " + finalName);
+                            textCount.setText(finalImported + " / " + totalFiles);
+                            progressBar.setProgress(finalImported);
+                        });
+                    }
                 }
             });
 
