@@ -14,4 +14,9 @@
         android:id="@+id/menu_add_to_playlist"
         android:title="Add to Playlist"
         android:icon="@drawable/ic_add_circle" />
+
+    <item
+        android:id="@+id/menu_delete_song"
+        android:title="Delete Song"
+        android:icon="@android:drawable/ic_menu_delete" />
 </menu>

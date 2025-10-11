@@ -253,7 +253,7 @@ public class HomeActivity extends AppCompatActivity
             Toast.makeText(this, "Music service not available", Toast.LENGTH_SHORT).show();
         }
     }
-    
+
     // Public method to add song to queue
     public void addSongToQueue(Song song) {
         if (musicService != null && song != null) {

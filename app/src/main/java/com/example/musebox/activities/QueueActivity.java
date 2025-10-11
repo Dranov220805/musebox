@@ -30,7 +30,7 @@ public class QueueActivity extends AppCompatActivity {
     private TextView tvCurrentTitle, tvCurrentArtist;
     private ImageButton btnBack, btnClearQueue;
     private QueueAdapter adapter;
-    
+
     private MusicService musicService;
     private boolean isBound = false;
 
@@ -67,7 +67,7 @@ public class QueueActivity extends AppCompatActivity {
         recyclerQueue.setLayoutManager(new LinearLayoutManager(this));
         adapter = new QueueAdapter(new ArrayList<>());
         recyclerQueue.setAdapter(adapter);
-        
+
         // Set queue item listener
         adapter.setOnQueueItemListener(position -> {
             if (musicService != null) {
@@ -96,19 +96,20 @@ public class QueueActivity extends AppCompatActivity {
     }
 
     private void loadQueue() {
-        if (musicService == null) return;
-        
+        if (musicService == null)
+            return;
+
         // Get current playlist
         List<Song> playlist = musicService.getPlaylist();
         int currentIndex = musicService.getCurrentSongIndex();
         Song currentSong = musicService.getCurrentSong();
-        
+
         if (currentSong != null) {
             // Update currently playing card
             tvCurrentTitle.setText(currentSong.getTitle());
             tvCurrentArtist.setText(currentSong.getArtist());
         }
-        
+
         // Get queue (all songs after current)
         List<Song> queue = new ArrayList<>();
         if (currentIndex >= 0 && currentIndex < playlist.size() - 1) {
@@ -116,7 +117,7 @@ public class QueueActivity extends AppCompatActivity {
                 queue.add(playlist.get(i));
             }
         }
-        
+
         if (queue.isEmpty()) {
             updateEmptyState();
         } else {
@@ -135,7 +136,7 @@ public class QueueActivity extends AppCompatActivity {
             emptyQueue.setVisibility(View.GONE);
         }
     }
-    
+
     @Override
     protected void onDestroy() {
         super.onDestroy();

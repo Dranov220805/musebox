@@ -27,4 +27,4 @@
     <!-- Progress Bar / SeekBar Colors -->
     <color name="progress_active">#FF4081</color>
     <color name="progress_inactive">#444444</color>
-</resources>
+    <color name="favorite_red">#E53935</color>`n</resources>

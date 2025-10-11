@@ -8,6 +8,7 @@ public class Song {
     private String artist;
     private String uri;
     private long duration;
+    private boolean isFavorite; // New field
 
     // Constructor for new song — auto-generate unique ID
     public Song(String title, String artist, String uri, long duration) {
@@ -16,6 +17,7 @@ public class Song {
         this.artist = artist;
         this.uri = uri;
         this.duration = duration;
+        this.isFavorite = false;
     }
 
     // Constructor for song loaded from DB (keeps same ID)
@@ -25,6 +27,7 @@ public class Song {
         this.artist = artist;
         this.uri = uri;
         this.duration = duration;
+        this.isFavorite = false;
     }
 
     // Getters
@@ -48,6 +51,10 @@ public class Song {
         return duration;
     }
 
+    public boolean isFavorite() {
+        return isFavorite;
+    }
+
     // Optional setters if needed
     public void setId(String id) {
         this.id = id;
@@ -67,6 +74,10 @@ public class Song {
 
     public void setDuration(long duration) {
         this.duration = duration;
+    }
+
+    public void setFavorite(boolean favorite) {
+        isFavorite = favorite;
     }
 
     @Override

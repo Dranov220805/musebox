@@ -46,15 +46,15 @@ public class MusicService extends Service {
     // Playlist management
     private java.util.List<com.example.musebox.models.Song> playlist = new java.util.ArrayList<>();
     private int currentSongIndex = -1;
-    
+
     // Playback modes
     public enum PlaybackMode {
-        NORMAL,      // Play in order, stop at end
-        SHUFFLE,     // Randomize order
-        REPEAT_ONE,  // Repeat current song
-        REPEAT_ALL   // Loop the entire playlist
+        NORMAL, // Play in order, stop at end
+        SHUFFLE, // Randomize order
+        REPEAT_ONE, // Repeat current song
+        REPEAT_ALL // Loop the entire playlist
     }
-    
+
     private PlaybackMode playbackMode = PlaybackMode.NORMAL;
     private java.util.List<Integer> shuffleIndexes = new java.util.ArrayList<>();
     private int shufflePosition = 0;
@@ -131,7 +131,7 @@ public class MusicService extends Service {
             mediaPlayer.prepare();
             mediaPlayer.start();
             isPrepared = true;
-            
+
             // Set completion listener for auto-play next
             mediaPlayer.setOnCompletionListener(mp -> {
                 switch (playbackMode) {
@@ -142,7 +142,7 @@ public class MusicService extends Service {
                             mp.start();
                         }
                         break;
-                        
+
                     case SHUFFLE:
                     case REPEAT_ALL:
                     case NORMAL:
@@ -239,54 +239,54 @@ public class MusicService extends Service {
     public void setPlaylist(java.util.List<com.example.musebox.models.Song> songs, int startIndex) {
         this.playlist = new java.util.ArrayList<>(songs);
         this.currentSongIndex = startIndex;
-        
+
         // Reset shuffle indexes when playlist changes
         if (playbackMode == PlaybackMode.SHUFFLE) {
             generateShuffleIndexes();
         }
     }
-    
+
     /** Add song to queue (at the end) **/
     public void addToQueue(com.example.musebox.models.Song song) {
         playlist.add(song);
-        
+
         // Update shuffle indexes if in shuffle mode
         if (playbackMode == PlaybackMode.SHUFFLE) {
             shuffleIndexes.add(playlist.size() - 1);
         }
     }
-    
+
     /** Add song to queue at specific position **/
     public void addToQueue(com.example.musebox.models.Song song, int position) {
         if (position < 0 || position > playlist.size()) {
             position = playlist.size();
         }
         playlist.add(position, song);
-        
+
         // Adjust current index if needed
         if (position <= currentSongIndex) {
             currentSongIndex++;
         }
-        
+
         // Regenerate shuffle indexes
         if (playbackMode == PlaybackMode.SHUFFLE) {
             generateShuffleIndexes();
         }
     }
-    
+
     /** Remove song from queue **/
     public boolean removeFromQueue(int index) {
         if (index < 0 || index >= playlist.size()) {
             return false;
         }
-        
+
         // Don't remove if it's the only song
         if (playlist.size() == 1) {
             return false;
         }
-        
+
         playlist.remove(index);
-        
+
         // Adjust current index
         if (index < currentSongIndex) {
             currentSongIndex--;
@@ -300,47 +300,47 @@ public class MusicService extends Service {
                 playSong(android.net.Uri.parse(nextSong.getUri()), nextSong.getTitle(), nextSong.getArtist());
             }
         }
-        
+
         // Regenerate shuffle indexes
         if (playbackMode == PlaybackMode.SHUFFLE) {
             generateShuffleIndexes();
         }
-        
+
         return true;
     }
-    
+
     /** Clear entire queue **/
     public void clearQueue() {
         playlist.clear();
         currentSongIndex = -1;
         shuffleIndexes.clear();
         shufflePosition = 0;
-        
+
         if (mediaPlayer != null) {
             mediaPlayer.stop();
             mediaPlayer.release();
             mediaPlayer = null;
             isPrepared = false;
         }
-        
+
         currentSongTitle = "No song playing";
         currentSongArtist = "Unknown Artist";
         stopForeground(true);
     }
-    
+
     /** Get/Set playback mode **/
     public PlaybackMode getPlaybackMode() {
         return playbackMode;
     }
-    
+
     public void setPlaybackMode(PlaybackMode mode) {
         this.playbackMode = mode;
-        
+
         if (mode == PlaybackMode.SHUFFLE && shuffleIndexes.isEmpty()) {
             generateShuffleIndexes();
         }
     }
-    
+
     /** Cycle through playback modes **/
     public PlaybackMode cyclePlaybackMode() {
         switch (playbackMode) {
@@ -360,14 +360,14 @@ public class MusicService extends Service {
         }
         return playbackMode;
     }
-    
+
     /** Generate shuffle indexes **/
     private void generateShuffleIndexes() {
         shuffleIndexes.clear();
         for (int i = 0; i < playlist.size(); i++) {
             shuffleIndexes.add(i);
         }
-        
+
         // Keep current song at current position, shuffle the rest
         if (currentSongIndex >= 0 && currentSongIndex < shuffleIndexes.size()) {
             shuffleIndexes.remove(Integer.valueOf(currentSongIndex));
@@ -408,21 +408,21 @@ public class MusicService extends Service {
                 shufflePosition = (shufflePosition + 1) % shuffleIndexes.size();
                 currentSongIndex = shuffleIndexes.get(shufflePosition);
                 break;
-                
+
             case REPEAT_ONE:
                 // Stay on current song
                 break;
-                
+
             case REPEAT_ALL:
                 currentSongIndex = (currentSongIndex + 1) % playlist.size();
                 break;
-                
+
             case NORMAL:
             default:
                 currentSongIndex = (currentSongIndex + 1) % playlist.size();
                 break;
         }
-        
+
         com.example.musebox.models.Song nextSong = playlist.get(currentSongIndex);
         playSong(android.net.Uri.parse(nextSong.getUri()), nextSong.getTitle(), nextSong.getArtist());
     }
@@ -437,21 +437,21 @@ public class MusicService extends Service {
                 shufflePosition = (shufflePosition - 1 + shuffleIndexes.size()) % shuffleIndexes.size();
                 currentSongIndex = shuffleIndexes.get(shufflePosition);
                 break;
-                
+
             case REPEAT_ONE:
                 // Stay on current song
                 break;
-                
+
             case REPEAT_ALL:
                 currentSongIndex = (currentSongIndex - 1 + playlist.size()) % playlist.size();
                 break;
-                
+
             case NORMAL:
             default:
                 currentSongIndex = (currentSongIndex - 1 + playlist.size()) % playlist.size();
                 break;
         }
-        
+
         com.example.musebox.models.Song previousSong = playlist.get(currentSongIndex);
         playSong(android.net.Uri.parse(previousSong.getUri()), previousSong.getTitle(), previousSong.getArtist());
     }

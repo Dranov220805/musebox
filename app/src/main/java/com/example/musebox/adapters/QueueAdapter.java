@@ -18,7 +18,7 @@ public class QueueAdapter extends RecyclerView.Adapter<QueueAdapter.QueueViewHol
 
     private List<Song> queue;
     private OnQueueItemListener listener;
-    
+
     public interface OnQueueItemListener {
         void onRemoveFromQueue(int position);
     }
@@ -26,7 +26,7 @@ public class QueueAdapter extends RecyclerView.Adapter<QueueAdapter.QueueViewHol
     public QueueAdapter(List<Song> queue) {
         this.queue = queue;
     }
-    
+
     public void setOnQueueItemListener(OnQueueItemListener listener) {
         this.listener = listener;
     }

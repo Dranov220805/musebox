@@ -19,9 +19,15 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.SongViewHolder
     private List<Song> songs;
     private OnSongClickListener listener;
     private OnSongMenuListener menuListener;
+    private MenuActionOverride menuActionOverride; // For custom menu actions (like in FavoritesActivity)
 
     public SongAdapter(List<Song> songs) {
         this.songs = songs;
+    }
+
+    public SongAdapter(List<Song> songs, OnSongClickListener listener) {
+        this.songs = songs;
+        this.listener = listener;
     }
 
     @NonNull
@@ -51,6 +57,13 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.SongViewHolder
 
         // Menu button click
         holder.btnMenu.setOnClickListener(v -> {
+            // If custom menu action is set (like for FavoritesActivity), use it instead
+            if (menuActionOverride != null) {
+                menuActionOverride.onMenuAction(song, position);
+                return;
+            }
+
+            // Default menu behavior
             PopupMenu popup = new PopupMenu(v.getContext(), v);
             popup.inflate(R.menu.menu_song_options);
 
@@ -65,6 +78,9 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.SongViewHolder
                         return true;
                     } else if (itemId == R.id.menu_add_to_playlist) {
                         menuListener.onAddToPlaylist(song);
+                        return true;
+                    } else if (itemId == R.id.menu_delete_song) {
+                        menuListener.onDeleteSong(song, position);
                         return true;
                     }
                 }
@@ -99,6 +115,14 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.SongViewHolder
         notifyItemRangeInserted(startPosition, newSongs.size());
     }
 
+    public void removeSong(int position) {
+        if (songs != null && position >= 0 && position < songs.size()) {
+            songs.remove(position);
+            notifyItemRemoved(position);
+            notifyItemRangeChanged(position, songs.size());
+        }
+    }
+
     public void clearSongs() {
         if (songs != null) {
             songs.clear();
@@ -116,6 +140,12 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.SongViewHolder
         void onAddToFavourite(Song song);
 
         void onAddToPlaylist(Song song);
+
+        void onDeleteSong(Song song, int position);
+    }
+
+    public interface MenuActionOverride {
+        void onMenuAction(Song song, int position);
     }
 
     public void setOnSongClickListener(OnSongClickListener listener) {
@@ -124,6 +154,10 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.SongViewHolder
 
     public void setOnSongMenuListener(OnSongMenuListener menuListener) {
         this.menuListener = menuListener;
+    }
+
+    public void setMenuActionOverride(MenuActionOverride override) {
+        this.menuActionOverride = override;
     }
 
     static class SongViewHolder extends RecyclerView.ViewHolder {
