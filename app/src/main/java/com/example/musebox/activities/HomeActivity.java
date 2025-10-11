@@ -45,7 +45,7 @@ public class HomeActivity extends AppCompatActivity
     // Mini player views
     private View miniPlayer;
     private TextView tvSongTitle;
-    private ImageButton btnPlayPause, btnSpeed, btnClose;
+    private ImageButton btnPlayPause, btnSpeed, btnQueue;
     private SeekBar seekBar;
     private com.example.musebox.views.CircularProgressView circularProgress;
 
@@ -81,7 +81,7 @@ public class HomeActivity extends AppCompatActivity
         miniPlayer = findViewById(R.id.includeMiniPlayer);
         tvSongTitle = miniPlayer.findViewById(R.id.txtSongTitle);
         btnPlayPause = miniPlayer.findViewById(R.id.btnPlayPause);
-        btnClose = miniPlayer.findViewById(R.id.btnClose);
+        btnQueue = miniPlayer.findViewById(R.id.btnQueue);
         circularProgress = miniPlayer.findViewById(R.id.circularProgress);
 
         // Bind to MusicService
@@ -123,13 +123,11 @@ public class HomeActivity extends AppCompatActivity
             }
         });
 
-        // Close button - stop playback and hide mini player
-        btnClose.setOnClickListener(v -> {
-            if (musicService != null) {
-                musicService.stopPlaybackAndRemoveNotification();
-            }
-            miniPlayer.setVisibility(View.GONE);
-            progressHandler.removeCallbacks(progressRunnable);
+        // Queue button - open queue activity
+        btnQueue.setOnClickListener(v -> {
+            Intent intent = new Intent(HomeActivity.this, QueueActivity.class);
+            startActivity(intent);
+            overridePendingTransition(android.R.anim.slide_in_left, android.R.anim.slide_out_right);
         });
 
         // Swipe down to dismiss

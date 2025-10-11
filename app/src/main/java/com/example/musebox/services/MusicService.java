@@ -208,6 +208,24 @@ public class MusicService extends Service {
         this.currentSongIndex = startIndex;
     }
 
+    /** Get current playlist **/
+    public java.util.List<com.example.musebox.models.Song> getPlaylist() {
+        return new java.util.ArrayList<>(playlist);
+    }
+
+    /** Get current song from playlist **/
+    public com.example.musebox.models.Song getCurrentSong() {
+        if (playlist.isEmpty() || currentSongIndex < 0 || currentSongIndex >= playlist.size()) {
+            return null;
+        }
+        return playlist.get(currentSongIndex);
+    }
+
+    /** Get current song index **/
+    public int getCurrentSongIndex() {
+        return currentSongIndex;
+    }
+
     /** Play next song in playlist **/
     public void playNext() {
         if (playlist.isEmpty())

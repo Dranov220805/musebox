@@ -56,6 +56,28 @@ public class SongDatabaseHelper extends SQLiteOpenHelper {
         db.insert(TABLE_SONGS, null, values);
         db.close();
     }
+
+    // Check if song already exists by URI (path)
+    public boolean songExists(String uri) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery(
+            "SELECT * FROM " + TABLE_SONGS + " WHERE " + KEY_URI + " = ?",
+            new String[]{uri}
+        );
+        boolean exists = cursor.getCount() > 0;
+        cursor.close();
+        db.close();
+        return exists;
+    }
+
+    // Add song only if it doesn't exist, returns true if added
+    public boolean addSongIfNotExists(Song song) {
+        if (songExists(song.getUri())) {
+            return false; // Song already exists, not added
+        }
+        addSong(song);
+        return true; // Song was added
+    }
 //
 //    public long insertSong(Song song) {
 //        SQLiteDatabase db = this.getWritableDatabase();

@@ -49,6 +49,11 @@
             android:exported="false"
             android:screenOrientation="portrait" />
         <activity
+            android:name=".activities.QueueActivity"
+            android:theme="@style/Theme.MuseBox.NoActionBar"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+        <activity
             android:name=".activities.MainActivity"
             android:theme="@style/Base.Theme.MuseBox"
             android:exported="false">

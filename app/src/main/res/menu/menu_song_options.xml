@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/menu_add_to_queue"
+        android:title="Add to Queue"
+        android:icon="@drawable/ic_queue_music" />
+    
+    <item
+        android:id="@+id/menu_add_to_favourite"
+        android:title="Add to Favourites"
+        android:icon="@drawable/ic_favorite" />
+    
+    <item
+        android:id="@+id/menu_add_to_playlist"
+        android:title="Add to Playlist"
+        android:icon="@drawable/ic_add_circle" />
+</menu>

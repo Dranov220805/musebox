@@ -13,6 +13,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -38,7 +39,9 @@ public class HomeFragment extends Fragment {
 
     private RecyclerView recyclerSongs;
     private LinearLayout emptyView;
+    private View scrollContent;
     private Button btnImport;
+    private TextView tvSongCount;
     private SongAdapter adapter;
     private SongDatabaseHelper dbHelper;
     private OnSongSelectedListener listener;
@@ -62,7 +65,9 @@ public class HomeFragment extends Fragment {
 
         recyclerSongs = view.findViewById(R.id.recyclerSongs);
         emptyView = view.findViewById(R.id.emptyView);
+        scrollContent = view.findViewById(R.id.scrollContent);
         btnImport = view.findViewById(R.id.btnImport);
+        tvSongCount = view.findViewById(R.id.tvSongCount);
 
         dbHelper = new SongDatabaseHelper(requireContext());
 
@@ -74,6 +79,27 @@ public class HomeFragment extends Fragment {
         adapter.setOnSongClickListener(song -> {
             if (listener != null) {
                 listener.onSongSelected(song);
+            }
+        });
+
+        // Set the menu listener for song options
+        adapter.setOnSongMenuListener(new SongAdapter.OnSongMenuListener() {
+            @Override
+            public void onAddToQueue(Song song) {
+                Toast.makeText(requireContext(), "Added " + song.getTitle() + " to queue", Toast.LENGTH_SHORT).show();
+                // TODO: Implement add to queue functionality
+            }
+
+            @Override
+            public void onAddToFavourite(Song song) {
+                Toast.makeText(requireContext(), "Added " + song.getTitle() + " to favourites", Toast.LENGTH_SHORT).show();
+                // TODO: Implement add to favourites functionality
+            }
+
+            @Override
+            public void onAddToPlaylist(Song song) {
+                Toast.makeText(requireContext(), "Add " + song.getTitle() + " to playlist", Toast.LENGTH_SHORT).show();
+                // TODO: Show playlist selection dialog
             }
         });
 
@@ -113,7 +139,9 @@ public class HomeFragment extends Fragment {
                 return;
             }
 
-            List<Song> importedSongs = new ArrayList<>();
+            int newSongsCount = 0;
+            int duplicateCount = 0;
+            
             while (cursor.moveToNext()) {
                 String title = cursor.getString(0);
                 String artist = cursor.getString(1);
@@ -124,18 +152,32 @@ public class HomeFragment extends Fragment {
                 if (path == null) continue;
 
                 Song song = new Song(title, artist, path, duration);
-                dbHelper.addSong(song);
-                importedSongs.add(song);
+                
+                // Check if song was added (not a duplicate)
+                if (dbHelper.addSongIfNotExists(song)) {
+                    newSongsCount++;
+                } else {
+                    duplicateCount++;
+                }
             }
             cursor.close();
 
+            final int finalNewCount = newSongsCount;
+            final int finalDuplicateCount = duplicateCount;
+            
             requireActivity().runOnUiThread(() -> {
-                if (importedSongs.isEmpty()) {
+                if (finalNewCount == 0 && finalDuplicateCount == 0) {
                     Toast.makeText(requireContext(), "No songs found on device", Toast.LENGTH_LONG).show();
-                } else {
+                } else if (finalNewCount == 0) {
                     Toast.makeText(requireContext(),
-                            "Imported " + importedSongs.size() + " songs from device!",
+                            "Added 0 new songs. " + finalDuplicateCount + " duplicate(s) skipped.",
                             Toast.LENGTH_LONG).show();
+                } else {
+                    String message = "Imported " + finalNewCount + " new song(s)";
+                    if (finalDuplicateCount > 0) {
+                        message += ". " + finalDuplicateCount + " duplicate(s) skipped.";
+                    }
+                    Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show();
                 }
                 loadSongsFromDatabase();
             });
@@ -145,12 +187,17 @@ public class HomeFragment extends Fragment {
     private void loadSongsFromDatabase() {
         List<Song> songs = dbHelper.getAllSongs();
         if (songs.isEmpty()) {
-            recyclerSongs.setVisibility(View.GONE);
+            scrollContent.setVisibility(View.GONE);
             emptyView.setVisibility(View.VISIBLE);
+            tvSongCount.setText("0 songs");
         } else {
-            recyclerSongs.setVisibility(View.VISIBLE);
+            scrollContent.setVisibility(View.VISIBLE);
             emptyView.setVisibility(View.GONE);
             adapter.setSongs(songs);
+            
+            // Update song count
+            int count = songs.size();
+            tvSongCount.setText(count + (count == 1 ? " song" : " songs"));
         }
     }
 

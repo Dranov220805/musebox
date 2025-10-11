@@ -3,8 +3,10 @@ package com.example.musebox.adapters;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageButton;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
+import androidx.appcompat.widget.PopupMenu;
 import androidx.recyclerview.widget.RecyclerView;
 import com.example.musebox.R;
 import com.example.musebox.models.Song;
@@ -14,6 +16,7 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.SongViewHolder
 
     private List<Song> songs;
     private OnSongClickListener listener;
+    private OnSongMenuListener menuListener;
 
     public SongAdapter(List<Song> songs) {
         this.songs = songs;
@@ -42,6 +45,31 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.SongViewHolder
         holder.itemView.setOnClickListener(v -> {
             if (listener != null) listener.onSongClick(song);
         });
+
+        // Menu button click
+        holder.btnMenu.setOnClickListener(v -> {
+            PopupMenu popup = new PopupMenu(v.getContext(), v);
+            popup.inflate(R.menu.menu_song_options);
+            
+            popup.setOnMenuItemClickListener(item -> {
+                if (menuListener != null) {
+                    int itemId = item.getItemId();
+                    if (itemId == R.id.menu_add_to_queue) {
+                        menuListener.onAddToQueue(song);
+                        return true;
+                    } else if (itemId == R.id.menu_add_to_favourite) {
+                        menuListener.onAddToFavourite(song);
+                        return true;
+                    } else if (itemId == R.id.menu_add_to_playlist) {
+                        menuListener.onAddToPlaylist(song);
+                        return true;
+                    }
+                }
+                return false;
+            });
+            
+            popup.show();
+        });
     }
 
     @Override
@@ -63,18 +91,30 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.SongViewHolder
         void onSongClick(Song song);
     }
 
+    public interface OnSongMenuListener {
+        void onAddToQueue(Song song);
+        void onAddToFavourite(Song song);
+        void onAddToPlaylist(Song song);
+    }
+
     public void setOnSongClickListener(OnSongClickListener listener) {
         this.listener = listener;
     }
 
+    public void setOnSongMenuListener(OnSongMenuListener menuListener) {
+        this.menuListener = menuListener;
+    }
+
     static class SongViewHolder extends RecyclerView.ViewHolder {
-        TextView tvTitle, tvArtist, tvUri, tvDuration;
+        TextView tvTitle, tvArtist, tvDuration;
+        ImageButton btnMenu;
 
         public SongViewHolder(@NonNull View itemView) {
             super(itemView);
             tvTitle = itemView.findViewById(R.id.tvTitle);
             tvArtist = itemView.findViewById(R.id.tvArtist);
             tvDuration = itemView.findViewById(R.id.tvDuration);
+            btnMenu = itemView.findViewById(R.id.btnMenu);
         }
     }
 }
