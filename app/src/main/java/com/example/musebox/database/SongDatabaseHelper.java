@@ -37,12 +37,21 @@ public class SongDatabaseHelper extends SQLiteOpenHelper {
                 + KEY_DURATION + " INTEGER"
                 + ")";
         db.execSQL(CREATE_SONGS_TABLE);
+        
+        // Create index on title column for faster sorting
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_song_title ON " + TABLE_SONGS + "(" + KEY_TITLE + ")");
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_SONGS);
-        onCreate(db);
+        // Add index if upgrading
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_song_title ON " + TABLE_SONGS + "(" + KEY_TITLE + ")");
+    }
+    
+    // Method to ensure index exists even for existing databases
+    public void ensureIndexExists() {
+        SQLiteDatabase db = this.getWritableDatabase();
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_song_title ON " + TABLE_SONGS + "(" + KEY_TITLE + ")");
     }
 
     public void addSong(Song song) {

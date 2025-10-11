@@ -67,14 +67,27 @@ public class QueueActivity extends AppCompatActivity {
         recyclerQueue.setLayoutManager(new LinearLayoutManager(this));
         adapter = new QueueAdapter(new ArrayList<>());
         recyclerQueue.setAdapter(adapter);
+        
+        // Set queue item listener
+        adapter.setOnQueueItemListener(position -> {
+            if (musicService != null) {
+                // Calculate actual index in playlist (current + 1 + position)
+                int actualIndex = musicService.getCurrentSongIndex() + 1 + position;
+                if (musicService.removeFromQueue(actualIndex)) {
+                    loadQueue();
+                }
+            }
+        });
 
         // Back button
         btnBack.setOnClickListener(v -> finish());
 
         // Clear queue button
         btnClearQueue.setOnClickListener(v -> {
-            adapter.clearQueue();
-            updateEmptyState();
+            if (musicService != null) {
+                musicService.clearQueue();
+                loadQueue();
+            }
         });
 
         // Bind to MusicService

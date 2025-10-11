@@ -17,9 +17,18 @@ import java.util.List;
 public class QueueAdapter extends RecyclerView.Adapter<QueueAdapter.QueueViewHolder> {
 
     private List<Song> queue;
+    private OnQueueItemListener listener;
+    
+    public interface OnQueueItemListener {
+        void onRemoveFromQueue(int position);
+    }
 
     public QueueAdapter(List<Song> queue) {
         this.queue = queue;
+    }
+    
+    public void setOnQueueItemListener(OnQueueItemListener listener) {
+        this.listener = listener;
     }
 
     @NonNull
@@ -39,9 +48,8 @@ public class QueueAdapter extends RecyclerView.Adapter<QueueAdapter.QueueViewHol
 
         holder.btnRemove.setOnClickListener(v -> {
             int pos = holder.getAdapterPosition();
-            if (pos != RecyclerView.NO_POSITION) {
-                queue.remove(pos);
-                notifyItemRemoved(pos);
+            if (pos != RecyclerView.NO_POSITION && listener != null) {
+                listener.onRemoveFromQueue(pos);
             }
         });
     }

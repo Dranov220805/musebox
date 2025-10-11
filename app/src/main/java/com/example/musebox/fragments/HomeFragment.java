@@ -47,7 +47,7 @@ public class HomeFragment extends Fragment {
     private OnSongSelectedListener listener;
 
     private static final int REQUEST_PERMISSION = 200;
-    private static final int PAGE_SIZE = 50; // Load 50 songs at a time
+    private static final int PAGE_SIZE = 30; // Load 30 songs at a time for faster response
     private int currentOffset = 0;
     private boolean isLoading = false;
     private boolean hasMoreData = true;
@@ -74,6 +74,8 @@ public class HomeFragment extends Fragment {
         tvSongCount = view.findViewById(R.id.tvSongCount);
 
         dbHelper = new SongDatabaseHelper(requireContext());
+        // Ensure index exists for faster queries
+        dbHelper.ensureIndexExists();
 
         LinearLayoutManager layoutManager = new LinearLayoutManager(requireContext());
         recyclerSongs.setLayoutManager(layoutManager);
@@ -91,9 +93,14 @@ public class HomeFragment extends Fragment {
                     int totalItemCount = layoutManager.getItemCount();
                     int firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition();
 
+                    android.util.Log.d("HomeFragment", "Scroll: visible=" + visibleItemCount + 
+                        ", total=" + totalItemCount + ", firstPos=" + firstVisibleItemPosition + 
+                        ", isLoading=" + isLoading + ", hasMore=" + hasMoreData);
+
                     if (!isLoading && hasMoreData) {
-                        if ((visibleItemCount + firstVisibleItemPosition) >= totalItemCount - 5) {
-                            // Load more when 5 items from bottom
+                        if ((visibleItemCount + firstVisibleItemPosition) >= totalItemCount - 10) {
+                            android.util.Log.d("HomeFragment", "Triggering loadMoreSongs()");
+                            // Load more when 10 items from bottom
                             loadMoreSongs();
                         }
                     }
@@ -112,8 +119,9 @@ public class HomeFragment extends Fragment {
         adapter.setOnSongMenuListener(new SongAdapter.OnSongMenuListener() {
             @Override
             public void onAddToQueue(Song song) {
-                Toast.makeText(requireContext(), "Added " + song.getTitle() + " to queue", Toast.LENGTH_SHORT).show();
-                // TODO: Implement add to queue functionality
+                if (getActivity() instanceof com.example.musebox.activities.HomeActivity) {
+                    ((com.example.musebox.activities.HomeActivity) getActivity()).addSongToQueue(song);
+                }
             }
 
             @Override
@@ -239,9 +247,16 @@ public class HomeFragment extends Fragment {
             return;
 
         isLoading = true;
+        
+        // Show loading indicator (optional)
+        // progressBar.setVisibility(View.VISIBLE);
 
         new Thread(() -> {
+            long startTime = System.currentTimeMillis();
             List<Song> songs = dbHelper.getSongsPaginated(PAGE_SIZE, currentOffset);
+            long loadTime = System.currentTimeMillis() - startTime;
+            
+            android.util.Log.d("HomeFragment", "Loaded " + songs.size() + " songs in " + loadTime + "ms from offset " + currentOffset);
 
             requireActivity().runOnUiThread(() -> {
                 if (songs.isEmpty()) {
@@ -249,8 +264,14 @@ public class HomeFragment extends Fragment {
                 } else {
                     adapter.addSongs(songs);
                     currentOffset += songs.size();
+                    
+                    // If we got less than PAGE_SIZE, we're at the end
+                    if (songs.size() < PAGE_SIZE) {
+                        hasMoreData = false;
+                    }
                 }
                 isLoading = false;
+                // progressBar.setVisibility(View.GONE);
             });
         }).start();
     }
