@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="24dp"
+    android:background="@drawable/dialog_bg"
+    android:gravity="center_horizontal">
+
+    <TextView
+        android:text="Choose an action"
+        android:textStyle="bold"
+        android:textSize="18sp"
+        android:layout_marginBottom="16dp"
+        android:textColor="@color/black"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
+    <Button
+        android:id="@+id/btn_create_playlist"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Create Playlist" />
+
+    <Button
+        android:id="@+id/btn_import_music"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Import Music"
+        android:layout_marginTop="8dp" />
+
+</LinearLayout>
