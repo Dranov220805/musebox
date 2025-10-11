@@ -56,6 +56,7 @@ public class HomeActivity extends AppCompatActivity
     // Current song and playlist
     private Song currentSong;
     private List<Song> currentPlaylist = new ArrayList<>();
+    private String lastSongTitle = "";
 
     // ServiceConnection to bind with MusicService
     private ServiceConnection serviceConnection = new ServiceConnection() {
@@ -92,13 +93,30 @@ public class HomeActivity extends AppCompatActivity
         progressRunnable = new Runnable() {
             @Override
             public void run() {
-                if (musicService != null && musicService.isPlaying()) {
-                    int currentPosition = musicService.getCurrentPosition();
-                    int duration = musicService.getDuration();
+                if (musicService != null) {
+                    // Check if song has changed
+                    String currentTitle = musicService.getCurrentSongTitle();
+                    if (currentTitle != null && !currentTitle.equals(lastSongTitle)) {
+                        lastSongTitle = currentTitle;
+                        updateMiniPlayer();
+                    }
 
-                    if (duration > 0) {
-                        float progress = (currentPosition * 100f) / duration;
-                        circularProgress.setProgress(progress);
+                    // Update play/pause button state
+                    if (musicService.isPlaying()) {
+                        btnPlayPause.setImageResource(R.drawable.ic_pause);
+                    } else {
+                        btnPlayPause.setImageResource(R.drawable.ic_play);
+                    }
+
+                    // Update progress if playing
+                    if (musicService.isPlaying()) {
+                        int currentPosition = musicService.getCurrentPosition();
+                        int duration = musicService.getDuration();
+
+                        if (duration > 0) {
+                            float progress = (currentPosition * 100f) / duration;
+                            circularProgress.setProgress(progress);
+                        }
                     }
                 }
                 progressHandler.postDelayed(this, 100); // Update every 100ms
@@ -210,7 +228,10 @@ public class HomeActivity extends AppCompatActivity
     protected void onResume() {
         super.onResume();
         // Resume updating when activity is visible
-        if (musicService != null && musicService.isPlaying()) {
+        if (musicService != null) {
+            // Update mini player with current song info
+            updateMiniPlayer();
+            // Start progress updates
             progressHandler.post(progressRunnable);
         }
     }
@@ -251,6 +272,24 @@ public class HomeActivity extends AppCompatActivity
             Toast.makeText(this, "Playing: " + song.getTitle(), Toast.LENGTH_SHORT).show();
         } else {
             Toast.makeText(this, "Music service not available", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    // Update mini player UI with current song info from service
+    private void updateMiniPlayer() {
+        if (musicService != null) {
+            String title = musicService.getCurrentSongTitle();
+            if (title != null && !title.equals("No song playing")) {
+                tvSongTitle.setText(title);
+                miniPlayer.setVisibility(View.VISIBLE);
+                
+                // Update play/pause button
+                if (musicService.isPlaying()) {
+                    btnPlayPause.setImageResource(R.drawable.ic_pause);
+                } else {
+                    btnPlayPause.setImageResource(R.drawable.ic_play);
+                }
+            }
         }
     }
 
