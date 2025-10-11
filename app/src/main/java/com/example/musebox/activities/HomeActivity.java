@@ -1,10 +1,15 @@
 package com.example.musebox.activities;
 
+import android.content.ComponentName;
 import android.content.ContentResolver;
 import android.content.ContentUris;
+import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 import android.view.View;
@@ -29,7 +34,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class HomeActivity extends AppCompatActivity
-        implements NavigationBarFragment.OnNavigationItemSelectedListener {
+        implements NavigationBarFragment.OnNavigationItemSelectedListener,
+        HomeFragment.OnSongSelectedListener {
 
     private SongDatabaseHelper dbHelper;
 
@@ -41,6 +47,27 @@ public class HomeActivity extends AppCompatActivity
     private TextView tvSongTitle;
     private ImageButton btnPlayPause, btnSpeed;
     private SeekBar seekBar;
+    private com.example.musebox.views.CircularProgressView circularProgress;
+    
+    // Handler for updating progress
+    private android.os.Handler progressHandler = new android.os.Handler();
+    private Runnable progressRunnable;
+
+    // ServiceConnection to bind with MusicService
+    private ServiceConnection serviceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            MusicService.LocalBinder binder = (MusicService.LocalBinder) service;
+            musicService = binder.getService();
+            isBound = true;
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            musicService = null;
+            isBound = false;
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -50,7 +77,29 @@ public class HomeActivity extends AppCompatActivity
         miniPlayer = findViewById(R.id.includeMiniPlayer);
         tvSongTitle = miniPlayer.findViewById(R.id.txtSongTitle);
         btnPlayPause = miniPlayer.findViewById(R.id.btnPlayPause);
+        circularProgress = miniPlayer.findViewById(R.id.circularProgress);
 //        btnSpeed = miniPlayer.findViewById(R.id.btnSpeed);
+
+        // Bind to MusicService
+        Intent serviceIntent = new Intent(this, MusicService.class);
+        bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE);
+
+        // Setup progress updater
+        progressRunnable = new Runnable() {
+            @Override
+            public void run() {
+                if (musicService != null && musicService.isPlaying()) {
+                    int currentPosition = musicService.getCurrentPosition();
+                    int duration = musicService.getDuration();
+                    
+                    if (duration > 0) {
+                        float progress = (currentPosition * 100f) / duration;
+                        circularProgress.setProgress(progress);
+                    }
+                }
+                progressHandler.postDelayed(this, 100); // Update every 100ms
+            }
+        };
 
         btnPlayPause.setOnClickListener(v -> {
             if (musicService != null) {
@@ -81,6 +130,60 @@ public class HomeActivity extends AppCompatActivity
             getSupportFragmentManager().beginTransaction()
                     .replace(R.id.navigation_container, new NavigationBarFragment())
                     .commit();
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // Stop progress updates
+        progressHandler.removeCallbacks(progressRunnable);
+        
+        if (isBound) {
+            unbindService(serviceConnection);
+            isBound = false;
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        // Stop updating when activity is not visible
+        progressHandler.removeCallbacks(progressRunnable);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Resume updating when activity is visible
+        if (musicService != null && musicService.isPlaying()) {
+            progressHandler.post(progressRunnable);
+        }
+    }
+
+    // Implement HomeFragment.OnSongSelectedListener
+    @Override
+    public void onSongSelected(Song song) {
+        if (musicService != null && song != null) {
+            // Play the selected song
+            musicService.playSong(song.getUri());
+            
+            // Show mini player
+            miniPlayer.setVisibility(View.VISIBLE);
+            
+            // Reset circular progress
+            circularProgress.setProgress(0);
+            
+            // Start progress updates
+            progressHandler.post(progressRunnable);
+            
+            // Update UI
+            tvSongTitle.setText(song.getTitle());
+            btnPlayPause.setImageResource(R.drawable.ic_pause);
+            
+            Toast.makeText(this, "Playing: " + song.getTitle(), Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(this, "Music service not available", Toast.LENGTH_SHORT).show();
         }
     }
 
