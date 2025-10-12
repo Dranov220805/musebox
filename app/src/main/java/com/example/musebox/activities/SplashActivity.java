@@ -42,7 +42,7 @@ public class SplashActivity extends AppCompatActivity {
             intent = new Intent(SplashActivity.this, HomeActivity.class);
         } else {
             // Chưa login → Chuyển sang MainActivity (Login)
-            intent = new Intent(SplashActivity.this, MainActivity.class);
+            intent = new Intent(SplashActivity.this, LoginActivity.class);
         }
 
         startActivity(intent);
