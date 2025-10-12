@@ -43,9 +43,9 @@
             </intent-filter>
         </activity>
 
-        <!-- MainActivity - Login Screen -->
+        <!-- LoginActivity - Login Screen -->
         <activity
-            android:name=".activities.MainActivity"
+            android:name=".activities.LoginActivity"
             android:theme="@style/Base.Theme.MuseBox"
             android:exported="false" />
 
