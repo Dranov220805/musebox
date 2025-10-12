@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
-    
+
     <!-- For Android 12 and below (API 32 and below) -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
-    
+
     <!-- For Android 13+ (API 33+) - New granular media permissions -->
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
-    
+
     <!-- Foreground service permissions -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
-    
+
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
@@ -24,14 +24,15 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Base.Theme.MuseBox">
-        
+
         <!-- MusicService -->
         <service
             android:name=".services.MusicService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="mediaPlayback" />
-        
+
+        <!-- SplashActivity - First Screen (Launcher) -->
         <activity
             android:name=".activities.SplashActivity"
             android:exported="true"
@@ -41,40 +42,44 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- MainActivity - Login Screen -->
+        <activity
+            android:name=".activities.MainActivity"
+            android:theme="@style/Base.Theme.MuseBox"
+            android:exported="false" />
+
+        <!-- RegisterActivity - Registration Screen -->
+        <activity
+            android:name=".activities.RegisterActivity"
+            android:theme="@style/Base.Theme.MuseBox"
+            android:exported="false" />
+
+        <!-- HomeActivity - Main App Screen (after login) -->
         <activity
             android:name=".activities.HomeActivity"
             android:theme="@style/Theme.MuseBox.NoActionBar"
             android:exported="false"
-            android:windowSoftInputMode="adjustResize">
-<!--            <intent-filter>-->
-<!--                <action android:name="android.intent.action.MAIN" />-->
+            android:windowSoftInputMode="adjustResize" />
 
-<!--                <category android:name="android.intent.category.LAUNCHER" />-->
-<!--            </intent-filter>-->
-        </activity>
+        <!-- FullPlayerActivity -->
         <activity
             android:name=".activities.FullPlayerActivity"
             android:theme="@style/Theme.MuseBox.NoActionBar"
             android:exported="false" />
+
+        <!-- QueueActivity -->
         <activity
             android:name=".activities.QueueActivity"
             android:theme="@style/Theme.MuseBox.NoActionBar"
             android:exported="false" />
+
+        <!-- FavoritesActivity -->
         <activity
             android:name=".activities.FavoritesActivity"
             android:theme="@style/Theme.MuseBox.NoActionBar"
             android:exported="false" />
-        <activity
-            android:name=".activities.MainActivity"
-            android:theme="@style/Base.Theme.MuseBox"
-            android:exported="false">
-            <!-- <intent-filter> -->
-            <!-- <action android:name="android.intent.action.MAIN" /> -->
 
-
-            <!-- <category android:name="android.intent.category.LAUNCHER" /> -->
-            <!-- </intent-filter> -->
-        </activity>
     </application>
 
 </manifest>
