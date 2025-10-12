@@ -6,7 +6,6 @@ import android.text.TextUtils;
 import android.util.Patterns;
 import android.view.View;
 import android.widget.Button;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -20,8 +19,7 @@ import com.google.android.material.textfield.TextInputEditText;
 public class MainActivity extends AppCompatActivity {
 
     private TextInputEditText emailField, passwordField;
-    private Button loginBtn;
-    private TextView goToRegisterText;
+    private Button loginBtn, goToRegisterBtn;
     private UserDatabaseHelper dbHelper;
     private SessionManager sessionManager;
 
@@ -44,6 +42,7 @@ public class MainActivity extends AppCompatActivity {
         emailField = findViewById(R.id.emailField);
         passwordField = findViewById(R.id.passwordField);
         loginBtn = findViewById(R.id.loginBtn);
+        goToRegisterBtn = findViewById(R.id.goToRegisterBtn);
 
         // Khởi tạo database helper
         dbHelper = new UserDatabaseHelper(this);
@@ -55,6 +54,22 @@ public class MainActivity extends AppCompatActivity {
                 loginUser();
             }
         });
+
+        // Xử lý sự kiện chuyển sang Register
+        if (goToRegisterBtn != null) {
+            goToRegisterBtn.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    // Toast để debug
+                    Toast.makeText(MainActivity.this, "Register clicked!", Toast.LENGTH_SHORT).show();
+
+                    Intent intent = new Intent(MainActivity.this, RegisterActivity.class);
+                    startActivity(intent);
+                }
+            });
+        } else {
+            Toast.makeText(this, "goToRegisterBtn is NULL!", Toast.LENGTH_LONG).show();
+        }
     }
 
     private void loginUser() {
@@ -102,16 +117,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void goToHome() {
-        // Chuyển sang HomeActivity (bạn cần tạo activity này sau)
-        // Tạm thời mình để comment, bạn uncomment khi đã có HomeActivity
-
-        /*
+        // Chuyển sang HomeActivity
         Intent intent = new Intent(MainActivity.this, HomeActivity.class);
         startActivity(intent);
         finish();
-        */
-
-        // Tạm thời hiển thị Toast
-        Toast.makeText(this, "Logged in successfully!", Toast.LENGTH_LONG).show();
     }
 }
