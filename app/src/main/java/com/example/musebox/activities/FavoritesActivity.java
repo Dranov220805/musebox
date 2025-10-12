@@ -38,6 +38,8 @@ public class FavoritesActivity extends AppCompatActivity
     private RecyclerView recyclerView;
     private LinearLayout emptyView;
     private TextView tvEmptyMessage;
+    private TextView tvFavoritesCount; // Landscape layout favorites count
+    private ImageButton btnBack; // Landscape layout back button
     private SongAdapter adapter;
     private SongDatabaseHelper dbHelper;
     private List<Song> favoriteSongs = new ArrayList<>();
@@ -76,12 +78,21 @@ public class FavoritesActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_favorites);
 
-        // Setup toolbar
+        // Setup toolbar (portrait mode)
         Toolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-            getSupportActionBar().setTitle("Favorite Songs");
+        if (toolbar != null) {
+            setSupportActionBar(toolbar);
+            if (getSupportActionBar() != null) {
+                getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+                getSupportActionBar().setTitle("Favorite Songs");
+            }
+        }
+
+        // Setup landscape mode views (if present)
+        tvFavoritesCount = findViewById(R.id.tvFavoritesCount);
+        btnBack = findViewById(R.id.btnBack);
+        if (btnBack != null) {
+            btnBack.setOnClickListener(v -> finish());
         }
 
         recyclerView = findViewById(R.id.recyclerFavorites);
@@ -246,6 +257,13 @@ public class FavoritesActivity extends AppCompatActivity
                 favoriteSongs.addAll(songs);
                 adapter.setSongs(favoriteSongs); // Use DiffUtil-powered method
 
+                // Update favorites count in landscape header (if present)
+                if (tvFavoritesCount != null) {
+                    int count = favoriteSongs.size();
+                    String countText = count + " favorite" + (count != 1 ? "s" : "");
+                    tvFavoritesCount.setText(countText);
+                }
+
                 if (favoriteSongs.isEmpty()) {
                     recyclerView.setVisibility(View.GONE);
                     emptyView.setVisibility(View.VISIBLE);
@@ -294,6 +312,13 @@ public class FavoritesActivity extends AppCompatActivity
                     favoriteSongs.remove(position);
                     adapter.removeSong(position); // Use DiffUtil-powered method
                     Toast.makeText(this, "Removed from favorites", Toast.LENGTH_SHORT).show();
+
+                    // Update favorites count in landscape header (if present)
+                    if (tvFavoritesCount != null) {
+                        int count = favoriteSongs.size();
+                        String countText = count + " favorite" + (count != 1 ? "s" : "");
+                        tvFavoritesCount.setText(countText);
+                    }
 
                     if (favoriteSongs.isEmpty()) {
                         recyclerView.setVisibility(View.GONE);

@@ -362,14 +362,15 @@ public class HomeFragment extends Fragment {
 
     private void showDeleteConfirmationDialog(Song song, int position) {
         new AlertDialog.Builder(requireContext())
-                .setTitle("Delete Song?")
-                .setMessage("This will permanently delete \"" + song.getTitle() + "\" from your device.")
-                .setPositiveButton("Delete", (dialog, which) -> deleteSong(song, position))
+                .setTitle("Remove Song")
+                .setMessage("Choose how to remove \"" + song.getTitle() + "\":")
+                .setPositiveButton("Remove from Device", (dialog, which) -> deleteSongFromDevice(song, position))
+                .setNeutralButton("Remove from Library", (dialog, which) -> deleteSongFromLibrary(song, position))
                 .setNegativeButton("Cancel", null)
                 .show();
     }
 
-    private void deleteSong(Song song, int position) {
+    private void deleteSongFromDevice(Song song, int position) {
         new Thread(() -> {
             boolean success = false;
             String errorMessage = null;
@@ -414,11 +415,37 @@ public class HomeFragment extends Fragment {
                     loadFavorites();
 
                     String message = finalErrorMessage != null ? finalErrorMessage
-                            : "Deleted \"" + song.getTitle() + "\"";
+                            : "Permanently deleted \"" + song.getTitle() + "\" from device";
                     Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
                 } else {
                     Toast.makeText(requireContext(), finalErrorMessage, Toast.LENGTH_SHORT).show();
                 }
+            });
+        }).start();
+    }
+
+    private void deleteSongFromLibrary(Song song, int position) {
+        new Thread(() -> {
+            // Only remove from database, keep the file on device
+            dbHelper.deleteSong(song.getId());
+
+            requireActivity().runOnUiThread(() -> {
+                // Remove from adapter and update UI
+                adapter.removeSong(position);
+
+                // Update song count display
+                int totalCount = dbHelper.getSongCount();
+                tvSongCount.setText(totalCount + (totalCount == 1 ? " song" : " songs"));
+                if (totalCount == 0) {
+                    scrollContent.setVisibility(View.GONE);
+                    emptyView.setVisibility(View.VISIBLE);
+                }
+
+                loadFavorites();
+
+                Toast.makeText(requireContext(),
+                        "Removed \"" + song.getTitle() + "\" from library (file kept on device)",
+                        Toast.LENGTH_SHORT).show();
             });
         }).start();
     }
