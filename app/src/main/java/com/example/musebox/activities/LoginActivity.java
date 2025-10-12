@@ -36,7 +36,7 @@ public class LoginActivity extends AppCompatActivity {
             return;
         }
 
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_login);
 
         // Khởi tạo views
         emailField = findViewById(R.id.emailField);
