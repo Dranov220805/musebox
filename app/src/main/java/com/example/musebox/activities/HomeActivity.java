@@ -282,7 +282,7 @@ public class HomeActivity extends AppCompatActivity
             if (title != null && !title.equals("No song playing")) {
                 tvSongTitle.setText(title);
                 miniPlayer.setVisibility(View.VISIBLE);
-                
+
                 // Update play/pause button
                 if (musicService.isPlaying()) {
                     btnPlayPause.setImageResource(R.drawable.ic_pause);
@@ -330,11 +330,12 @@ public class HomeActivity extends AppCompatActivity
 
     @Override
     public void onCreatePlaylistSelected() {
-        new AlertDialog.Builder(this)
-                .setTitle("Create Playlist")
-                .setMessage("Feature coming soon!")
-                .setPositiveButton("OK", null)
-                .show();
+        // Import the utility class
+        com.example.musebox.utils.ThemedDialogUtils.showInfoDialog(
+                this,
+                "Create Playlist",
+                "Feature coming soon! This will allow you to create custom playlists from your music library.",
+                null);
     }
 
     @Override

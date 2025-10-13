@@ -31,7 +31,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintDimensionRatio="1:1"
-        app:layout_constraintWidth_percent="0.8"
+        app:layout_constraintWidth_percent="0.5"
         android:contentDescription="Album Art" />
 
     <!-- Song Title -->

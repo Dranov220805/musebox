@@ -353,11 +353,12 @@ public class FavoritesActivity extends AppCompatActivity
 
     @Override
     public void onCreatePlaylistSelected() {
-        new AlertDialog.Builder(this)
-                .setTitle("Create Playlist")
-                .setMessage("Feature coming soon!")
-                .setPositiveButton("OK", null)
-                .show();
+        // Import the utility class
+        com.example.musebox.utils.ThemedDialogUtils.showInfoDialog(
+                this,
+                "Create Playlist",
+                "Feature coming soon! This will allow you to create custom playlists from your favorite songs.",
+                null);
     }
 
     @Override
