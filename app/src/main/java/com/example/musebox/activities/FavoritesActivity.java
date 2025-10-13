@@ -15,7 +15,6 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -38,8 +37,8 @@ public class FavoritesActivity extends AppCompatActivity
     private RecyclerView recyclerView;
     private LinearLayout emptyView;
     private TextView tvEmptyMessage;
-    private TextView tvFavoritesCount; // Landscape layout favorites count
-    private ImageButton btnBack; // Landscape layout back button
+    private TextView tvFavoritesCount; // Favorites count display
+    private ImageButton btnBack; // Back button
     private SongAdapter adapter;
     private SongDatabaseHelper dbHelper;
     private List<Song> favoriteSongs = new ArrayList<>();
@@ -78,17 +77,7 @@ public class FavoritesActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_favorites);
 
-        // Setup toolbar (portrait mode)
-        Toolbar toolbar = findViewById(R.id.toolbar);
-        if (toolbar != null) {
-            setSupportActionBar(toolbar);
-            if (getSupportActionBar() != null) {
-                getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-                getSupportActionBar().setTitle("Favorite Songs");
-            }
-        }
-
-        // Setup landscape mode views (if present)
+        // Setup back button and favorites count display
         tvFavoritesCount = findViewById(R.id.tvFavoritesCount);
         btnBack = findViewById(R.id.btnBack);
         if (btnBack != null) {
@@ -265,12 +254,22 @@ public class FavoritesActivity extends AppCompatActivity
                 }
 
                 if (favoriteSongs.isEmpty()) {
-                    recyclerView.setVisibility(View.GONE);
-                    emptyView.setVisibility(View.VISIBLE);
-                    tvEmptyMessage.setText("No favorite songs yet");
+                    if (recyclerView != null) {
+                        recyclerView.setVisibility(View.GONE);
+                    }
+                    if (emptyView != null) {
+                        emptyView.setVisibility(View.VISIBLE);
+                    }
+                    if (tvEmptyMessage != null) {
+                        tvEmptyMessage.setText("No favorite songs yet");
+                    }
                 } else {
-                    recyclerView.setVisibility(View.VISIBLE);
-                    emptyView.setVisibility(View.GONE);
+                    if (recyclerView != null) {
+                        recyclerView.setVisibility(View.VISIBLE);
+                    }
+                    if (emptyView != null) {
+                        emptyView.setVisibility(View.GONE);
+                    }
                 }
             });
         }).start();
@@ -309,21 +308,34 @@ public class FavoritesActivity extends AppCompatActivity
             boolean success = dbHelper.removeFromFavorites(song.getId());
             runOnUiThread(() -> {
                 if (success) {
-                    favoriteSongs.remove(position);
-                    adapter.removeSong(position); // Use DiffUtil-powered method
-                    Toast.makeText(this, "Removed from favorites", Toast.LENGTH_SHORT).show();
+                    // Validate position before removal to prevent crashes
+                    if (position >= 0 && position < favoriteSongs.size()) {
+                        favoriteSongs.remove(position);
+                        adapter.removeSong(position); // Use DiffUtil-powered method
+                        Toast.makeText(this, "Removed from favorites", Toast.LENGTH_SHORT).show();
 
-                    // Update favorites count in landscape header (if present)
-                    if (tvFavoritesCount != null) {
-                        int count = favoriteSongs.size();
-                        String countText = count + " favorite" + (count != 1 ? "s" : "");
-                        tvFavoritesCount.setText(countText);
-                    }
+                        // Update favorites count in landscape header (if present)
+                        if (tvFavoritesCount != null) {
+                            int count = favoriteSongs.size();
+                            String countText = count + " favorite" + (count != 1 ? "s" : "");
+                            tvFavoritesCount.setText(countText);
+                        }
 
-                    if (favoriteSongs.isEmpty()) {
-                        recyclerView.setVisibility(View.GONE);
-                        emptyView.setVisibility(View.VISIBLE);
-                        tvEmptyMessage.setText("No favorite songs yet");
+                        if (favoriteSongs.isEmpty()) {
+                            if (recyclerView != null) {
+                                recyclerView.setVisibility(View.GONE);
+                            }
+                            if (emptyView != null) {
+                                emptyView.setVisibility(View.VISIBLE);
+                            }
+                            if (tvEmptyMessage != null) {
+                                tvEmptyMessage.setText("No favorite songs yet");
+                            }
+                        }
+                    } else {
+                        // If position is invalid, reload the entire list to sync
+                        loadFavorites();
+                        Toast.makeText(this, "Removed from favorites", Toast.LENGTH_SHORT).show();
                     }
                 }
             });
@@ -353,11 +365,12 @@ public class FavoritesActivity extends AppCompatActivity
 
     @Override
     public void onCreatePlaylistSelected() {
-        new AlertDialog.Builder(this)
-                .setTitle("Create Playlist")
-                .setMessage("Feature coming soon!")
-                .setPositiveButton("OK", null)
-                .show();
+        // Import the utility class
+        com.example.musebox.utils.ThemedDialogUtils.showInfoDialog(
+                this,
+                "Create Playlist",
+                "Feature coming soon! This will allow you to create custom playlists from your favorite songs.",
+                null);
     }
 
     @Override

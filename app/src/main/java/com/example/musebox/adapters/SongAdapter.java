@@ -68,7 +68,11 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.SongViewHolder> {
         holder.btnMenu.setOnClickListener(v -> {
             // If custom menu action is set (like for FavoritesActivity), use it instead
             if (menuActionOverride != null) {
-                menuActionOverride.onMenuAction(song, position);
+                // Get the current adapter position to avoid stale position issues
+                int adapterPosition = holder.getAdapterPosition();
+                if (adapterPosition != RecyclerView.NO_POSITION) {
+                    menuActionOverride.onMenuAction(song, adapterPosition);
+                }
                 return;
             }
 
@@ -102,12 +106,13 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.SongViewHolder> {
 
     /**
      * Load album art asynchronously using Glide with caching.
-     * This prevents blocking the main thread and caches images for better performance.
+     * This prevents blocking the main thread and caches images for better
+     * performance.
      */
     private void loadAlbumArt(ImageView imageView, String audioFilePath) {
         // Try to load album art from audio file
         Uri audioUri = Uri.parse(audioFilePath);
-        
+
         Glide.with(imageView.getContext())
                 .load(audioUri)
                 .diskCacheStrategy(DiskCacheStrategy.ALL) // Cache both original & resized image
@@ -133,6 +138,10 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.SongViewHolder> {
         if (position >= 0 && position < currentList.size()) {
             currentList.remove(position);
             submitList(currentList);
+        }
+        // If position is invalid, just submit the current list to refresh
+        else if (!currentList.isEmpty()) {
+            submitList(new ArrayList<>(currentList));
         }
     }
 

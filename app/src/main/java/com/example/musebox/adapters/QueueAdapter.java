@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.musebox.R;
 import com.example.musebox.models.Song;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class QueueAdapter extends RecyclerView.Adapter<QueueAdapter.QueueViewHolder> {
@@ -62,12 +63,14 @@ public class QueueAdapter extends RecyclerView.Adapter<QueueAdapter.QueueViewHol
     public void setQueue(List<Song> newQueue) {
         if (queue != null) {
             queue.clear();
-            if (newQueue != null) {
-                queue.addAll(newQueue);
-            }
         } else {
-            queue = newQueue;
+            queue = new ArrayList<>();
         }
+
+        if (newQueue != null) {
+            queue.addAll(newQueue);
+        }
+
         notifyDataSetChanged();
     }
 

@@ -35,7 +35,9 @@ import java.util.List;
 
 public class HomeActivity extends AppCompatActivity
         implements NavigationBarFragment.OnNavigationItemSelectedListener,
-        HomeFragment.OnSongSelectedListener {
+        HomeFragment.OnSongSelectedListener,
+        QueueFragment.OnQueueFragmentListener,
+        FavoritesFragment.OnFavoritesFragmentListener {
 
     private SongDatabaseHelper dbHelper;
 
@@ -141,11 +143,13 @@ public class HomeActivity extends AppCompatActivity
             }
         });
 
-        // Queue button - open queue activity
+        // Queue button - open queue fragment
         btnQueue.setOnClickListener(v -> {
-            Intent intent = new Intent(HomeActivity.this, QueueActivity.class);
-            startActivity(intent);
-            overridePendingTransition(android.R.anim.slide_in_left, android.R.anim.slide_out_right);
+            QueueFragment queueFragment = new QueueFragment();
+            getSupportFragmentManager().beginTransaction()
+                    .replace(R.id.content_container, queueFragment)
+                    .addToBackStack(null)
+                    .commit();
         });
 
         // Swipe down to dismiss
@@ -275,6 +279,54 @@ public class HomeActivity extends AppCompatActivity
         }
     }
 
+    @Override
+    public void onFavoritesClicked() {
+        // Navigate to favorites fragment
+        FavoritesFragment favoritesFragment = new FavoritesFragment();
+        getSupportFragmentManager().beginTransaction()
+                .replace(R.id.content_container, favoritesFragment)
+                .addToBackStack(null)
+                .commit();
+    }
+
+    @Override
+    public void onFavoriteSongSelected(Song song, List<Song> favoritesPlaylist) {
+        if (musicService != null && song != null) {
+            // Store current song
+            currentSong = song;
+
+            // Use the favorites playlist instead of all songs
+            currentPlaylist = favoritesPlaylist;
+            int songIndex = currentPlaylist.indexOf(song);
+            if (songIndex == -1)
+                songIndex = 0;
+
+            // Set playlist in service
+            musicService.setPlaylist(currentPlaylist, songIndex);
+
+            // Play the selected song with title and artist info
+            Uri songUri = Uri.parse(song.getUri());
+            musicService.playSong(songUri, song.getTitle(), song.getArtist());
+
+            // Show mini player
+            miniPlayer.setVisibility(View.VISIBLE);
+
+            // Reset circular progress
+            circularProgress.setProgress(0);
+
+            // Start progress updates
+            progressHandler.post(progressRunnable);
+
+            // Update UI
+            tvSongTitle.setText(song.getTitle());
+            btnPlayPause.setImageResource(R.drawable.ic_pause);
+
+            Toast.makeText(this, "Playing: " + song.getTitle(), Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(this, "Music service not available", Toast.LENGTH_SHORT).show();
+        }
+    }
+
     // Update mini player UI with current song info from service
     private void updateMiniPlayer() {
         if (musicService != null) {
@@ -282,24 +334,70 @@ public class HomeActivity extends AppCompatActivity
             if (title != null && !title.equals("No song playing")) {
                 tvSongTitle.setText(title);
                 miniPlayer.setVisibility(View.VISIBLE);
-                
+
                 // Update play/pause button
                 if (musicService.isPlaying()) {
                     btnPlayPause.setImageResource(R.drawable.ic_pause);
                 } else {
                     btnPlayPause.setImageResource(R.drawable.ic_play);
                 }
+
+                // Update current song reference
+                currentSong = musicService.getCurrentSong();
+                lastSongTitle = title;
+
+                // Refresh fragments if they are currently visible
+                refreshCurrentFragment();
+            } else {
+                // No song playing, hide mini player
+                miniPlayer.setVisibility(View.GONE);
+                currentSong = null;
+                lastSongTitle = "";
             }
         }
     }
 
-    // Public method to add song to queue
+    // Refresh the currently visible fragment
+    private void refreshCurrentFragment() {
+        Fragment currentFragment = getSupportFragmentManager().findFragmentById(R.id.content_container);
+        if (currentFragment instanceof QueueFragment) {
+            ((QueueFragment) currentFragment).refreshQueue();
+        } else if (currentFragment instanceof FavoritesFragment) {
+            ((FavoritesFragment) currentFragment).refreshFavorites();
+        }
+    }
+
+    // Enhanced method to add song to queue with better synchronization
     public void addSongToQueue(Song song) {
         if (musicService != null && song != null) {
             musicService.addToQueue(song);
             Toast.makeText(this, "Added \"" + song.getTitle() + "\" to queue", Toast.LENGTH_SHORT).show();
+
+            // Update mini player and refresh fragments
+            updateMiniPlayer();
         } else {
             Toast.makeText(this, "Music service not available", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    // Method to toggle favorite status and sync with UI
+    public void toggleFavorite(Song song) {
+        if (song == null)
+            return;
+
+        boolean isFavorite = dbHelper.isFavorite(song.getId());
+        if (isFavorite) {
+            dbHelper.removeFromFavorites(song.getId());
+            Toast.makeText(this, "Removed from favorites", Toast.LENGTH_SHORT).show();
+        } else {
+            dbHelper.addToFavorites(song.getId());
+            Toast.makeText(this, "Added to favorites", Toast.LENGTH_SHORT).show();
+        }
+
+        // Refresh favorites fragment if it's currently visible
+        Fragment currentFragment = getSupportFragmentManager().findFragmentById(R.id.content_container);
+        if (currentFragment instanceof FavoritesFragment) {
+            ((FavoritesFragment) currentFragment).toggleFavorite(song);
         }
     }
 
@@ -319,22 +417,30 @@ public class HomeActivity extends AppCompatActivity
             case "profile":
                 selected = new ProfileFragment();
                 break;
+            case "favorites":
+                selected = new FavoritesFragment();
+                break;
+            case "queue":
+                selected = new QueueFragment();
+                break;
         }
 
         if (selected != null) {
             getSupportFragmentManager().beginTransaction()
                     .replace(R.id.content_container, selected)
+                    .addToBackStack(null)
                     .commit();
         }
     }
 
     @Override
     public void onCreatePlaylistSelected() {
-        new AlertDialog.Builder(this)
-                .setTitle("Create Playlist")
-                .setMessage("Feature coming soon!")
-                .setPositiveButton("OK", null)
-                .show();
+        // Import the utility class
+        com.example.musebox.utils.ThemedDialogUtils.showInfoDialog(
+                this,
+                "Create Playlist",
+                "Feature coming soon! This will allow you to create custom playlists from your music library.",
+                null);
     }
 
     @Override
@@ -635,4 +741,27 @@ public class HomeActivity extends AppCompatActivity
     private interface ImportProgressCallback {
         void onSongDetected(String name);
     }
+
+    // QueueFragment.OnQueueFragmentListener implementation
+    @Override
+    public void onBackPressed() {
+        getSupportFragmentManager().popBackStack();
+    }
+
+    @Override
+    public MusicService getMusicService() {
+        return musicService;
+    }
+
+    @Override
+    public boolean isMusicServiceBound() {
+        return isBound;
+    }
+
+    // FavoritesFragment.OnFavoritesFragmentListener implementation
+    // onBackPressed(), getMusicService(), and isMusicServiceBound() are already
+    // implemented above
+    // onSongSelected() is already implemented for
+    // HomeFragment.OnSongSelectedListener
+    // addSongToQueue() is already implemented as a public method above
 }

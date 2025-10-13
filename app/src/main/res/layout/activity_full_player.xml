@@ -31,7 +31,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintDimensionRatio="1:1"
-        app:layout_constraintWidth_percent="0.8"
+        app:layout_constraintWidth_percent="0.5"
         android:contentDescription="Album Art" />
 
     <!-- Song Title -->
@@ -163,7 +163,7 @@
             android:src="@drawable/ic_skip_backward"
             android:background="?attr/selectableItemBackgroundBorderless"
             app:tint="@color/white"
-            android:contentDescription="Skip backward 15s" />
+            android:contentDescription="Skip backward 10s" />
 
         <TextView
             android:layout_width="wrap_content"
@@ -181,7 +181,7 @@
             android:src="@drawable/ic_skip_forward"
             android:background="?attr/selectableItemBackgroundBorderless"
             app:tint="@color/white"
-            android:contentDescription="Skip forward 15s" />
+            android:contentDescription="Skip forward 10s" />
 
         <TextView
             android:layout_width="wrap_content"
@@ -196,7 +196,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
-            android:background="@drawable/spinner_background"
+            android:background="@drawable/dialog_bg"
             android:popupBackground="@color/dark_gray" />
 
     </LinearLayout>
