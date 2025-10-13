@@ -254,12 +254,22 @@ public class FavoritesActivity extends AppCompatActivity
                 }
 
                 if (favoriteSongs.isEmpty()) {
-                    recyclerView.setVisibility(View.GONE);
-                    emptyView.setVisibility(View.VISIBLE);
-                    tvEmptyMessage.setText("No favorite songs yet");
+                    if (recyclerView != null) {
+                        recyclerView.setVisibility(View.GONE);
+                    }
+                    if (emptyView != null) {
+                        emptyView.setVisibility(View.VISIBLE);
+                    }
+                    if (tvEmptyMessage != null) {
+                        tvEmptyMessage.setText("No favorite songs yet");
+                    }
                 } else {
-                    recyclerView.setVisibility(View.VISIBLE);
-                    emptyView.setVisibility(View.GONE);
+                    if (recyclerView != null) {
+                        recyclerView.setVisibility(View.VISIBLE);
+                    }
+                    if (emptyView != null) {
+                        emptyView.setVisibility(View.GONE);
+                    }
                 }
             });
         }).start();
@@ -298,21 +308,34 @@ public class FavoritesActivity extends AppCompatActivity
             boolean success = dbHelper.removeFromFavorites(song.getId());
             runOnUiThread(() -> {
                 if (success) {
-                    favoriteSongs.remove(position);
-                    adapter.removeSong(position); // Use DiffUtil-powered method
-                    Toast.makeText(this, "Removed from favorites", Toast.LENGTH_SHORT).show();
+                    // Validate position before removal to prevent crashes
+                    if (position >= 0 && position < favoriteSongs.size()) {
+                        favoriteSongs.remove(position);
+                        adapter.removeSong(position); // Use DiffUtil-powered method
+                        Toast.makeText(this, "Removed from favorites", Toast.LENGTH_SHORT).show();
 
-                    // Update favorites count in landscape header (if present)
-                    if (tvFavoritesCount != null) {
-                        int count = favoriteSongs.size();
-                        String countText = count + " favorite" + (count != 1 ? "s" : "");
-                        tvFavoritesCount.setText(countText);
-                    }
+                        // Update favorites count in landscape header (if present)
+                        if (tvFavoritesCount != null) {
+                            int count = favoriteSongs.size();
+                            String countText = count + " favorite" + (count != 1 ? "s" : "");
+                            tvFavoritesCount.setText(countText);
+                        }
 
-                    if (favoriteSongs.isEmpty()) {
-                        recyclerView.setVisibility(View.GONE);
-                        emptyView.setVisibility(View.VISIBLE);
-                        tvEmptyMessage.setText("No favorite songs yet");
+                        if (favoriteSongs.isEmpty()) {
+                            if (recyclerView != null) {
+                                recyclerView.setVisibility(View.GONE);
+                            }
+                            if (emptyView != null) {
+                                emptyView.setVisibility(View.VISIBLE);
+                            }
+                            if (tvEmptyMessage != null) {
+                                tvEmptyMessage.setText("No favorite songs yet");
+                            }
+                        }
+                    } else {
+                        // If position is invalid, reload the entire list to sync
+                        loadFavorites();
+                        Toast.makeText(this, "Removed from favorites", Toast.LENGTH_SHORT).show();
                     }
                 }
             });

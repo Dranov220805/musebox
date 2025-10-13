@@ -118,14 +118,24 @@ public class FavoritesFragment extends Fragment {
 
     private void loadFavorites() {
         favoriteSongs = dbHelper.getFavoriteSongs();
-        adapter.setSongs(favoriteSongs);
+        if (adapter != null) {
+            adapter.setSongs(favoriteSongs);
+        }
 
         if (favoriteSongs.isEmpty()) {
-            recyclerView.setVisibility(View.GONE);
-            emptyView.setVisibility(View.VISIBLE);
+            if (recyclerView != null) {
+                recyclerView.setVisibility(View.GONE);
+            }
+            if (emptyView != null) {
+                emptyView.setVisibility(View.VISIBLE);
+            }
         } else {
-            recyclerView.setVisibility(View.VISIBLE);
-            emptyView.setVisibility(View.GONE);
+            if (recyclerView != null) {
+                recyclerView.setVisibility(View.VISIBLE);
+            }
+            if (emptyView != null) {
+                emptyView.setVisibility(View.GONE);
+            }
         }
 
         // Update count if view exists
@@ -135,21 +145,40 @@ public class FavoritesFragment extends Fragment {
     }
 
     private void removeFromFavorites(Song song, int position) {
-        dbHelper.removeFromFavorites(song.getId());
-        favoriteSongs.remove(position);
-        adapter.removeSong(position);
+        new Thread(() -> {
+            boolean success = dbHelper.removeFromFavorites(song.getId());
+            if (getActivity() != null) {
+                getActivity().runOnUiThread(() -> {
+                    if (success) {
+                        // Validate position before removal to prevent crashes
+                        if (position >= 0 && position < favoriteSongs.size()) {
+                            favoriteSongs.remove(position);
+                            adapter.removeSong(position);
 
-        if (favoriteSongs.isEmpty()) {
-            recyclerView.setVisibility(View.GONE);
-            emptyView.setVisibility(View.VISIBLE);
-        }
+                            if (favoriteSongs.isEmpty()) {
+                                if (recyclerView != null) {
+                                    recyclerView.setVisibility(View.GONE);
+                                }
+                                if (emptyView != null) {
+                                    emptyView.setVisibility(View.VISIBLE);
+                                }
+                            }
 
-        // Update count if view exists
-        if (tvFavoritesCount != null) {
-            tvFavoritesCount.setText(String.valueOf(favoriteSongs.size()));
-        }
+                            // Update count if view exists
+                            if (tvFavoritesCount != null) {
+                                tvFavoritesCount.setText(String.valueOf(favoriteSongs.size()));
+                            }
 
-        Toast.makeText(getContext(), "Removed from favorites", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(getContext(), "Removed from favorites", Toast.LENGTH_SHORT).show();
+                        } else {
+                            // If position is invalid, reload the entire list to sync
+                            loadFavorites();
+                            Toast.makeText(getContext(), "Removed from favorites", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                });
+            }
+        }).start();
     }
 
     // Public method to refresh favorites from parent activity
@@ -159,36 +188,54 @@ public class FavoritesFragment extends Fragment {
 
     // Public method to add/remove favorite
     public void toggleFavorite(Song song) {
-        boolean isFavorite = dbHelper.isFavorite(song.getId());
-        if (isFavorite) {
-            dbHelper.removeFromFavorites(song.getId());
-            // Remove from current list if it exists
-            for (int i = 0; i < favoriteSongs.size(); i++) {
-                if (favoriteSongs.get(i).getId() == song.getId()) {
-                    favoriteSongs.remove(i);
-                    adapter.removeSong(i);
-                    break;
-                }
+        new Thread(() -> {
+            boolean isFavorite = dbHelper.isFavorite(song.getId());
+            if (getActivity() != null) {
+                getActivity().runOnUiThread(() -> {
+                    if (isFavorite) {
+                        dbHelper.removeFromFavorites(song.getId());
+                        // Remove from current list if it exists
+                        for (int i = 0; i < favoriteSongs.size(); i++) {
+                            if (favoriteSongs.get(i).getId() == song.getId()) {
+                                favoriteSongs.remove(i);
+                                if (adapter != null) {
+                                    adapter.removeSong(i);
+                                }
+                                break;
+                            }
+                        }
+                    } else {
+                        dbHelper.addToFavorites(song.getId());
+                        // Add to current list
+                        favoriteSongs.add(song);
+                        if (adapter != null) {
+                            adapter.addSongs(List.of(song));
+                        }
+                    }
+
+                    // Update UI
+                    if (favoriteSongs.isEmpty()) {
+                        if (recyclerView != null) {
+                            recyclerView.setVisibility(View.GONE);
+                        }
+                        if (emptyView != null) {
+                            emptyView.setVisibility(View.VISIBLE);
+                        }
+                    } else {
+                        if (recyclerView != null) {
+                            recyclerView.setVisibility(View.VISIBLE);
+                        }
+                        if (emptyView != null) {
+                            emptyView.setVisibility(View.GONE);
+                        }
+                    }
+
+                    // Update count if view exists
+                    if (tvFavoritesCount != null) {
+                        tvFavoritesCount.setText(String.valueOf(favoriteSongs.size()));
+                    }
+                });
             }
-        } else {
-            dbHelper.addToFavorites(song.getId());
-            // Add to current list
-            favoriteSongs.add(song);
-            adapter.addSongs(List.of(song));
-        }
-
-        // Update UI
-        if (favoriteSongs.isEmpty()) {
-            recyclerView.setVisibility(View.GONE);
-            emptyView.setVisibility(View.VISIBLE);
-        } else {
-            recyclerView.setVisibility(View.VISIBLE);
-            emptyView.setVisibility(View.GONE);
-        }
-
-        // Update count if view exists
-        if (tvFavoritesCount != null) {
-            tvFavoritesCount.setText(String.valueOf(favoriteSongs.size()));
-        }
+        }).start();
     }
 }
