@@ -1,4 +1,4 @@
-package com.example.musebox.activities;
+package com.example.musebox.fragments;
 
 import android.content.ComponentName;
 import android.content.Context;
@@ -6,12 +6,16 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import androidx.appcompat.app.AppCompatActivity;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -23,7 +27,7 @@ import com.example.musebox.services.MusicService;
 import java.util.ArrayList;
 import java.util.List;
 
-public class QueueActivity extends AppCompatActivity {
+public class QueueFragment extends Fragment {
 
     private RecyclerView recyclerQueue;
     private LinearLayout emptyQueue;
@@ -34,37 +38,49 @@ public class QueueActivity extends AppCompatActivity {
     private MusicService musicService;
     private boolean isBound = false;
 
-    private ServiceConnection serviceConnection = new ServiceConnection() {
-        @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
-            MusicService.LocalBinder binder = (MusicService.LocalBinder) service;
-            musicService = binder.getService();
-            isBound = true;
-            loadQueue();
-        }
+    // Interface for communicating with parent activity
+    public interface OnQueueFragmentListener {
+        void onBackPressed();
 
-        @Override
-        public void onServiceDisconnected(ComponentName name) {
-            musicService = null;
-            isBound = false;
-        }
-    };
+        MusicService getMusicService();
+
+        boolean isMusicServiceBound();
+    }
+
+    private OnQueueFragmentListener listener;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_queue);
+    public void onAttach(@NonNull Context context) {
+        super.onAttach(context);
+        if (context instanceof OnQueueFragmentListener) {
+            listener = (OnQueueFragmentListener) context;
+        } else {
+            throw new RuntimeException(context.toString() + " must implement OnQueueFragmentListener");
+        }
+    }
+
+    @Override
+    public void onDetach() {
+        super.onDetach();
+        listener = null;
+    }
+
+    @Nullable
+    @Override
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
+            @Nullable Bundle savedInstanceState) {
+        View view = inflater.inflate(R.layout.activity_queue, container, false);
 
         // Initialize views
-        recyclerQueue = findViewById(R.id.recyclerQueue);
-        emptyQueue = findViewById(R.id.emptyQueue);
-        tvCurrentTitle = findViewById(R.id.tvCurrentTitle);
-        tvCurrentArtist = findViewById(R.id.tvCurrentArtist);
-        btnBack = findViewById(R.id.btnBack);
-        btnClearQueue = findViewById(R.id.btnClearQueue);
+        recyclerQueue = view.findViewById(R.id.recyclerQueue);
+        emptyQueue = view.findViewById(R.id.emptyQueue);
+        tvCurrentTitle = view.findViewById(R.id.tvCurrentTitle);
+        tvCurrentArtist = view.findViewById(R.id.tvCurrentArtist);
+        btnBack = view.findViewById(R.id.btnBack);
+        btnClearQueue = view.findViewById(R.id.btnClearQueue);
 
         // Setup RecyclerView
-        recyclerQueue.setLayoutManager(new LinearLayoutManager(this));
+        recyclerQueue.setLayoutManager(new LinearLayoutManager(getContext()));
         adapter = new QueueAdapter(new ArrayList<>());
         recyclerQueue.setAdapter(adapter);
 
@@ -80,7 +96,11 @@ public class QueueActivity extends AppCompatActivity {
         });
 
         // Back button
-        btnBack.setOnClickListener(v -> finish());
+        btnBack.setOnClickListener(v -> {
+            if (listener != null) {
+                listener.onBackPressed();
+            }
+        });
 
         // Clear queue button
         btnClearQueue.setOnClickListener(v -> {
@@ -90,9 +110,25 @@ public class QueueActivity extends AppCompatActivity {
             }
         });
 
-        // Bind to MusicService
-        Intent serviceIntent = new Intent(this, MusicService.class);
-        bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE);
+        return view;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        // Get music service from parent activity
+        if (listener != null && listener.isMusicServiceBound()) {
+            musicService = listener.getMusicService();
+            isBound = true;
+            loadQueue();
+        }
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        musicService = null;
+        isBound = false;
     }
 
     private void loadQueue() {
@@ -134,19 +170,11 @@ public class QueueActivity extends AppCompatActivity {
         }
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        // Refresh the queue when returning to this activity
-        loadQueue();
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if (isBound) {
-            unbindService(serviceConnection);
-            isBound = false;
+    // Public method to refresh queue from parent activity
+    public void refreshQueue() {
+        if (listener != null && listener.isMusicServiceBound()) {
+            musicService = listener.getMusicService();
+            loadQueue();
         }
     }
 }

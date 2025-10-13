@@ -248,7 +248,13 @@ public class MusicService extends Service {
 
     /** Add song to queue (at the end) **/
     public void addToQueue(com.example.musebox.models.Song song) {
+        boolean wasEmpty = playlist.isEmpty();
         playlist.add(song);
+
+        // If playlist was empty, set current index to 0
+        if (wasEmpty) {
+            currentSongIndex = 0;
+        }
 
         // Update shuffle indexes if in shuffle mode
         if (playbackMode == PlaybackMode.SHUFFLE) {
@@ -261,11 +267,19 @@ public class MusicService extends Service {
         if (position < 0 || position > playlist.size()) {
             position = playlist.size();
         }
+
+        boolean wasEmpty = playlist.isEmpty();
         playlist.add(position, song);
 
-        // Adjust current index if needed
-        if (position <= currentSongIndex) {
-            currentSongIndex++;
+        // If playlist was empty, set current index to the position where we added the
+        // song
+        if (wasEmpty) {
+            currentSongIndex = position;
+        } else {
+            // Adjust current index if needed
+            if (position <= currentSongIndex) {
+                currentSongIndex++;
+            }
         }
 
         // Regenerate shuffle indexes
@@ -311,21 +325,32 @@ public class MusicService extends Service {
 
     /** Clear entire queue **/
     public void clearQueue() {
-        playlist.clear();
-        currentSongIndex = -1;
-        shuffleIndexes.clear();
-        shufflePosition = 0;
+        // If currently playing, keep only the current song
+        if (mediaPlayer != null && isPrepared && currentSongIndex >= 0 && currentSongIndex < playlist.size()) {
+            // Keep only the current song
+            com.example.musebox.models.Song currentSong = playlist.get(currentSongIndex);
+            playlist.clear();
+            playlist.add(currentSong);
+            currentSongIndex = 0;
+        } else {
+            // No song playing, clear everything
+            playlist.clear();
+            currentSongIndex = -1;
 
-        if (mediaPlayer != null) {
-            mediaPlayer.stop();
-            mediaPlayer.release();
-            mediaPlayer = null;
-            isPrepared = false;
+            if (mediaPlayer != null) {
+                mediaPlayer.stop();
+                mediaPlayer.release();
+                mediaPlayer = null;
+                isPrepared = false;
+            }
+
+            currentSongTitle = "No song playing";
+            currentSongArtist = "Unknown Artist";
+            stopForeground(true);
         }
 
-        currentSongTitle = "No song playing";
-        currentSongArtist = "Unknown Artist";
-        stopForeground(true);
+        shuffleIndexes.clear();
+        shufflePosition = 0;
     }
 
     /** Get/Set playback mode **/

@@ -27,7 +27,6 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.musebox.R;
-import com.example.musebox.activities.FavoritesActivity;
 import com.example.musebox.adapters.SongAdapter;
 import com.example.musebox.database.SongDatabaseHelper;
 import com.example.musebox.models.Song;
@@ -41,6 +40,8 @@ public class HomeFragment extends Fragment {
 
     public interface OnSongSelectedListener {
         void onSongSelected(Song song);
+
+        void onFavoritesClicked();
     }
 
     private RecyclerView recyclerSongs;
@@ -91,8 +92,9 @@ public class HomeFragment extends Fragment {
 
         // Setup favorites card click listener
         favoritesCard.setOnClickListener(v -> {
-            Intent intent = new Intent(requireContext(), FavoritesActivity.class);
-            startActivity(intent);
+            if (listener != null) {
+                listener.onFavoritesClicked();
+            }
         });
 
         // Setup songs RecyclerView (vertical)
@@ -333,13 +335,10 @@ public class HomeFragment extends Fragment {
             int favCount = dbHelper.getFavoritesCount();
 
             requireActivity().runOnUiThread(() -> {
-                if (favCount > 0) {
-                    favoritesCard.setVisibility(View.VISIBLE);
-                    String countText = favCount + " favorite" + (favCount != 1 ? "s" : "");
-                    tvFavoritesCount.setText(countText);
-                } else {
-                    favoritesCard.setVisibility(View.GONE);
-                }
+                // Always show favorites card, even with 0 count
+                favoritesCard.setVisibility(View.VISIBLE);
+                String countText = favCount + " favorite" + (favCount != 1 ? "s" : "");
+                tvFavoritesCount.setText(countText);
             });
         }).start();
     }

@@ -15,7 +15,6 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -38,8 +37,8 @@ public class FavoritesActivity extends AppCompatActivity
     private RecyclerView recyclerView;
     private LinearLayout emptyView;
     private TextView tvEmptyMessage;
-    private TextView tvFavoritesCount; // Landscape layout favorites count
-    private ImageButton btnBack; // Landscape layout back button
+    private TextView tvFavoritesCount; // Favorites count display
+    private ImageButton btnBack; // Back button
     private SongAdapter adapter;
     private SongDatabaseHelper dbHelper;
     private List<Song> favoriteSongs = new ArrayList<>();
@@ -78,17 +77,7 @@ public class FavoritesActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_favorites);
 
-        // Setup toolbar (portrait mode)
-        Toolbar toolbar = findViewById(R.id.toolbar);
-        if (toolbar != null) {
-            setSupportActionBar(toolbar);
-            if (getSupportActionBar() != null) {
-                getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-                getSupportActionBar().setTitle("Favorite Songs");
-            }
-        }
-
-        // Setup landscape mode views (if present)
+        // Setup back button and favorites count display
         tvFavoritesCount = findViewById(R.id.tvFavoritesCount);
         btnBack = findViewById(R.id.btnBack);
         if (btnBack != null) {

@@ -34,34 +34,26 @@
         
         <activity
             android:name=".activities.SplashActivity"
-            android:exported="true"
-            android:theme="@style/SplashTheme">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-        <activity
-            android:name=".activities.HomeActivity"
-            android:theme="@style/Theme.MuseBox.NoActionBar"
             android:exported="false"
-            android:windowSoftInputMode="adjustResize">
+            android:theme="@style/SplashTheme">
 <!--            <intent-filter>-->
 <!--                <action android:name="android.intent.action.MAIN" />-->
-
 <!--                <category android:name="android.intent.category.LAUNCHER" />-->
 <!--            </intent-filter>-->
         </activity>
         <activity
+            android:name=".activities.HomeActivity"
+            android:theme="@style/Theme.MuseBox.NoActionBar"
+            android:exported="true"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity
             android:name=".activities.FullPlayerActivity"
-            android:theme="@style/Theme.MuseBox.NoActionBar"
-            android:exported="false" />
-        <activity
-            android:name=".activities.QueueActivity"
-            android:theme="@style/Theme.MuseBox.NoActionBar"
-            android:exported="false" />
-        <activity
-            android:name=".activities.FavoritesActivity"
             android:theme="@style/Theme.MuseBox.NoActionBar"
             android:exported="false" />
         <activity
