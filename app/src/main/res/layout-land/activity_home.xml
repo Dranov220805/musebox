@@ -16,17 +16,26 @@
             android:layout_width="72dp"
             android:layout_height="match_parent" />
 
-        <!-- Main content area -->
-        <FrameLayout
-            android:id="@+id/content_container"
+        <!-- Main content area with mini player at bottom -->
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_weight="1" />
-    </LinearLayout>
+            android:layout_weight="1"
+            android:orientation="vertical">
 
-    <!-- Mini Player at bottom -->
-    <include
-        android:id="@+id/includeMiniPlayer"
-        layout="@layout/fragment_miniplayer"
-        android:visibility="gone" />
+            <!-- Content container -->
+            <FrameLayout
+                android:id="@+id/content_container"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <!-- Mini Player at bottom of content area only -->
+            <include
+                android:id="@+id/includeMiniPlayer"
+                layout="@layout/fragment_miniplayer"
+                android:visibility="gone" />
+
+        </LinearLayout>
+    </LinearLayout>
 </LinearLayout>
