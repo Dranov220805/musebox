@@ -32,54 +32,41 @@
             android:exported="false"
             android:foregroundServiceType="mediaPlayback" />
 
-        <!-- SplashActivity - First Screen (Launcher) -->
         <activity
             android:name=".activities.SplashActivity"
-            android:exported="true"
+            android:exported="false"
             android:theme="@style/SplashTheme">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
+            <!--            <intent-filter>-->
+            <!--                <action android:name="android.intent.action.MAIN" />-->
+            <!--                <category android:name="android.intent.category.LAUNCHER" />-->
+            <!--            </intent-filter>-->
         </activity>
-
-        <!-- LoginActivity - Login Screen -->
-        <activity
-            android:name=".activities.LoginActivity"
-            android:theme="@style/Base.Theme.MuseBox"
-            android:exported="false" />
-
-        <!-- RegisterActivity - Registration Screen -->
-        <activity
-            android:name=".activities.RegisterActivity"
-            android:theme="@style/Base.Theme.MuseBox"
-            android:exported="false" />
-
-        <!-- HomeActivity - Main App Screen (after login) -->
         <activity
             android:name=".activities.HomeActivity"
             android:theme="@style/Theme.MuseBox.NoActionBar"
-            android:exported="false"
-            android:windowSoftInputMode="adjustResize" />
+            android:exported="true"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
 
-        <!-- FullPlayerActivity -->
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
         <activity
             android:name=".activities.FullPlayerActivity"
             android:theme="@style/Theme.MuseBox.NoActionBar"
             android:exported="false" />
-
-        <!-- QueueActivity -->
         <activity
-            android:name=".activities.QueueActivity"
-            android:theme="@style/Theme.MuseBox.NoActionBar"
-            android:exported="false" />
+            android:name=".activities.MainActivity"
+            android:theme="@style/Base.Theme.MuseBox"
+            android:exported="false">
+            <!-- <intent-filter> -->
+            <!-- <action android:name="android.intent.action.MAIN" /> -->
 
-        <!-- FavoritesActivity -->
-        <activity
-            android:name=".activities.FavoritesActivity"
-            android:theme="@style/Theme.MuseBox.NoActionBar"
-            android:exported="false" />
 
+            <!-- <category android:name="android.intent.category.LAUNCHER" /> -->
+            <!-- </intent-filter> -->
+        </activity>
     </application>
 
 </manifest>
