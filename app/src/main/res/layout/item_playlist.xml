@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
@@ -18,7 +19,7 @@
         android:gravity="center_vertical"
         android:background="?attr/selectableItemBackground">
 
-        <!-- Album Art with rounded corners -->
+        <!-- Playlist Icon -->
         <androidx.cardview.widget.CardView
             android:layout_width="56dp"
             android:layout_height="56dp"
@@ -26,15 +27,16 @@
             app:cardElevation="0dp">
 
             <ImageView
-                android:id="@+id/ivAlbumArt"
+                android:id="@+id/ivPlaylistIcon"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:scaleType="centerCrop"
-                android:src="@drawable/ic_music_note"
-                android:background="@color/light_surface" />
+                android:scaleType="centerInside"
+                android:src="@drawable/ic_playlist"
+                android:background="@color/light_surface"
+                android:padding="8dp" />
         </androidx.cardview.widget.CardView>
 
-        <!-- Song Info -->
+        <!-- Playlist Info -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -44,47 +46,31 @@
             android:paddingEnd="8dp">
 
             <TextView
-                android:id="@+id/tvTitle"
+                android:id="@+id/txtPlaylistName"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Song Title"
+                android:text="My Playlist"
                 android:textSize="16sp"
                 android:textStyle="bold"
                 android:textColor="@color/text_primary"
                 android:maxLines="1"
                 android:ellipsize="end" />
 
-            <LinearLayout
+            <TextView
+                android:id="@+id/txtPlaylistDetails"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginTop="4dp">
-
-                <TextView
-                    android:id="@+id/tvArtist"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Artist Name"
-                    android:textSize="13sp"
-                    android:textColor="@color/text_secondary"
-                    android:maxLines="1"
-                    android:ellipsize="end" />
-
-                <TextView
-                    android:id="@+id/tvDuration"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="3:45"
-                    android:textSize="12sp"
-                    android:textColor="@color/text_tertiary"
-                    android:layout_marginStart="8dp" />
-            </LinearLayout>
+                android:text="Number of songs Date"
+                android:textSize="13sp"
+                android:textColor="@color/text_secondary"
+                android:layout_marginTop="4dp"
+                android:maxLines="1"
+                android:ellipsize="end" />
         </LinearLayout>
 
         <!-- Menu Button -->
         <ImageButton
-            android:id="@+id/btnMenu"
+            android:id="@+id/btnPlaylistMenu"
             android:layout_width="40dp"
             android:layout_height="40dp"
             android:src="@drawable/ic_more_vert"
@@ -94,5 +80,5 @@
             app:tint="@color/text_secondary" />
 
     </LinearLayout>
-
 </androidx.cardview.widget.CardView>
+
