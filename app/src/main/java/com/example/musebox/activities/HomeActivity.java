@@ -20,7 +20,6 @@ import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
-import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -56,7 +55,6 @@ public class HomeActivity extends AppCompatActivity
     private TextView tvSongTitle;
     private TextView tvArtistName;
     private ImageButton btnPlayPause, btnSpeed, btnQueue;
-    private SeekBar seekBar;
     private com.example.musebox.views.CircularProgressView circularProgress;
     private ImageView imgSongArt;
 
