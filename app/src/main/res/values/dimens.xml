@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Base dimensions for phones -->
+    <dimen name="player_padding">16dp</dimen>
+    <dimen name="album_art_margin_top">32dp</dimen>
+    <dimen name="content_margin_top">32dp</dimen>
+    <dimen name="button_size_large">60dp</dimen>
+    <dimen name="button_size_medium">48dp</dimen>
+    <dimen name="button_size_small">40dp</dimen>
+    <dimen name="text_size_title">24sp</dimen>
+    <dimen name="text_size_artist">16sp</dimen>
+    <dimen name="max_content_width">600dp</dimen>
+</resources>

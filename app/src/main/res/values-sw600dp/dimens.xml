@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Tablet dimensions for better scaling -->
+    <dimen name="player_padding">24dp</dimen>
+    <dimen name="album_art_margin_top">40dp</dimen>
+    <dimen name="content_margin_top">40dp</dimen>
+    <dimen name="button_size_large">72dp</dimen>
+    <dimen name="button_size_medium">56dp</dimen>
+    <dimen name="button_size_small">48dp</dimen>
+    <dimen name="text_size_title">32sp</dimen>
+    <dimen name="text_size_artist">20sp</dimen>
+    <dimen name="max_content_width">800dp</dimen>
+</resources>

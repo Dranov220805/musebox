@@ -19,6 +19,41 @@ public class ThemedDialogUtils {
         }
     }
 
+    public interface OnListItemClickListener {
+        void onItemSelected(int position);
+    }
+
+    /**
+     * Show a themed list dialog for selecting from multiple options
+     */
+    public static void showListDialog(Context context,
+            String title,
+            String[] items,
+            int selectedIndex,
+            int iconRes,
+            int iconTintRes,
+            OnListItemClickListener listener) {
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+        builder.setTitle(title);
+        
+        if (iconRes != 0) {
+            builder.setIcon(iconRes);
+        }
+        
+        builder.setSingleChoiceItems(items, selectedIndex, (dialog, which) -> {
+            dialog.dismiss();
+            if (listener != null) {
+                listener.onItemSelected(which);
+            }
+        });
+        
+        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
+        
+        AlertDialog dialog = builder.create();
+        dialog.show();
+    }
+
     /**
      * Show a simple themed dialog with title, message, and action buttons
      */
