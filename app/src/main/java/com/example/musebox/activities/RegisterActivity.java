@@ -27,8 +27,6 @@ public class RegisterActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_register);
-
-        // Khởi tạo views
         usernameField = findViewById(R.id.usernameField);
         emailField = findViewById(R.id.emailField);
         passwordField = findViewById(R.id.passwordField);
@@ -36,10 +34,10 @@ public class RegisterActivity extends AppCompatActivity {
         registerBtn = findViewById(R.id.registerBtn);
         goToLoginText = findViewById(R.id.goToLoginText);
 
-        // Khởi tạo database helper
+        // Initialize database helper
         dbHelper = new UserDatabaseHelper(this);
 
-        // Xử lý sự kiện nút Register
+        // Handle register request
         registerBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -47,7 +45,7 @@ public class RegisterActivity extends AppCompatActivity {
             }
         });
 
-        // Xử lý sự kiện chuyển sang Login
+        // Handle login redirect
         goToLoginText.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -64,7 +62,7 @@ public class RegisterActivity extends AppCompatActivity {
         String password = passwordField.getText().toString().trim();
         String confirmPassword = confirmPasswordField.getText().toString().trim();
 
-        // Kiểm tra các trường nhập liệu
+        // Check input fields
         if (TextUtils.isEmpty(username)) {
             usernameField.setError("Please enter username");
             usernameField.requestFocus();
@@ -107,28 +105,28 @@ public class RegisterActivity extends AppCompatActivity {
             return;
         }
 
-        // Kiểm tra email đã tồn tại chưa
+        // Check duplicate email or not
         if (dbHelper.checkEmailExists(email)) {
             emailField.setError("Email already exists");
             emailField.requestFocus();
             return;
         }
 
-        // Kiểm tra username đã tồn tại chưa
+        // Check duplicate username or not
         if (dbHelper.checkUsernameExists(username)) {
             usernameField.setError("Username already exists");
             usernameField.requestFocus();
             return;
         }
 
-        // Tạo user mới và lưu vào database
+        // Create new user and save to database
         User newUser = new User(username, email, password);
         boolean isRegistered = dbHelper.addUser(newUser);
 
         if (isRegistered) {
             Toast.makeText(this, "Registration successful!", Toast.LENGTH_SHORT).show();
 
-            // Chuyển về màn hình login
+            // Redirect to login activity
             Intent intent = new Intent(RegisterActivity.this, MainActivity.class);
             startActivity(intent);
             finish();

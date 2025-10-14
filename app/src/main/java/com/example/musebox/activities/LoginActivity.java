@@ -27,27 +27,25 @@ public class LoginActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Khởi tạo SessionManager
+        // Initialize SessionManager
         sessionManager = new SessionManager(this);
 
-        // Kiểm tra nếu đã login thì chuyển thẳng sang Home
+        // Check session
         if (sessionManager.isLoggedIn()) {
             goToHome();
             return;
         }
 
         setContentView(R.layout.activity_login);
-
-        // Khởi tạo views
         emailField = findViewById(R.id.emailField);
         passwordField = findViewById(R.id.passwordField);
         loginBtn = findViewById(R.id.loginBtn);
         goToRegisterBtn = findViewById(R.id.goToRegisterBtn);
 
-        // Khởi tạo database helper
+        // Initialize database helper
         dbHelper = new UserDatabaseHelper(this);
 
-        // Xử lý sự kiện nút Login
+        // Handle Login request
         loginBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -55,28 +53,21 @@ public class LoginActivity extends AppCompatActivity {
             }
         });
 
-        // Xử lý sự kiện chuyển sang Register
-        if (goToRegisterBtn != null) {
-            goToRegisterBtn.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    // Toast để debug
-                    Toast.makeText(LoginActivity.this, "Register clicked!", Toast.LENGTH_SHORT).show();
-
-                    Intent intent = new Intent(LoginActivity.this, RegisterActivity.class);
-                    startActivity(intent);
-                }
-            });
-        } else {
-            Toast.makeText(this, "goToRegisterBtn is NULL!", Toast.LENGTH_LONG).show();
-        }
+        // Handle Register request
+        goToRegisterBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(LoginActivity.this, RegisterActivity.class);
+                startActivity(intent);
+            }
+        });
     }
 
     private void loginUser() {
         String email = emailField.getText().toString().trim();
         String password = passwordField.getText().toString().trim();
 
-        // Kiểm tra các trường nhập liệu
+        // Check input fields
         if (TextUtils.isEmpty(email)) {
             emailField.setError("Please enter email");
             emailField.requestFocus();
@@ -95,21 +86,23 @@ public class LoginActivity extends AppCompatActivity {
             return;
         }
 
-        // Kiểm tra đăng nhập
+        // Authorization check
         boolean isValidUser = dbHelper.checkUserLogin(email, password);
 
         if (isValidUser) {
-            // Lấy thông tin user
+            // Take user info
             User user = dbHelper.getUserByEmail(email);
 
             if (user != null) {
-                // Lưu session
+                // Save session
                 sessionManager.createLoginSession(user.getId(), user.getUsername(), user.getEmail());
 
                 Toast.makeText(this, "Login successful! Welcome " + user.getUsername(), Toast.LENGTH_SHORT).show();
 
-                // Chuyển sang màn hình Home
+                // Move to Home Activity
                 goToHome();
+            } else {
+                Toast.makeText(this, "Login error: User is not registered", Toast.LENGTH_SHORT).show();
             }
         } else {
             Toast.makeText(this, "Invalid email or password", Toast.LENGTH_SHORT).show();
@@ -117,7 +110,7 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void goToHome() {
-        // Chuyển sang HomeActivity
+        // Move to HomeActivity
         Intent intent = new Intent(LoginActivity.this, HomeActivity.class);
         startActivity(intent);
         finish();
