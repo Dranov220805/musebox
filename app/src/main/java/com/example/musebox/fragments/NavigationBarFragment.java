@@ -11,6 +11,8 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
+import android.widget.ImageView;
+import android.widget.TextView;
 import com.example.musebox.fragments.HomeFragment;
 
 import com.example.musebox.R;
@@ -28,6 +30,8 @@ public class NavigationBarFragment extends Fragment {
     }
 
     private OnNavigationItemSelectedListener listener;
+    private LinearLayout navHome, navSearch, navCreate, navPlaylist, navProfile;
+    private String currentSelection = "home";
 
     @Override
     public void onAttach(@NonNull Context context) {
@@ -53,31 +57,78 @@ public class NavigationBarFragment extends Fragment {
             @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_navigation_bar, container, false);
 
-        LinearLayout navHome = view.findViewById(R.id.nav_home);
-        LinearLayout navSearch = view.findViewById(R.id.nav_search);
-        LinearLayout navCreate = view.findViewById(R.id.nav_create);
-        LinearLayout navPlaylist = view.findViewById(R.id.nav_playlist);
-        LinearLayout navProfile = view.findViewById(R.id.nav_profile);
+        navHome = view.findViewById(R.id.nav_home);
+        navSearch = view.findViewById(R.id.nav_search);
+        navCreate = view.findViewById(R.id.nav_create);
+        navPlaylist = view.findViewById(R.id.nav_playlist);
+        navProfile = view.findViewById(R.id.nav_profile);
 
         navHome.setOnClickListener(v -> {
+            setSelected("home");
             if (listener != null)
                 listener.onNavigationItemSelected("home");
         });
         navSearch.setOnClickListener(v -> {
+            setSelected("search");
             if (listener != null)
                 listener.onNavigationItemSelected("search");
         });
         navPlaylist.setOnClickListener(v -> {
+            setSelected("playlist");
             if (listener != null)
                 listener.onNavigationItemSelected("playlist");
         });
         navProfile.setOnClickListener(v -> {
+            setSelected("profile");
             if (listener != null)
                 listener.onNavigationItemSelected("profile");
         });
         navCreate.setOnClickListener(v -> showCreateDialog());
 
+        // Set initial selection
+        setSelected(currentSelection);
+
         return view;
+    }
+
+    private void setSelected(String item) {
+        currentSelection = item;
+
+        // Reset all selections
+        setNavItemSelected(navHome, false);
+        setNavItemSelected(navSearch, false);
+        setNavItemSelected(navCreate, false);
+        setNavItemSelected(navPlaylist, false);
+        setNavItemSelected(navProfile, false);
+
+        // Set current selection
+        switch (item) {
+            case "home":
+                setNavItemSelected(navHome, true);
+                break;
+            case "search":
+                setNavItemSelected(navSearch, true);
+                break;
+            case "playlist":
+                setNavItemSelected(navPlaylist, true);
+                break;
+            case "profile":
+                setNavItemSelected(navProfile, true);
+                break;
+        }
+    }
+
+    private void setNavItemSelected(LinearLayout navItem, boolean selected) {
+        if (navItem == null)
+            return;
+
+        // Get the ImageView and TextView children
+        for (int i = 0; i < navItem.getChildCount(); i++) {
+            View child = navItem.getChildAt(i);
+            if (child instanceof ImageView || child instanceof TextView) {
+                child.setSelected(selected);
+            }
+        }
     }
 
     private void showCreateDialog() {

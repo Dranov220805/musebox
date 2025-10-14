@@ -63,7 +63,7 @@
                         android:layout_height="28dp"
                         android:layout_gravity="center"
                         android:src="@drawable/ic_playlist"
-                        app:tint="@color/musebox_green" />
+                        app:tint="@color/spotify_green" />
                 </FrameLayout>
 
                 <!-- Text -->
@@ -131,7 +131,7 @@
                         android:layout_height="28dp"
                         android:layout_gravity="center"
                         android:src="@drawable/ic_music_note"
-                        app:tint="@color/musebox_green" />
+                        app:tint="@color/spotify_green" />
                 </FrameLayout>
 
                 <!-- Text -->
@@ -198,7 +198,7 @@
                         android:layout_height="28dp"
                         android:layout_gravity="center"
                         android:src="@drawable/ic_music_note"
-                        app:tint="@color/musebox_green" />
+                        app:tint="@color/spotify_green" />
                 </FrameLayout>
 
                 <!-- Text -->
