@@ -49,7 +49,7 @@ public class RegisterActivity extends AppCompatActivity {
         goToLoginText.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent intent = new Intent(RegisterActivity.this, MainActivity.class);
+                Intent intent = new Intent(RegisterActivity.this, LoginActivity.class);
                 startActivity(intent);
                 finish();
             }
@@ -127,7 +127,7 @@ public class RegisterActivity extends AppCompatActivity {
             Toast.makeText(this, "Registration successful!", Toast.LENGTH_SHORT).show();
 
             // Redirect to login activity
-            Intent intent = new Intent(RegisterActivity.this, MainActivity.class);
+            Intent intent = new Intent(RegisterActivity.this, LoginActivity.class);
             startActivity(intent);
             finish();
         } else {
