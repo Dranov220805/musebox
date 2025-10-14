@@ -160,6 +160,39 @@ public class HomeFragment extends Fragment {
             }
         });
 
+        // Set the file deleted listener to handle songs whose files have been deleted
+        adapter.setOnSongFileDeletedListener(new SongAdapter.OnSongFileDeletedListener() {
+            @Override
+            public void onSongFileDeleted(Song song, int position) {
+                // Show a dialog asking if user wants to remove this song from the library
+                new AlertDialog.Builder(requireContext())
+                    .setTitle("Song File Not Found")
+                    .setMessage("The file for \"" + song.getTitle() + "\" was not found on your device. " +
+                               "It may have been moved or deleted. Do you want to remove it from your library?")
+                    .setPositiveButton("Remove", (dialog, which) -> {
+                        // Remove from database
+                        dbHelper.deleteSong(song.getId());
+                        
+                        // Remove from adapter
+                        adapter.removeSong(position);
+                        
+                        // Update song count display
+                        updateSongCountDisplay();
+                        
+                        Toast.makeText(requireContext(), "Removed from library", Toast.LENGTH_SHORT).show();
+                    })
+                    .setNegativeButton("Keep", (dialog, which) -> {
+                        // Do nothing - keep the song in the library even though file is missing
+                        dialog.dismiss();
+                    })
+                    .setNeutralButton("Refresh Library", (dialog, which) -> {
+                        // Trigger a full rescan of the music library
+                        checkPermissionAndScan();
+                    })
+                    .show();
+            }
+        });
+
         btnImport.setOnClickListener(v -> checkPermissionAndScan());
 
         loadSongsFromDatabase();
@@ -645,6 +678,22 @@ public class HomeFragment extends Fragment {
                 }
             });
         }).start();
+    }
+
+    /**
+     * Update the song count display based on current database state
+     */
+    private void updateSongCountDisplay() {
+        int totalCount = dbHelper.getSongCount();
+        if (totalCount == 0) {
+            scrollContent.setVisibility(View.GONE);
+            emptyView.setVisibility(View.VISIBLE);
+            tvSongCount.setText("0 songs");
+        } else {
+            scrollContent.setVisibility(View.VISIBLE);
+            emptyView.setVisibility(View.GONE);
+            tvSongCount.setText(totalCount + (totalCount == 1 ? " song" : " songs"));
+        }
     }
 
     public void refreshSongs() {
