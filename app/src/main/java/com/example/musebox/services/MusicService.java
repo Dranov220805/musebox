@@ -240,6 +240,30 @@ public class MusicService extends Service {
         this.playlist = new java.util.ArrayList<>(songs);
         this.currentSongIndex = startIndex;
 
+        // Update current song metadata when restoring playlist
+        if (!playlist.isEmpty() && currentSongIndex >= 0 && currentSongIndex < playlist.size()) {
+            com.example.musebox.models.Song currentSong = playlist.get(currentSongIndex);
+            if (currentSong != null) {
+                currentSongTitle = currentSong.getTitle() != null ? currentSong.getTitle() : "Unknown Song";
+                currentSongArtist = currentSong.getArtist() != null ? currentSong.getArtist() : "Unknown Artist";
+                android.util.Log.d("MusicService",
+                        "setPlaylist: Updated metadata - title=" + currentSongTitle + ", artist=" + currentSongArtist);
+
+                // Prepare MediaPlayer with the current song (but don't start playing)
+                try {
+                    stopCurrent();
+                    mediaPlayer = new android.media.MediaPlayer();
+                    mediaPlayer.setDataSource(getApplicationContext(), android.net.Uri.parse(currentSong.getUri()));
+                    mediaPlayer.prepare();
+                    isPrepared = true;
+                    android.util.Log.d("MusicService", "setPlaylist: MediaPlayer prepared for restored song");
+                } catch (Exception e) {
+                    android.util.Log.e("MusicService", "setPlaylist: Error preparing MediaPlayer", e);
+                    isPrepared = false;
+                }
+            }
+        }
+
         // Reset shuffle indexes when playlist changes
         if (playbackMode == PlaybackMode.SHUFFLE) {
             generateShuffleIndexes();
