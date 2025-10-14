@@ -314,7 +314,7 @@ public class FullPlayerActivity extends AppCompatActivity {
 
         // Initialize last volume level with current volume
         lastVolumeLevel = currentVolume;
-        
+
         // Update volume display
         int percentage = currentVolume * 100 / maxVolume;
         txtVolumeLevel.setText(percentage + "%");
@@ -335,37 +335,44 @@ public class FullPlayerActivity extends AppCompatActivity {
 
     private void showSpeedMenu(View anchor) {
         PopupMenu popupMenu = new PopupMenu(this, anchor);
-        
-        // Add menu items
-        popupMenu.getMenu().add(0, 0, 0, "0.5x");
-        popupMenu.getMenu().add(0, 1, 1, "0.75x");
-        popupMenu.getMenu().add(0, 2, 2, "1.0x");
-        popupMenu.getMenu().add(0, 3, 3, "1.25x");
-        popupMenu.getMenu().add(0, 4, 4, "1.5x");
-        popupMenu.getMenu().add(0, 5, 5, "2.0x");
-        
+        popupMenu.inflate(R.menu.playback_speed_menu);
+
         popupMenu.setOnMenuItemClickListener(item -> {
-            float[] speeds = { 0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 2.0f };
-            String[] speedLabels = { "0.5x", "0.75x", "1.0x", "1.25x", "1.5x", "2.0x" };
-            
             int itemId = item.getItemId();
-            if (itemId >= 0 && itemId < speeds.length) {
-                currentPlaybackSpeed = speeds[itemId];
-                btnPlaybackSpeed.setText(speedLabels[itemId]);
-                
-                if (musicService != null) {
-                    musicService.setPlaybackSpeed(currentPlaybackSpeed);
-                }
+
+            if (itemId == R.id.speed_0_5) {
+                currentPlaybackSpeed = 0.5f;
+                btnPlaybackSpeed.setText("0.5x");
+            } else if (itemId == R.id.speed_0_75) {
+                currentPlaybackSpeed = 0.75f;
+                btnPlaybackSpeed.setText("0.75x");
+            } else if (itemId == R.id.speed_1_0) {
+                currentPlaybackSpeed = 1.0f;
+                btnPlaybackSpeed.setText("1.0x");
+            } else if (itemId == R.id.speed_1_25) {
+                currentPlaybackSpeed = 1.25f;
+                btnPlaybackSpeed.setText("1.25x");
+            } else if (itemId == R.id.speed_1_5) {
+                currentPlaybackSpeed = 1.5f;
+                btnPlaybackSpeed.setText("1.5x");
+            } else if (itemId == R.id.speed_2_0) {
+                currentPlaybackSpeed = 2.0f;
+                btnPlaybackSpeed.setText("2.0x");
             }
+
+            if (musicService != null) {
+                musicService.setPlaybackSpeed(currentPlaybackSpeed);
+            }
+
             return true;
         });
-        
+
         popupMenu.show();
     }
 
     private void toggleMute() {
         int maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
-        
+
         if (isMuted) {
             // Unmute - restore previous volume
             audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, lastVolumeLevel, 0);
