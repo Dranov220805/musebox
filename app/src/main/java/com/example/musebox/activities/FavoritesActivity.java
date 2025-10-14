@@ -68,7 +68,10 @@ public class FavoritesActivity extends AppCompatActivity
             MusicService.LocalBinder binder = (MusicService.LocalBinder) service;
             musicService = binder.getService();
             serviceBound = true;
+
+            // Update mini player when service reconnects (e.g., after orientation change)
             updateMiniPlayer();
+            progressHandler.post(progressRunnable);
         }
 
         @Override

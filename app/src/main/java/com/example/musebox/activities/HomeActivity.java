@@ -68,6 +68,9 @@ public class HomeActivity extends AppCompatActivity
     private List<Song> currentPlaylist = new ArrayList<>();
     private String lastSongTitle = "";
 
+    // Flag to restore miniplayer state after orientation change
+    private boolean shouldRestoreMiniPlayer = false;
+
     // For permission handling
     private Uri pendingImportUri;
 
@@ -78,6 +81,15 @@ public class HomeActivity extends AppCompatActivity
             MusicService.LocalBinder binder = (MusicService.LocalBinder) service;
             musicService = binder.getService();
             isBound = true;
+
+            // Update mini player when service reconnects (e.g., after orientation change)
+            // This ensures the miniplayer is restored even if onRestoreInstanceState hasn't
+            // been called yet
+            if (musicService.getCurrentSong() != null) {
+                shouldRestoreMiniPlayer = true;
+                updateMiniPlayer();
+                progressHandler.post(progressRunnable);
+            }
         }
 
         @Override
@@ -247,7 +259,7 @@ public class HomeActivity extends AppCompatActivity
     protected void onResume() {
         super.onResume();
         // Resume updating when activity is visible
-        if (musicService != null) {
+        if (musicService != null && musicService.getCurrentSong() != null) {
             // Update mini player with current song info
             updateMiniPlayer();
             // Start progress updates
@@ -259,21 +271,20 @@ public class HomeActivity extends AppCompatActivity
     protected void onSaveInstanceState(@androidx.annotation.NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
         // Save mini player state
-        if (musicService != null) {
-            outState.putBoolean("isMiniPlayerVisible", miniPlayer.getVisibility() == View.VISIBLE);
-            outState.putString("lastSongTitle", lastSongTitle);
-        }
+        boolean isMiniPlayerVisible = miniPlayer != null && miniPlayer.getVisibility() == View.VISIBLE;
+        outState.putBoolean("isMiniPlayerVisible", isMiniPlayerVisible);
+        outState.putString("lastSongTitle", lastSongTitle);
     }
 
     @Override
     protected void onRestoreInstanceState(@androidx.annotation.NonNull Bundle savedInstanceState) {
         super.onRestoreInstanceState(savedInstanceState);
         // Restore mini player state
-        boolean wasMiniPlayerVisible = savedInstanceState.getBoolean("isMiniPlayerVisible", false);
+        shouldRestoreMiniPlayer = savedInstanceState.getBoolean("isMiniPlayerVisible", false);
         lastSongTitle = savedInstanceState.getString("lastSongTitle", "");
 
-        // Update mini player if it was visible and service is bound
-        if (wasMiniPlayerVisible && musicService != null) {
+        // Update mini player if it was visible and service is already bound
+        if (shouldRestoreMiniPlayer && musicService != null && musicService.getCurrentSong() != null) {
             updateMiniPlayer();
             progressHandler.post(progressRunnable);
         }
