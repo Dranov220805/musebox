@@ -256,6 +256,30 @@ public class HomeActivity extends AppCompatActivity
     }
 
     @Override
+    protected void onSaveInstanceState(@androidx.annotation.NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        // Save mini player state
+        if (musicService != null) {
+            outState.putBoolean("isMiniPlayerVisible", miniPlayer.getVisibility() == View.VISIBLE);
+            outState.putString("lastSongTitle", lastSongTitle);
+        }
+    }
+
+    @Override
+    protected void onRestoreInstanceState(@androidx.annotation.NonNull Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        // Restore mini player state
+        boolean wasMiniPlayerVisible = savedInstanceState.getBoolean("isMiniPlayerVisible", false);
+        lastSongTitle = savedInstanceState.getString("lastSongTitle", "");
+
+        // Update mini player if it was visible and service is bound
+        if (wasMiniPlayerVisible && musicService != null) {
+            updateMiniPlayer();
+            progressHandler.post(progressRunnable);
+        }
+    }
+
+    @Override
     public void onRequestPermissionsResult(int requestCode, @androidx.annotation.NonNull String[] permissions,
             @androidx.annotation.NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
