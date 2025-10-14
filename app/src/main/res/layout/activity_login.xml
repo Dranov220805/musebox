@@ -26,7 +26,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="MuseBox"
-        android:textColor="@color/musebox_green"
+        android:textColor="@color/white"
         android:textSize="32sp"
         android:textStyle="bold"
         app:layout_constraintTop_toBottomOf="@id/logo"
@@ -83,22 +83,37 @@
         app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginTop="24dp"
         android:layout_marginHorizontal="32dp" />
-    <!-- Thêm vào cuối ConstraintLayout trong activity_main.xml -->
 
     <!-- Register Link -->
-    <!-- Thay LinearLayout Register Link bằng cái này -->
-    <Button
-        android:id="@+id/goToRegisterBtn"
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Register"
-        android:textSize="14sp"
-        android:backgroundTint="@android:color/transparent"
-        android:textColor="@color/musebox_green"
-        android:textStyle="bold"
+        android:orientation="horizontal"
         app:layout_constraintTop_toBottomOf="@id/loginBtn"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="16dp" />
+        android:layout_marginTop="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Don't have an account? "
+            android:textSize="14sp"
+            android:textColor="@android:color/darker_gray" />
+
+        <Button
+            android:id="@+id/goToRegisterBtn"
+            style="?android:attr/borderlessButtonStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Sign Up"
+            android:textSize="14sp"
+            android:backgroundTint="@android:color/transparent"
+            android:textColor="@color/spotify_green"
+            android:textStyle="bold"
+            android:minHeight="0dp"
+            android:minWidth="0dp"
+            android:padding="0dp" />
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
