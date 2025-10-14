@@ -51,7 +51,7 @@
 
         <!-- Song Artist -->
         <TextView
-            android:id="@+id/txtSongArtist"
+            android:id="@+id/txtArtistName"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Unknown Artist"
