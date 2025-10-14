@@ -8,7 +8,8 @@ public class Song {
     private String artist;
     private String uri;
     private long duration;
-    private boolean isFavorite; // New field
+    private boolean isFavorite;
+    private String albumCoverPath; // New field for album cover
 
     // Constructor for new song — auto-generate unique ID
     public Song(String title, String artist, String uri, long duration) {
@@ -18,6 +19,7 @@ public class Song {
         this.uri = uri;
         this.duration = duration;
         this.isFavorite = false;
+        this.albumCoverPath = null; // Default to null (will use embedded art)
     }
 
     // Constructor for song loaded from DB (keeps same ID)
@@ -28,6 +30,29 @@ public class Song {
         this.uri = uri;
         this.duration = duration;
         this.isFavorite = false;
+        this.albumCoverPath = null;
+    }
+
+    // Constructor with album cover path
+    public Song(String id, String title, String artist, String uri, long duration, String albumCoverPath) {
+        this.id = id;
+        this.title = title;
+        this.artist = artist;
+        this.uri = uri;
+        this.duration = duration;
+        this.isFavorite = false;
+        this.albumCoverPath = albumCoverPath;
+    }
+
+    // Constructor for new song with album cover
+    public Song(String title, String artist, String uri, long duration, String albumCoverPath) {
+        this.id = UUID.randomUUID().toString();
+        this.title = title;
+        this.artist = artist;
+        this.uri = uri;
+        this.duration = duration;
+        this.isFavorite = false;
+        this.albumCoverPath = albumCoverPath;
     }
 
     // Getters
@@ -55,6 +80,10 @@ public class Song {
         return isFavorite;
     }
 
+    public String getAlbumCoverPath() {
+        return albumCoverPath;
+    }
+
     // Optional setters if needed
     public void setId(String id) {
         this.id = id;
@@ -78,6 +107,10 @@ public class Song {
 
     public void setFavorite(boolean favorite) {
         isFavorite = favorite;
+    }
+
+    public void setAlbumCoverPath(String albumCoverPath) {
+        this.albumCoverPath = albumCoverPath;
     }
 
     @Override

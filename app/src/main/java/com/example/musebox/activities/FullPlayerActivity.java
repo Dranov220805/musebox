@@ -12,13 +12,18 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.net.Uri;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.example.musebox.R;
+import com.example.musebox.models.Song;
 import com.example.musebox.services.MusicService;
 
 public class FullPlayerActivity extends AppCompatActivity {
@@ -31,6 +36,7 @@ public class FullPlayerActivity extends AppCompatActivity {
     private SeekBar seekBarProgress, seekBarVolume;
     private TextView txtFullSongTitle, txtFullArtist, txtCurrentTime, txtTotalTime, txtVolumeLevel;
     private Spinner spinnerPlaybackSpeed;
+    private ImageView imgAlbumArt;
 
     private AudioManager audioManager;
     private boolean isMuted = false;
@@ -80,6 +86,7 @@ public class FullPlayerActivity extends AppCompatActivity {
         txtTotalTime = findViewById(R.id.txtTotalTime);
         txtVolumeLevel = findViewById(R.id.txtVolumeLevel);
         spinnerPlaybackSpeed = findViewById(R.id.spinnerPlaybackSpeed);
+        imgAlbumArt = findViewById(R.id.imgAlbumArt);
 
         // Initialize AudioManager
         audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
@@ -190,6 +197,13 @@ public class FullPlayerActivity extends AppCompatActivity {
         if (musicService != null) {
             txtFullSongTitle.setText(musicService.getCurrentSongTitle());
             txtFullArtist.setText(musicService.getCurrentSongArtist());
+
+            // Load album art for current song
+            Song currentSong = musicService.getCurrentSong();
+            if (currentSong != null && imgAlbumArt != null) {
+                loadAlbumArt(currentSong);
+            }
+
             updatePlayPauseButton();
             updateShuffleButton();
             updateRepeatButton();
@@ -416,5 +430,71 @@ public class FullPlayerActivity extends AppCompatActivity {
             updateUI();
             startProgressUpdates();
         }
+    }
+
+    /**
+     * Load album art asynchronously using Glide with caching.
+     * Prioritizes custom album cover path over embedded audio file art.
+     */
+    private void loadAlbumArt(Song song) {
+        if (song == null || imgAlbumArt == null) {
+            return;
+        }
+
+        // Check if song has a custom album cover path
+        String albumCoverPath = song.getAlbumCoverPath();
+
+        if (albumCoverPath != null && !albumCoverPath.isEmpty()) {
+            // Load from custom album cover path (file path or URI)
+            Glide.with(this)
+                    .load(albumCoverPath)
+                    .diskCacheStrategy(DiskCacheStrategy.ALL)
+                    .placeholder(R.drawable.ic_music_note)
+                    .error(R.drawable.ic_music_note) // Show default on error, or fallback to embedded art
+                    .centerCrop()
+                    .into(imgAlbumArt);
+        } else {
+            // No custom cover, load embedded art from audio file
+            loadEmbeddedAlbumArt(song.getUri());
+        }
+    }
+
+    /**
+     * Load embedded album art from audio file
+     */
+    private void loadEmbeddedAlbumArt(String audioFilePath) {
+        if (imgAlbumArt == null) {
+            return;
+        }
+
+        Uri audioUri = Uri.parse(audioFilePath);
+
+        Glide.with(this)
+                .asBitmap() // Explicitly request bitmap to properly extract embedded art
+                .load(audioUri)
+                .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
+                .placeholder(R.drawable.ic_music_note)
+                .error(R.drawable.ic_music_note)
+                .centerCrop()
+                .timeout(3000) // 3 second timeout to prevent hanging
+                .listener(new com.bumptech.glide.request.RequestListener<android.graphics.Bitmap>() {
+                    @Override
+                    public boolean onLoadFailed(
+                            @androidx.annotation.Nullable com.bumptech.glide.load.engine.GlideException e, Object model,
+                            com.bumptech.glide.request.target.Target<android.graphics.Bitmap> target,
+                            boolean isFirstResource) {
+                        // Simplified error logging
+                        android.util.Log.w("FullPlayerAlbumArt", "Failed to load album art");
+                        return false; // Let Glide handle showing error drawable
+                    }
+
+                    @Override
+                    public boolean onResourceReady(android.graphics.Bitmap resource, Object model,
+                            com.bumptech.glide.request.target.Target<android.graphics.Bitmap> target,
+                            com.bumptech.glide.load.DataSource dataSource, boolean isFirstResource) {
+                        return false; // Let Glide handle the success case
+                    }
+                })
+                .into(imgAlbumArt);
     }
 }

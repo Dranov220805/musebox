@@ -13,6 +13,12 @@ import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
+import com.bumptech.glide.load.DataSource;
+import com.bumptech.glide.load.engine.GlideException;
+import com.bumptech.glide.request.RequestListener;
+import com.bumptech.glide.request.target.Target;
+import android.graphics.drawable.Drawable;
+import androidx.annotation.Nullable;
 import com.example.musebox.R;
 import com.example.musebox.models.Song;
 
@@ -57,7 +63,7 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.SongViewHolder> {
         holder.tvDuration.setText(String.format("%d:%02d", minutes, seconds));
 
         // Load album art asynchronously with Glide (with caching)
-        loadAlbumArt(holder.ivAlbumArt, song.getUri());
+        loadAlbumArt(holder.ivAlbumArt, song);
 
         holder.itemView.setOnClickListener(v -> {
             if (listener != null)
@@ -68,11 +74,7 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.SongViewHolder> {
         holder.btnMenu.setOnClickListener(v -> {
             // If custom menu action is set (like for FavoritesActivity), use it instead
             if (menuActionOverride != null) {
-                // Get the current adapter position to avoid stale position issues
-                int adapterPosition = holder.getAdapterPosition();
-                if (adapterPosition != RecyclerView.NO_POSITION) {
-                    menuActionOverride.onMenuAction(song, adapterPosition);
-                }
+                menuActionOverride.onMenuAction(song, position);
                 return;
             }
 
@@ -108,17 +110,89 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.SongViewHolder> {
      * Load album art asynchronously using Glide with caching.
      * This prevents blocking the main thread and caches images for better
      * performance.
+     * Prioritizes custom album cover path over embedded audio file art.
      */
-    private void loadAlbumArt(ImageView imageView, String audioFilePath) {
-        // Try to load album art from audio file
+    private void loadAlbumArt(ImageView imageView, Song song) {
+        // TODO: TEMPORARY LOG - Check album art loading process
+        android.util.Log.d("AlbumArt", "Loading album art for: " + song.getTitle());
+
+        // Check if song has a custom album cover path
+        String albumCoverPath = song.getAlbumCoverPath();
+
+        if (albumCoverPath != null && !albumCoverPath.isEmpty()) {
+            android.util.Log.d("AlbumArt", "Using custom album cover path: " + albumCoverPath);
+            // Load from custom album cover path (file path or URI)
+            Glide.with(imageView.getContext())
+                    .load(albumCoverPath)
+                    .diskCacheStrategy(DiskCacheStrategy.ALL)
+                    .override(200, 200) // Resize for better performance
+                    .placeholder(R.drawable.ic_music_note)
+                    .error(R.drawable.ic_music_note) // Show default on error
+                    .listener(new RequestListener<Drawable>() {
+                        @Override
+                        public boolean onLoadFailed(@Nullable GlideException e, Object model, Target<Drawable> target,
+                                boolean isFirstResource) {
+                            android.util.Log.d("AlbumArt", "Custom album cover FAILED for: " + song.getTitle()
+                                    + ", falling back to embedded art");
+                            // If custom cover fails, fallback to embedded art from audio file
+                            loadEmbeddedAlbumArt(imageView, song.getUri());
+                            return true; // Indicate that we handled the failure
+                        }
+
+                        @Override
+                        public boolean onResourceReady(Drawable resource, Object model, Target<Drawable> target,
+                                DataSource dataSource, boolean isFirstResource) {
+                            return false; // Let Glide handle the success case
+                        }
+                    })
+                    .centerCrop()
+                    .into(imageView);
+        } else {
+            android.util.Log.d("AlbumArt",
+                    "No custom album cover path, trying embedded art from URI: " + song.getUri());
+            // No custom cover, load embedded art from audio file
+            loadEmbeddedAlbumArt(imageView, song.getUri());
+        }
+    }
+
+    /**
+     * Load embedded album art from audio file
+     */
+    private void loadEmbeddedAlbumArt(ImageView imageView, String audioFilePath) {
         Uri audioUri = Uri.parse(audioFilePath);
+        android.util.Log.d("AlbumArt", "Attempting to load embedded album art from URI: " + audioUri.toString());
 
         Glide.with(imageView.getContext())
+                .asBitmap() // Explicitly request bitmap to properly extract embedded art
                 .load(audioUri)
-                .diskCacheStrategy(DiskCacheStrategy.ALL) // Cache both original & resized image
-                .placeholder(R.drawable.ic_music_note) // Show placeholder while loading
-                .error(R.drawable.ic_music_note) // Show default icon on error
+                .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
+                .override(200, 200) // Resize for better performance
+                .placeholder(R.drawable.ic_music_note)
+                .error(R.drawable.ic_music_note)
                 .centerCrop()
+                .timeout(3000) // 3 second timeout to prevent hanging
+                .listener(new com.bumptech.glide.request.RequestListener<android.graphics.Bitmap>() {
+                    @Override
+                    public boolean onLoadFailed(
+                            @androidx.annotation.Nullable com.bumptech.glide.load.engine.GlideException e, Object model,
+                            com.bumptech.glide.request.target.Target<android.graphics.Bitmap> target,
+                            boolean isFirstResource) {
+                        android.util.Log.d("AlbumArt",
+                                "✗ FAILED to load embedded album art from: " + audioUri.toString());
+                        // Simplified error logging without verbose stack traces
+                        android.util.Log.w("AlbumArt", "Failed to load embedded album art");
+                        return false; // Let Glide handle showing error drawable
+                    }
+
+                    @Override
+                    public boolean onResourceReady(android.graphics.Bitmap resource, Object model,
+                            com.bumptech.glide.request.target.Target<android.graphics.Bitmap> target,
+                            com.bumptech.glide.load.DataSource dataSource, boolean isFirstResource) {
+                        android.util.Log.d("AlbumArt", "✓ SUCCESS loaded embedded album art from: "
+                                + audioUri.toString() + " (DataSource: " + dataSource + ")");
+                        return false; // Let Glide handle the success case
+                    }
+                })
                 .into(imageView);
     }
 
@@ -128,9 +202,19 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.SongViewHolder> {
     }
 
     public void addSongs(List<Song> newSongs) {
-        List<Song> currentList = new ArrayList<>(getCurrentList());
-        currentList.addAll(newSongs);
-        submitList(currentList);
+        if (newSongs == null || newSongs.isEmpty()) {
+            return;
+        }
+
+        List<Song> currentList = getCurrentList();
+
+        // Pre-allocate the list with the exact size needed to avoid resizing
+        List<Song> updatedList = new ArrayList<>(currentList.size() + newSongs.size());
+        updatedList.addAll(currentList);
+        updatedList.addAll(newSongs);
+
+        // Let ListAdapter handle the DiffUtil calculation and notifications efficiently
+        submitList(updatedList);
     }
 
     public void removeSong(int position) {
@@ -138,10 +222,6 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.SongViewHolder> {
         if (position >= 0 && position < currentList.size()) {
             currentList.remove(position);
             submitList(currentList);
-        }
-        // If position is invalid, just submit the current list to refresh
-        else if (!currentList.isEmpty()) {
-            submitList(new ArrayList<>(currentList));
         }
     }
 
