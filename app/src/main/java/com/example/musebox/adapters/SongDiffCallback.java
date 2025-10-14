@@ -19,11 +19,14 @@ public class SongDiffCallback extends DiffUtil.ItemCallback<Song> {
 
     @Override
     public boolean areContentsTheSame(@NonNull Song oldItem, @NonNull Song newItem) {
-        // Compare all relevant fields
+        // Compare all relevant fields including album cover
         return oldItem.getTitle().equals(newItem.getTitle()) &&
                 oldItem.getArtist().equals(newItem.getArtist()) &&
                 oldItem.getUri().equals(newItem.getUri()) &&
                 oldItem.getDuration() == newItem.getDuration() &&
-                oldItem.isFavorite() == newItem.isFavorite();
+                oldItem.isFavorite() == newItem.isFavorite() &&
+                ((oldItem.getAlbumCoverPath() == null && newItem.getAlbumCoverPath() == null) ||
+                        (oldItem.getAlbumCoverPath() != null
+                                && oldItem.getAlbumCoverPath().equals(newItem.getAlbumCoverPath())));
     }
 }

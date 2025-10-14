@@ -1,13 +1,16 @@
 package com.example.musebox.activities;
 
+import android.Manifest;
 import android.content.ComponentName;
 import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.provider.DocumentsContract;
@@ -15,10 +18,14 @@ import android.provider.MediaStore;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -50,6 +57,7 @@ public class HomeActivity extends AppCompatActivity
     private ImageButton btnPlayPause, btnSpeed, btnQueue;
     private SeekBar seekBar;
     private com.example.musebox.views.CircularProgressView circularProgress;
+    private ImageView imgSongArt;
 
     // Handler for updating progress
     private android.os.Handler progressHandler = new android.os.Handler();
@@ -59,6 +67,9 @@ public class HomeActivity extends AppCompatActivity
     private Song currentSong;
     private List<Song> currentPlaylist = new ArrayList<>();
     private String lastSongTitle = "";
+
+    // For permission handling
+    private Uri pendingImportUri;
 
     // ServiceConnection to bind with MusicService
     private ServiceConnection serviceConnection = new ServiceConnection() {
@@ -86,6 +97,7 @@ public class HomeActivity extends AppCompatActivity
         btnPlayPause = miniPlayer.findViewById(R.id.btnPlayPause);
         btnQueue = miniPlayer.findViewById(R.id.btnQueue);
         circularProgress = miniPlayer.findViewById(R.id.circularProgress);
+        imgSongArt = miniPlayer.findViewById(R.id.imgSongArt);
 
         // Bind to MusicService
         Intent serviceIntent = new Intent(this, MusicService.class);
@@ -156,6 +168,9 @@ public class HomeActivity extends AppCompatActivity
         setupSwipeGesture();
 
         dbHelper = new SongDatabaseHelper(this);
+
+        // Check for songs without album art and offer to update them
+        checkAndOfferAlbumArtUpdate();
 
         if (savedInstanceState == null) {
             getSupportFragmentManager().beginTransaction()
@@ -240,6 +255,22 @@ public class HomeActivity extends AppCompatActivity
         }
     }
 
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @androidx.annotation.NonNull String[] permissions,
+            @androidx.annotation.NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == 201) { // Our permission request code
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                Toast.makeText(this, "Importing music using MediaStore...", Toast.LENGTH_SHORT).show();
+                importMusicFromMediaStore(pendingImportUri);
+                pendingImportUri = null;
+            } else {
+                Toast.makeText(this, "Permission denied! Cannot scan for songs.", Toast.LENGTH_SHORT).show();
+                pendingImportUri = null;
+            }
+        }
+    }
+
     // Implement HomeFragment.OnSongSelectedListener
     @Override
     public void onSongSelected(Song song) {
@@ -260,7 +291,7 @@ public class HomeActivity extends AppCompatActivity
             Uri songUri = Uri.parse(song.getUri());
             musicService.playSong(songUri, song.getTitle(), song.getArtist());
 
-            // Show mini player
+            // Show mini player (will be visible when user returns from full player)
             miniPlayer.setVisibility(View.VISIBLE);
 
             // Reset circular progress
@@ -272,6 +303,11 @@ public class HomeActivity extends AppCompatActivity
             // Update UI
             tvSongTitle.setText(song.getTitle());
             btnPlayPause.setImageResource(R.drawable.ic_pause);
+
+            // Open expanded player immediately when a song is selected
+            Intent intent = new Intent(HomeActivity.this, FullPlayerActivity.class);
+            startActivity(intent);
+            overridePendingTransition(android.R.anim.slide_in_left, android.R.anim.slide_out_right);
 
             Toast.makeText(this, "Playing: " + song.getTitle(), Toast.LENGTH_SHORT).show();
         } else {
@@ -308,7 +344,7 @@ public class HomeActivity extends AppCompatActivity
             Uri songUri = Uri.parse(song.getUri());
             musicService.playSong(songUri, song.getTitle(), song.getArtist());
 
-            // Show mini player
+            // Show mini player (will be visible when user returns from full player)
             miniPlayer.setVisibility(View.VISIBLE);
 
             // Reset circular progress
@@ -320,6 +356,11 @@ public class HomeActivity extends AppCompatActivity
             // Update UI
             tvSongTitle.setText(song.getTitle());
             btnPlayPause.setImageResource(R.drawable.ic_pause);
+
+            // Open expanded player immediately when a song is selected
+            Intent intent = new Intent(HomeActivity.this, FullPlayerActivity.class);
+            startActivity(intent);
+            overridePendingTransition(android.R.anim.slide_in_left, android.R.anim.slide_out_right);
 
             Toast.makeText(this, "Playing: " + song.getTitle(), Toast.LENGTH_SHORT).show();
         } else {
@@ -345,6 +386,11 @@ public class HomeActivity extends AppCompatActivity
                 // Update current song reference
                 currentSong = musicService.getCurrentSong();
                 lastSongTitle = title;
+
+                // Load album art for current song in mini player
+                if (currentSong != null && imgSongArt != null) {
+                    loadMiniPlayerAlbumArt(currentSong);
+                }
 
                 // Refresh fragments if they are currently visible
                 refreshCurrentFragment();
@@ -445,9 +491,46 @@ public class HomeActivity extends AppCompatActivity
 
     @Override
     public void onImportMusicSelected(Uri folderUri) {
-        Toast.makeText(this, "Importing music from: " + folderUri, Toast.LENGTH_SHORT).show();
-        // Try using MediaStore first
-        importMusicFromMediaStore(folderUri);
+        // Check permissions first, just like HomeFragment does
+        checkPermissionAndImport(folderUri);
+    }
+
+    @Override
+    public void onUpdateAlbumArtSelected() {
+        updateExistingSongsWithAlbumArt();
+    }
+
+    private void checkPermissionAndImport(Uri folderUri) {
+        // Check Android version and request appropriate permission
+        String permission;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) { // Android 13+
+            permission = Manifest.permission.READ_MEDIA_AUDIO;
+        } else {
+            permission = Manifest.permission.READ_EXTERNAL_STORAGE;
+        }
+
+        if (androidx.core.app.ActivityCompat.checkSelfPermission(this,
+                permission) != PackageManager.PERMISSION_GRANTED) {
+            // Request permission
+            androidx.core.app.ActivityCompat.requestPermissions(this, new String[] { permission }, 201);
+            // Store folderUri for later use after permission is granted
+            this.pendingImportUri = folderUri;
+        } else {
+            Toast.makeText(this, "Importing music using MediaStore...", Toast.LENGTH_SHORT).show();
+            // Use MediaStore for importing music instead of folder scanning
+            // MediaStore is system-wide and more efficient
+            importMusicFromMediaStore(folderUri);
+        }
+    }
+
+    /**
+     * Scan all device music using MediaStore (system-wide scan)
+     * This method can be called for a full device scan, separate from folder
+     * imports
+     */
+    public void scanAllDeviceMusic() {
+        Toast.makeText(this, "Scanning all device music...", Toast.LENGTH_SHORT).show();
+        importMusicFromMediaStore(null); // Pass null since we're not scanning a specific folder
     }
 
     /**
@@ -487,12 +570,18 @@ public class HomeActivity extends AppCompatActivity
 
                 try (Cursor cursor = resolver.query(uri, projection, null, null, null)) {
                     if (cursor == null || cursor.getCount() == 0) {
-                        // If MediaStore gives nothing, fall back
+                        // If MediaStore gives nothing and we have a specific folder, try scanning it
                         runOnUiThread(() -> {
-                            Toast.makeText(this, "No MediaStore data, scanning manually...", Toast.LENGTH_SHORT).show();
+                            dialog.dismiss();
+                            if (folderUri != null) {
+                                Toast.makeText(this, "No MediaStore data, scanning folder manually...",
+                                        Toast.LENGTH_SHORT).show();
+                                // Call folder import on main thread to avoid Handler issues
+                                importMusicFromFolder(folderUri);
+                            } else {
+                                Toast.makeText(this, "No music found on device", Toast.LENGTH_LONG).show();
+                            }
                         });
-                        dialog.dismiss();
-                        importMusicFromFolder(folderUri);
                         return;
                     }
 
@@ -515,7 +604,37 @@ public class HomeActivity extends AppCompatActivity
                         long duration = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION));
 
                         Uri contentUri = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id);
-                        Song song = new Song(title, artist, contentUri.toString(), (int) duration);
+
+                        // TODO: TEMPORARY LOG - Check if we can extract album cover info
+                        android.util.Log.d("ImportMusic", "Processing song: " + title + " by " + artist);
+                        android.util.Log.d("ImportMusic", "Content URI: " + contentUri.toString());
+                        android.util.Log.d("ImportMusic", "File path: " + path);
+
+                        // Extract and save embedded album art if present
+                        String albumArtPath = null;
+                        try {
+                            android.media.MediaMetadataRetriever retriever = new android.media.MediaMetadataRetriever();
+                            retriever.setDataSource(getApplicationContext(), contentUri);
+                            byte[] art = retriever.getEmbeddedPicture();
+                            if (art != null) {
+                                android.util.Log.d("ImportMusic", "✓ FOUND embedded album art in: " + title + " (size: "
+                                        + art.length + " bytes)");
+
+                                // Save embedded art to internal storage
+                                albumArtPath = saveEmbeddedAlbumArt(art, title, artist);
+                                if (albumArtPath != null) {
+                                    android.util.Log.d("ImportMusic", "✓ SAVED album art to: " + albumArtPath);
+                                }
+                            } else {
+                                android.util.Log.d("ImportMusic", "✗ NO embedded album art in: " + title);
+                            }
+                            retriever.release();
+                        } catch (Exception e) {
+                            android.util.Log.d("ImportMusic",
+                                    "Error extracting album art for " + title + ": " + e.getMessage());
+                        }
+
+                        Song song = new Song(title, artist, contentUri.toString(), (int) duration, albumArtPath);
                         batch.add(song);
 
                         // Process batch when it reaches BATCH_SIZE or on last item
@@ -555,11 +674,16 @@ public class HomeActivity extends AppCompatActivity
             } catch (Exception e) {
                 e.printStackTrace();
                 runOnUiThread(() -> {
-                    Toast.makeText(this, "Error using MediaStore. Falling back to folder scan.", Toast.LENGTH_SHORT)
-                            .show();
+                    dialog.dismiss();
+                    if (folderUri != null) {
+                        Toast.makeText(this, "Error using MediaStore. Falling back to folder scan.", Toast.LENGTH_SHORT)
+                                .show();
+                        // Call folder import on main thread to avoid Handler issues
+                        importMusicFromFolder(folderUri);
+                    } else {
+                        Toast.makeText(this, "Error scanning device music.", Toast.LENGTH_LONG).show();
+                    }
                 });
-                dialog.dismiss();
-                importMusicFromFolder(folderUri);
                 return;
             }
 
@@ -578,6 +702,11 @@ public class HomeActivity extends AppCompatActivity
                         message += ". " + finalDuplicates + " duplicate(s) skipped.";
                     }
                     Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+                }
+
+                // Refresh HomeFragment after import to update the song list
+                if (finalNewCount > 0) {
+                    refreshHomeFragment();
                 }
             });
         }).start();
@@ -652,6 +781,11 @@ public class HomeActivity extends AppCompatActivity
                     }
                     Toast.makeText(this, message, Toast.LENGTH_LONG).show();
                 }
+
+                // Refresh HomeFragment after import
+                if (newCount > 0) {
+                    refreshHomeFragment();
+                }
             });
         }).start();
     }
@@ -684,7 +818,66 @@ public class HomeActivity extends AppCompatActivity
                     if (DocumentsContract.Document.MIME_TYPE_DIR.equals(mimeType)) {
                         scanFolderRecursively(fileUri, importedSongs, duplicates, callback);
                     } else if (mimeType.startsWith("audio/")) {
-                        Song song = new Song(displayName, "Unknown Artist", fileUri.toString(), 0);
+                        // Extract metadata from audio file
+                        String title = displayName;
+                        String artist = "Unknown Artist";
+                        long duration = 0;
+                        String albumArtPath = null;
+
+                        try {
+                            android.media.MediaMetadataRetriever retriever = new android.media.MediaMetadataRetriever();
+                            retriever.setDataSource(getApplicationContext(), fileUri);
+
+                            // Extract basic metadata
+                            String retrievedTitle = retriever
+                                    .extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_TITLE);
+                            String retrievedArtist = retriever
+                                    .extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_ARTIST);
+                            String retrievedDuration = retriever
+                                    .extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION);
+
+                            if (retrievedTitle != null && !retrievedTitle.trim().isEmpty()) {
+                                title = retrievedTitle;
+                            } else {
+                                // Remove file extension from display name if title is not available
+                                title = displayName.replaceFirst("\\.[^.]*$", "");
+                            }
+
+                            if (retrievedArtist != null && !retrievedArtist.trim().isEmpty()) {
+                                artist = retrievedArtist;
+                            }
+
+                            if (retrievedDuration != null) {
+                                try {
+                                    duration = Long.parseLong(retrievedDuration);
+                                } catch (NumberFormatException e) {
+                                    duration = 0;
+                                }
+                            }
+
+                            // Extract and save embedded album art if present
+                            byte[] art = retriever.getEmbeddedPicture();
+                            if (art != null) {
+                                android.util.Log.d("FolderScan", "✓ FOUND embedded album art in: " + title + " (size: "
+                                        + art.length + " bytes)");
+
+                                // Save embedded art to internal storage
+                                albumArtPath = saveEmbeddedAlbumArt(art, title, artist);
+                                if (albumArtPath != null) {
+                                    android.util.Log.d("FolderScan", "✓ SAVED album art to: " + albumArtPath);
+                                }
+                            } else {
+                                android.util.Log.d("FolderScan", "✗ NO embedded album art in: " + title);
+                            }
+
+                            retriever.release();
+                        } catch (Exception e) {
+                            android.util.Log.d("FolderScan",
+                                    "Error extracting metadata for " + displayName + ": " + e.getMessage());
+                            // Keep default values if extraction fails
+                        }
+
+                        Song song = new Song(title, artist, fileUri.toString(), (int) duration, albumArtPath);
 
                         // Only add if not duplicate
                         if (dbHelper.addSongIfNotExists(song)) {
@@ -694,7 +887,7 @@ public class HomeActivity extends AppCompatActivity
                         }
 
                         if (callback != null)
-                            callback.onSongDetected(displayName);
+                            callback.onSongDetected(title);
                     }
                 }
             }
@@ -764,4 +957,274 @@ public class HomeActivity extends AppCompatActivity
     // onSongSelected() is already implemented for
     // HomeFragment.OnSongSelectedListener
     // addSongToQueue() is already implemented as a public method above
+
+    /**
+     * Update existing songs in database with extracted embedded album art
+     * This method scans all existing songs and extracts/saves their embedded album
+     * art
+     */
+    public void updateExistingSongsWithAlbumArt() {
+        Toast.makeText(this, "Updating album art for existing songs...", Toast.LENGTH_SHORT).show();
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Updating Album Art");
+        builder.setCancelable(false);
+
+        final View progressView = getLayoutInflater().inflate(R.layout.dialog_import_progress, null);
+        builder.setView(progressView);
+
+        AlertDialog dialog = builder.create();
+        dialog.show();
+
+        ProgressBar progressBar = progressView.findViewById(R.id.progressBar);
+        TextView textStatus = progressView.findViewById(R.id.textStatus);
+        TextView textCount = progressView.findViewById(R.id.textCount);
+
+        new Thread(() -> {
+            SongDatabaseHelper dbHelper = new SongDatabaseHelper(this);
+            List<Song> allSongs = dbHelper.getAllSongs();
+            int total = allSongs.size();
+            int processed = 0;
+            int updated = 0;
+
+            runOnUiThread(() -> {
+                progressBar.setMax(total);
+                textStatus.setText("Checking songs for album art...");
+                textCount.setText("0 / " + total);
+            });
+
+            for (Song song : allSongs) {
+                // Skip songs that already have saved album art
+                if (song.getAlbumCoverPath() != null && !song.getAlbumCoverPath().isEmpty()) {
+                    processed++;
+                    continue;
+                }
+
+                try {
+                    Uri audioUri = Uri.parse(song.getUri());
+                    android.media.MediaMetadataRetriever retriever = new android.media.MediaMetadataRetriever();
+                    retriever.setDataSource(this, audioUri);
+                    byte[] art = retriever.getEmbeddedPicture();
+
+                    if (art != null) {
+                        android.util.Log.d("AlbumArtUpdate", "✓ FOUND embedded art in: " + song.getTitle());
+
+                        // Save embedded art to storage
+                        String albumArtPath = saveEmbeddedAlbumArt(art, song.getTitle(), song.getArtist());
+                        if (albumArtPath != null) {
+                            // Update song in database with album art path
+                            song.setAlbumCoverPath(albumArtPath);
+                            dbHelper.updateSong(song);
+                            updated++;
+                            android.util.Log.d("AlbumArtUpdate", "✓ SAVED album art for: " + song.getTitle());
+                        }
+                    }
+
+                    retriever.release();
+                } catch (Exception e) {
+                    android.util.Log.w("AlbumArtUpdate",
+                            "Failed to extract art for: " + song.getTitle() + " - " + e.getMessage());
+                }
+
+                processed++;
+                final int finalProcessed = processed;
+                final int finalUpdated = updated;
+                runOnUiThread(() -> {
+                    textStatus.setText("Processing: " + song.getTitle());
+                    textCount.setText(finalProcessed + " / " + total + " (" + finalUpdated + " updated)");
+                    progressBar.setProgress(finalProcessed);
+                });
+            }
+
+            final int finalUpdated = updated;
+            runOnUiThread(() -> {
+                dialog.dismiss();
+                Toast.makeText(this, "Updated " + finalUpdated + " songs with album art!", Toast.LENGTH_LONG).show();
+
+                // Refresh the home fragment to show updated album art
+                refreshHomeFragment();
+            });
+        }).start();
+    }
+
+    /**
+     * Check if there are songs without album art and offer to update them
+     * automatically
+     */
+    private void checkAndOfferAlbumArtUpdate() {
+        new Thread(() -> {
+            SongDatabaseHelper dbHelper = new SongDatabaseHelper(this);
+            List<Song> allSongs = dbHelper.getAllSongs();
+
+            // Count songs without album art
+            int songsWithoutArt = 0;
+            for (Song song : allSongs) {
+                if (song.getAlbumCoverPath() == null || song.getAlbumCoverPath().isEmpty()) {
+                    songsWithoutArt++;
+                }
+            }
+
+            final int finalCount = songsWithoutArt;
+
+            // Only show dialog if there are songs without album art
+            if (finalCount > 0) {
+                runOnUiThread(() -> {
+                    showAlbumArtUpdateDialog(finalCount);
+                });
+            }
+        }).start();
+    }
+
+    /**
+     * Show dialog offering to update album art for songs that don't have it
+     */
+    private void showAlbumArtUpdateDialog(int songsWithoutArt) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Album Art Missing");
+        builder.setMessage("Found " + songsWithoutArt
+                + " songs without album art. Would you like to extract album art from these songs now?\n\nThis will scan your music files for embedded album artwork.");
+
+        builder.setPositiveButton("Update Now", (dialog, which) -> {
+            updateExistingSongsWithAlbumArt();
+        });
+
+        builder.setNegativeButton("Later", (dialog, which) -> {
+            dialog.dismiss();
+        });
+
+        builder.setNeutralButton("Don't Ask Again", (dialog, which) -> {
+            // Save preference to not ask again
+            android.content.SharedPreferences prefs = getSharedPreferences("musebox_prefs", MODE_PRIVATE);
+            prefs.edit().putBoolean("album_art_check_disabled", true).apply();
+            dialog.dismiss();
+        });
+
+        // Only show if user hasn't disabled this check
+        android.content.SharedPreferences prefs = getSharedPreferences("musebox_prefs", MODE_PRIVATE);
+        if (!prefs.getBoolean("album_art_check_disabled", false)) {
+            builder.show();
+        }
+    }
+
+    /**
+     * Load album art for mini player asynchronously using Glide with caching.
+     * Prioritizes custom album cover path over embedded audio file art.
+     */
+    private void loadMiniPlayerAlbumArt(Song song) {
+        if (song == null || imgSongArt == null) {
+            return;
+        }
+
+        // Check if song has a custom album cover path
+        String albumCoverPath = song.getAlbumCoverPath();
+
+        if (albumCoverPath != null && !albumCoverPath.isEmpty()) {
+            // Load from custom album cover path (file path or URI)
+            Glide.with(this)
+                    .load(albumCoverPath)
+                    .diskCacheStrategy(DiskCacheStrategy.ALL)
+                    .placeholder(R.drawable.ic_music_note)
+                    .error(R.drawable.ic_music_note)
+                    .centerCrop()
+                    .into(imgSongArt);
+        } else {
+            // No custom cover, load embedded art from audio file
+            loadMiniPlayerEmbeddedAlbumArt(song.getUri());
+        }
+    }
+
+    /**
+     * Load embedded album art from audio file for mini player
+     */
+    private void loadMiniPlayerEmbeddedAlbumArt(String audioFilePath) {
+        if (imgSongArt == null) {
+            return;
+        }
+
+        Uri audioUri = Uri.parse(audioFilePath);
+
+        Glide.with(this)
+                .asBitmap() // Explicitly request bitmap to properly extract embedded art
+                .load(audioUri)
+                .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
+                .placeholder(R.drawable.ic_music_note)
+                .error(R.drawable.ic_music_note)
+                .centerCrop()
+                .timeout(3000) // 3 second timeout to prevent hanging
+                .listener(new com.bumptech.glide.request.RequestListener<android.graphics.Bitmap>() {
+                    @Override
+                    public boolean onLoadFailed(
+                            @androidx.annotation.Nullable com.bumptech.glide.load.engine.GlideException e, Object model,
+                            com.bumptech.glide.request.target.Target<android.graphics.Bitmap> target,
+                            boolean isFirstResource) {
+                        // Simplified error logging
+                        android.util.Log.w("MiniPlayerAlbumArt", "Failed to load album art");
+                        return false; // Let Glide handle showing error drawable
+                    }
+
+                    @Override
+                    public boolean onResourceReady(android.graphics.Bitmap resource, Object model,
+                            com.bumptech.glide.request.target.Target<android.graphics.Bitmap> target,
+                            com.bumptech.glide.load.DataSource dataSource, boolean isFirstResource) {
+                        return false; // Let Glide handle the success case
+                    }
+                })
+                .into(imgSongArt);
+    }
+
+    /**
+     * Save embedded album art to internal storage
+     * 
+     * @param artBytes  The embedded album art bytes
+     * @param songTitle The song title (for unique filename)
+     * @param artist    The artist name (for unique filename)
+     * @return The file path of saved album art, or null if save failed
+     */
+    public String saveEmbeddedAlbumArt(byte[] artBytes, String songTitle, String artist) {
+        try {
+            // Create album art directory in internal storage
+            java.io.File albumArtDir = new java.io.File(getFilesDir(), "album_art");
+            if (!albumArtDir.exists()) {
+                albumArtDir.mkdirs();
+            }
+
+            // Create unique filename based on song and artist
+            String sanitizedTitle = sanitizeFileName(songTitle);
+            String sanitizedArtist = sanitizeFileName(artist);
+            String filename = sanitizedArtist + "_" + sanitizedTitle + ".jpg";
+
+            java.io.File artFile = new java.io.File(albumArtDir, filename);
+
+            // Don't overwrite if file already exists
+            if (artFile.exists()) {
+                return artFile.getAbsolutePath();
+            }
+
+            // Write bytes to file
+            java.io.FileOutputStream fos = new java.io.FileOutputStream(artFile);
+            fos.write(artBytes);
+            fos.close();
+
+            return artFile.getAbsolutePath();
+        } catch (Exception e) {
+            android.util.Log.e("AlbumArt", "Failed to save album art: " + e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Sanitize filename by removing invalid characters
+     */
+    private String sanitizeFileName(String input) {
+        if (input == null)
+            return "unknown";
+        return input.replaceAll("[^a-zA-Z0-9._-]", "_").substring(0, Math.min(input.length(), 50));
+    }
+
+    private void refreshHomeFragment() {
+        Fragment fragment = getSupportFragmentManager().findFragmentById(R.id.content_container);
+        if (fragment instanceof HomeFragment) {
+            ((HomeFragment) fragment).refreshSongs();
+        }
+    }
 }

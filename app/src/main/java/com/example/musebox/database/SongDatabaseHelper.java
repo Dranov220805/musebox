@@ -14,7 +14,7 @@ import java.util.List;
 public class SongDatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "musebox.db";
-    private static final int DATABASE_VERSION = 2; // Incremented for favorites table
+    private static final int DATABASE_VERSION = 3; // Incremented for album cover column
 
     private static final String TABLE_SONGS = "songs";
     private static final String KEY_ID = "id";
@@ -22,6 +22,7 @@ public class SongDatabaseHelper extends SQLiteOpenHelper {
     private static final String KEY_ARTIST = "artist";
     private static final String KEY_URI = "uri";
     private static final String KEY_DURATION = "duration";
+    private static final String KEY_ALBUM_COVER_PATH = "album_cover_path";
 
     // Favorites table
     private static final String TABLE_FAVORITES = "favorites";
@@ -39,7 +40,8 @@ public class SongDatabaseHelper extends SQLiteOpenHelper {
                 + KEY_TITLE + " TEXT,"
                 + KEY_ARTIST + " TEXT,"
                 + KEY_URI + " TEXT,"
-                + KEY_DURATION + " INTEGER"
+                + KEY_DURATION + " INTEGER,"
+                + KEY_ALBUM_COVER_PATH + " TEXT"
                 + ")";
         db.execSQL(CREATE_SONGS_TABLE);
 
@@ -69,6 +71,11 @@ public class SongDatabaseHelper extends SQLiteOpenHelper {
                     + ")";
             db.execSQL(CREATE_FAVORITES_TABLE);
         }
+
+        // Add album cover path column if upgrading from version 2
+        if (oldVersion < 3) {
+            db.execSQL("ALTER TABLE " + TABLE_SONGS + " ADD COLUMN " + KEY_ALBUM_COVER_PATH + " TEXT");
+        }
     }
 
     // Method to ensure index exists even for existing databases
@@ -85,6 +92,7 @@ public class SongDatabaseHelper extends SQLiteOpenHelper {
         values.put(KEY_ARTIST, song.getArtist());
         values.put(KEY_URI, song.getUri());
         values.put(KEY_DURATION, song.getDuration());
+        values.put(KEY_ALBUM_COVER_PATH, song.getAlbumCoverPath());
         db.insert(TABLE_SONGS, null, values);
         // Don't close db - let SQLiteOpenHelper manage the connection pool
     }
@@ -101,13 +109,31 @@ public class SongDatabaseHelper extends SQLiteOpenHelper {
         return exists;
     }
 
-    // Add song only if it doesn't exist, returns true if added
+    // Add song only if it doesn't exist, returns true if added, also updates album
+    // art for existing songs
     public boolean addSongIfNotExists(Song song) {
-        if (songExists(song.getUri())) {
-            return false; // Song already exists, not added
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery(
+                "SELECT " + KEY_ALBUM_COVER_PATH + " FROM " + TABLE_SONGS + " WHERE " + KEY_URI + " = ? LIMIT 1",
+                new String[] { song.getUri() });
+
+        boolean exists = cursor.moveToFirst();
+        String existingAlbumArt = exists ? cursor.getString(0) : null;
+        cursor.close();
+
+        if (!exists) {
+            addSong(song);
+            return true; // Song was added
+        } else {
+            // Song exists - check if we should update album art
+            if ((existingAlbumArt == null || existingAlbumArt.isEmpty()) &&
+                    song.getAlbumCoverPath() != null && !song.getAlbumCoverPath().isEmpty()) {
+                // Update existing song with new album art
+                updateSong(song);
+                android.util.Log.d("DatabaseUpdate", "Updated album art for existing song: " + song.getTitle());
+            }
+            return false; // Song already existed (but may have been updated)
         }
-        addSong(song);
-        return true; // Song was added
     }
 
     // Optimized batch insert - much faster for importing many songs
@@ -120,12 +146,14 @@ public class SongDatabaseHelper extends SQLiteOpenHelper {
         db.beginTransaction();
         try {
             for (Song song : songs) {
-                // Check if exists using a query within the transaction
+                // Check if exists and get current album art path
                 Cursor cursor = db.rawQuery(
-                        "SELECT 1 FROM " + TABLE_SONGS + " WHERE " + KEY_URI + " = ? LIMIT 1",
+                        "SELECT " + KEY_ALBUM_COVER_PATH + " FROM " + TABLE_SONGS + " WHERE " + KEY_URI
+                                + " = ? LIMIT 1",
                         new String[] { song.getUri() });
 
                 boolean exists = cursor.moveToFirst();
+                String existingAlbumArt = exists ? cursor.getString(0) : null;
                 cursor.close();
 
                 if (!exists) {
@@ -136,9 +164,19 @@ public class SongDatabaseHelper extends SQLiteOpenHelper {
                     values.put(KEY_ARTIST, song.getArtist());
                     values.put(KEY_URI, song.getUri());
                     values.put(KEY_DURATION, song.getDuration());
+                    values.put(KEY_ALBUM_COVER_PATH, song.getAlbumCoverPath());
                     db.insert(TABLE_SONGS, null, values);
                     newCount++;
                 } else {
+                    // Song exists - check if we should update album art
+                    if ((existingAlbumArt == null || existingAlbumArt.isEmpty()) &&
+                            song.getAlbumCoverPath() != null && !song.getAlbumCoverPath().isEmpty()) {
+                        // Update existing song with new album art
+                        ContentValues values = new ContentValues();
+                        values.put(KEY_ALBUM_COVER_PATH, song.getAlbumCoverPath());
+                        db.update(TABLE_SONGS, values, KEY_URI + " = ?", new String[] { song.getUri() });
+                        android.util.Log.d("DatabaseUpdate", "Updated album art for existing song: " + song.getTitle());
+                    }
                     duplicateCount++;
                 }
             }
@@ -180,7 +218,8 @@ public class SongDatabaseHelper extends SQLiteOpenHelper {
                         cursor.getString(1), // title
                         cursor.getString(2), // artist
                         cursor.getString(3), // uri
-                        cursor.getLong(4) // duration
+                        cursor.getLong(4), // duration
+                        cursor.getString(5) // album_cover_path
                 );
                 songs.add(song);
             } while (cursor.moveToNext());
@@ -212,7 +251,8 @@ public class SongDatabaseHelper extends SQLiteOpenHelper {
                         cursor.getString(1), // title
                         cursor.getString(2), // artist
                         cursor.getString(3), // uri
-                        cursor.getLong(4) // duration
+                        cursor.getLong(4), // duration
+                        cursor.getString(5) // album_cover_path (may be null)
                 );
                 songList.add(song);
             } while (cursor.moveToNext());
@@ -293,7 +333,8 @@ public class SongDatabaseHelper extends SQLiteOpenHelper {
                         cursor.getString(1), // title
                         cursor.getString(2), // artist
                         cursor.getString(3), // uri
-                        cursor.getLong(4) // duration
+                        cursor.getLong(4), // duration
+                        cursor.getString(5) // album_cover_path
                 );
                 song.setFavorite(true); // Mark as favorite
                 favoriteSongs.add(song);
@@ -327,5 +368,21 @@ public class SongDatabaseHelper extends SQLiteOpenHelper {
             addToFavorites(songId);
             return true;
         }
+    }
+
+    /** Update an existing song in the database */
+    public boolean updateSong(Song song) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+
+        values.put(KEY_TITLE, song.getTitle());
+        values.put(KEY_ARTIST, song.getArtist());
+        values.put(KEY_URI, song.getUri());
+        values.put(KEY_DURATION, song.getDuration());
+        values.put(KEY_ALBUM_COVER_PATH, song.getAlbumCoverPath());
+
+        int result = db.update(TABLE_SONGS, values, KEY_ID + " = ?", new String[] { song.getId() });
+        // Don't close db - let SQLiteOpenHelper manage the connection pool
+        return result > 0;
     }
 }

@@ -9,9 +9,13 @@ import android.os.IBinder;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -48,6 +52,7 @@ public class FavoritesActivity extends AppCompatActivity
     private TextView tvSongTitle;
     private ImageButton btnPlayPause, btnQueue;
     private com.example.musebox.views.CircularProgressView circularProgress;
+    private ImageView imgSongArt;
 
     // Handler for updating progress
     private android.os.Handler progressHandler = new android.os.Handler();
@@ -94,6 +99,7 @@ public class FavoritesActivity extends AppCompatActivity
         btnPlayPause = miniPlayer.findViewById(R.id.btnPlayPause);
         btnQueue = miniPlayer.findViewById(R.id.btnQueue);
         circularProgress = miniPlayer.findViewById(R.id.circularProgress);
+        imgSongArt = miniPlayer.findViewById(R.id.imgSongArt);
 
         // Setup progress updater
         progressRunnable = new Runnable() {
@@ -234,6 +240,12 @@ public class FavoritesActivity extends AppCompatActivity
                 } else {
                     btnPlayPause.setImageResource(R.drawable.ic_play);
                 }
+
+                // Load album art for current song in mini player
+                Song currentSong = musicService.getCurrentSong();
+                if (currentSong != null && imgSongArt != null) {
+                    loadMiniPlayerAlbumArt(currentSong);
+                }
             }
         }
     }
@@ -353,5 +365,58 @@ public class FavoritesActivity extends AppCompatActivity
     @Override
     public void onImportMusicSelected(Uri folderUri) {
         Toast.makeText(this, "Please import music from the Home screen", Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void onUpdateAlbumArtSelected() {
+        Toast.makeText(this, "Please update album art from the Home screen", Toast.LENGTH_SHORT).show();
+    }
+
+    /**
+     * Load album art for mini player asynchronously using Glide with caching.
+     * Prioritizes custom album cover path over embedded audio file art.
+     */
+    private void loadMiniPlayerAlbumArt(Song song) {
+        if (song == null || imgSongArt == null) {
+            return;
+        }
+
+        // Check if song has a custom album cover path
+        String albumCoverPath = song.getAlbumCoverPath();
+
+        if (albumCoverPath != null && !albumCoverPath.isEmpty()) {
+            // Load from custom album cover path (file path or URI)
+            Glide.with(this)
+                    .load(albumCoverPath)
+                    .diskCacheStrategy(DiskCacheStrategy.ALL)
+                    .placeholder(R.drawable.ic_music_note)
+                    .error(R.drawable.ic_music_note)
+                    .centerCrop()
+                    .into(imgSongArt);
+        } else {
+            // No custom cover, load embedded art from audio file
+            loadMiniPlayerEmbeddedAlbumArt(song.getUri());
+        }
+    }
+
+    /**
+     * Load embedded album art from audio file for mini player
+     */
+    private void loadMiniPlayerEmbeddedAlbumArt(String audioFilePath) {
+        if (imgSongArt == null) {
+            return;
+        }
+
+        Uri audioUri = Uri.parse(audioFilePath);
+
+        Glide.with(this)
+                .asBitmap() // Explicitly request bitmap to properly extract embedded art
+                .load(audioUri)
+                .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
+                .placeholder(R.drawable.ic_music_note)
+                .error(R.drawable.ic_music_note)
+                .centerCrop()
+                .timeout(3000) // 3 second timeout to prevent hanging
+                .into(imgSongArt);
     }
 }
