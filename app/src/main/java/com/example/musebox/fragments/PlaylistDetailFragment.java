@@ -82,7 +82,7 @@ public class PlaylistDetailFragment extends Fragment {
         btnAddSong = view.findViewById(R.id.btnAddSong);
         btnBack = view.findViewById(R.id.btnBack);
         btnMenu = view.findViewById(R.id.btnMenu);
-        
+
         dbHelper = new PlaylistDatabaseHelper(requireContext());
         songDbHelper = new SongDatabaseHelper(requireContext());
 
@@ -134,6 +134,17 @@ public class PlaylistDetailFragment extends Fragment {
     private void showPlaylistOptionsMenu(View anchor) {
         PopupMenu popup = new PopupMenu(requireContext(), anchor);
         popup.inflate(R.menu.menu_playlist_options);
+
+        // Set text color to white for menu items
+        android.view.Menu menu = popup.getMenu();
+        for (int i = 0; i < menu.size(); i++) {
+            android.view.MenuItem menuItem = menu.getItem(i);
+            android.text.SpannableString spanString = new android.text.SpannableString(menuItem.getTitle().toString());
+            spanString.setSpan(new android.text.style.ForegroundColorSpan(getResources().getColor(R.color.white, null)),
+                    0, spanString.length(), 0);
+            menuItem.setTitle(spanString);
+        }
+
         popup.setOnMenuItemClickListener(item -> {
             int itemId = item.getItemId();
             if (itemId == R.id.menu_edit_playlist) {
@@ -207,7 +218,7 @@ public class PlaylistDetailFragment extends Fragment {
         }
 
         // Create dialog with song selection
-        View dialogView = getLayoutInflater().inflate(R.layout.dialog_create_playlist, null);
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_add_songs, null);
         RecyclerView recyclerSongs = dialogView.findViewById(R.id.recyclerSongs);
 
         // Create adapter for song selection
@@ -215,10 +226,10 @@ public class PlaylistDetailFragment extends Fragment {
         recyclerSongs.setLayoutManager(new LinearLayoutManager(requireContext()));
         recyclerSongs.setAdapter(selectAdapter);
 
-        new androidx.appcompat.app.AlertDialog.Builder(requireContext())
+        androidx.appcompat.app.AlertDialog dialog = new androidx.appcompat.app.AlertDialog.Builder(requireContext())
                 .setTitle("Add Songs to Playlist")
                 .setView(dialogView)
-                .setPositiveButton("Add", (dialog, which) -> {
+                .setPositiveButton("Add", (d, which) -> {
                     List<Song> selectedSongs = selectAdapter.getSelectedSongs();
                     if (selectedSongs.isEmpty()) {
                         Toast.makeText(requireContext(), "No songs selected", Toast.LENGTH_SHORT).show();
@@ -235,7 +246,20 @@ public class PlaylistDetailFragment extends Fragment {
                     loadPlaylist(); // Reload the playlist
                 })
                 .setNegativeButton("Cancel", null)
-                .show();
+                .create();
+
+        // Set dialog background to include buttons
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(R.drawable.dialog_bg_with_inset);
+        }
+
+        dialog.show();
+
+        // Set title color to Spotify green
+        android.widget.TextView titleView = dialog.findViewById(androidx.appcompat.R.id.alertTitle);
+        if (titleView != null) {
+            titleView.setTextColor(getResources().getColor(R.color.spotify_green, null));
+        }
     }
 
     private void loadPlaylist() {
@@ -254,6 +278,7 @@ public class PlaylistDetailFragment extends Fragment {
         // Initialize adapter with songs
         songAdapter = new SongAdapter();
         songAdapter.setSongs(songs);
+        songAdapter.setCustomMenuResource(R.menu.menu_playlist_song_options); // Use playlist-specific menu
         recyclerSongs.setLayoutManager(new LinearLayoutManager(requireContext()));
         recyclerSongs.setAdapter(songAdapter);
 
@@ -313,12 +338,17 @@ public class PlaylistDetailFragment extends Fragment {
 
             @Override
             public void onAddToPlaylist(Song song) {
-                // Remove from THIS playlist instead of adding to another
-                showRemoveSongDialog(song, songs.indexOf(song));
+                // Add to ANOTHER playlist (not this one)
+                PlaylistDialogHelper.showAddToPlaylistDialog(requireContext(), song,
+                        (selectedPlaylist, addedSong) -> {
+                            Toast.makeText(requireContext(), "Added to " + selectedPlaylist.getName(),
+                                    Toast.LENGTH_SHORT).show();
+                        });
             }
 
             @Override
             public void onDeleteSong(Song song, int position) {
+                // Remove from THIS playlist
                 showRemoveSongDialog(song, position);
             }
         });

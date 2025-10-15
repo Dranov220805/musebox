@@ -3,10 +3,12 @@
     <item
         android:id="@+id/menu_edit_playlist"
         android:title="Edit Playlist"
-        android:icon="@drawable/ic_edit" />
+        android:icon="@drawable/ic_edit"
+        android:iconTint="@color/text_primary" />
     
     <item
         android:id="@+id/menu_delete_playlist"
         android:title="Delete Playlist"
-        android:icon="@drawable/ic_delete" />
+        android:icon="@drawable/ic_delete"
+        android:iconTint="@color/error" />
 </menu>

@@ -7,13 +7,97 @@
     android:background="@color/spotify_black"
     tools:context=".fragments.PlaylistFragment">
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recyclerPlaylists"
+    <!-- App Bar Layout -->
+    <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/appBarLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/musebox_green"
+        android:elevation="4dp"
+        app:elevation="4dp">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:background="@color/musebox_green"
+            app:title="Your Playlists"
+            app:titleTextColor="@color/white"
+            app:titleTextAppearance="@style/TextAppearance.Material3.TitleLarge" />
+
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <!-- Main Content -->
+    <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:padding="16dp"
-        android:clipToPadding="false"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior" />
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <!-- RecyclerView for Playlists -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recyclerPlaylists"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="80dp"
+                android:clipToPadding="false"
+                android:scrollbars="vertical"
+                tools:listitem="@layout/item_playlist" />
+
+            <!-- Empty State View -->
+            <LinearLayout
+                android:id="@+id/emptyStateView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:orientation="vertical"
+                android:padding="32dp"
+                android:gravity="center"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <ImageView
+                    android:id="@+id/emptyStateIcon"
+                    android:layout_width="120dp"
+                    android:layout_height="120dp"
+                    android:layout_marginBottom="16dp"
+                    android:contentDescription="@string/no_playlists"
+                    android:alpha="0.6"
+                    android:src="@drawable/ic_playlist_add"
+                    app:tint="@color/musebox_green" />
+
+                <TextView
+                    android:id="@+id/emptyStateTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="No Playlists Yet"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/white"
+                    android:layout_marginBottom="8dp" />
+
+                <TextView
+                    android:id="@+id/emptyStateMessage"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Create your first playlist by tapping the + button"
+                    android:textSize="14sp"
+                    android:textColor="@color/white"
+                    android:alpha="0.7"
+                    android:textAlignment="center"
+                    android:gravity="center" />
+
+            </LinearLayout>
+
+        </FrameLayout>
+
+    </androidx.core.widget.NestedScrollView>
 
     <!-- Floating Action Button to Create New Playlist -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -22,9 +106,11 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_margin="16dp"
-        android:contentDescription="Create Playlist"
+        android:contentDescription="@string/create_new_playlist"
         android:src="@drawable/ic_add"
         app:tint="@color/white"
-        app:backgroundTint="@color/musebox_green" />
+        app:backgroundTint="@color/musebox_green"
+        app:elevation="6dp"
+        app:rippleColor="@color/white" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
