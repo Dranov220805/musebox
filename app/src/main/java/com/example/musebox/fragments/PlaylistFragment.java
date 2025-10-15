@@ -4,6 +4,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.PopupMenu;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -16,6 +17,7 @@ import com.example.musebox.adapters.PlaylistAdapter;
 import com.example.musebox.R;
 import com.example.musebox.database.PlaylistDatabaseHelper;
 import com.example.musebox.models.Playlist;
+import com.example.musebox.utils.PlaylistDialogHelper;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.util.ArrayList;
@@ -29,26 +31,81 @@ public class PlaylistFragment extends Fragment {
 
     @Nullable
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
+            @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_playlist, container, false);
         recyclerView = view.findViewById(R.id.recyclerPlaylists);
         fabCreate = view.findViewById(R.id.fabCreatePlaylist);
         dbHelper = new PlaylistDatabaseHelper(requireContext());
 
         recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
-    adapter = new PlaylistAdapter(playlist -> {
-        // Open PlaylistDetailActivity
-        android.content.Intent intent = new android.content.Intent(requireContext(), com.example.musebox.activities.PlaylistDetailActivity.class);
-        intent.putExtra("playlist_id", playlist.getId());
-        startActivity(intent);
-    });
-    recyclerView.setAdapter(adapter);
+        adapter = new PlaylistAdapter(playlist -> {
+            // Open PlaylistDetailFragment
+            PlaylistDetailFragment fragment = PlaylistDetailFragment.newInstance(playlist.getId());
+            requireActivity().getSupportFragmentManager().beginTransaction()
+                    .replace(R.id.content_container, fragment)
+                    .addToBackStack(null)
+                    .commit();
+        });
+
+        // Add menu click listener for edit/delete menu
+        adapter.setOnPlaylistMenuClickListener((playlist, anchorView) -> showPlaylistOptionsMenu(playlist, anchorView));
+
+        recyclerView.setAdapter(adapter);
 
         loadPlaylists();
 
         fabCreate.setOnClickListener(v -> showCreatePlaylistDialog());
 
         return view;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        // Reload playlists when returning to this fragment (in case changes were made
+        // in PlaylistDetailFragment)
+        loadPlaylists();
+    }
+
+    private void showPlaylistOptionsMenu(Playlist playlist, View anchorView) {
+        // Use the provided anchor view for the popup menu
+        PopupMenu popup = new PopupMenu(requireContext(), anchorView);
+        popup.getMenuInflater().inflate(R.menu.menu_playlist_options, popup.getMenu());
+
+        popup.setOnMenuItemClickListener(item -> {
+            int itemId = item.getItemId();
+            if (itemId == R.id.menu_edit_playlist) {
+                showEditPlaylistDialog(playlist);
+                return true;
+            } else if (itemId == R.id.menu_delete_playlist) {
+                showDeletePlaylistDialog(playlist);
+                return true;
+            }
+            return false;
+        });
+
+        popup.show();
+    }
+
+    private void showEditPlaylistDialog(Playlist playlist) {
+        PlaylistDialogHelper.showEditPlaylistDialog(requireContext(), playlist,
+                (playlistId, newName, newDescription) -> {
+                    // Reload playlists after edit
+                    loadPlaylists();
+                });
+    }
+
+    private void showDeletePlaylistDialog(Playlist playlist) {
+        PlaylistDialogHelper.showDeletePlaylistDialog(requireContext(), playlist, deletedPlaylist -> {
+            boolean success = dbHelper.deletePlaylist(deletedPlaylist.getId());
+            if (success) {
+                Toast.makeText(requireContext(), "Playlist deleted", Toast.LENGTH_SHORT).show();
+                loadPlaylists();
+            } else {
+                Toast.makeText(requireContext(), "Failed to delete playlist", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void loadPlaylists() {
@@ -64,7 +121,8 @@ public class PlaylistFragment extends Fragment {
         final android.widget.Button btnConfirm = dialogView.findViewById(R.id.btnConfirmCreatePlaylist);
 
         // Load all songs from the database
-        com.example.musebox.database.SongDatabaseHelper songDbHelper = new com.example.musebox.database.SongDatabaseHelper(requireContext());
+        com.example.musebox.database.SongDatabaseHelper songDbHelper = new com.example.musebox.database.SongDatabaseHelper(
+                requireContext());
         List<com.example.musebox.models.Song> allSongs = songDbHelper.getAllSongs();
 
         // Adapter for selecting songs
@@ -72,7 +130,8 @@ public class PlaylistFragment extends Fragment {
         rvSongs.setLayoutManager(new LinearLayoutManager(requireContext()));
         rvSongs.setAdapter(songSelectAdapter);
 
-        final androidx.appcompat.app.AlertDialog dialog = new androidx.appcompat.app.AlertDialog.Builder(requireContext())
+        final androidx.appcompat.app.AlertDialog dialog = new androidx.appcompat.app.AlertDialog.Builder(
+                requireContext())
                 .setTitle("Create Playlist")
                 .setView(dialogView)
                 .setCancelable(true)
@@ -142,13 +201,15 @@ public class PlaylistFragment extends Fragment {
                 cbSelect = itemView.findViewById(R.id.cbSelectSong);
             }
 
-            public void bind(final com.example.musebox.models.Song song, final List<com.example.musebox.models.Song> selected) {
+            public void bind(final com.example.musebox.models.Song song,
+                    final List<com.example.musebox.models.Song> selected) {
                 tvTitle.setText(song.getTitle());
                 tvArtist.setText(song.getArtist());
                 cbSelect.setChecked(selected.contains(song));
                 cbSelect.setOnCheckedChangeListener((buttonView, isChecked) -> {
                     if (isChecked) {
-                        if (!selected.contains(song)) selected.add(song);
+                        if (!selected.contains(song))
+                            selected.add(song);
                     } else {
                         selected.remove(song);
                     }

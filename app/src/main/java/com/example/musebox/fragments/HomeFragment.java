@@ -32,6 +32,7 @@ import com.example.musebox.activities.HomeActivity;
 import com.example.musebox.adapters.SongAdapter;
 import com.example.musebox.database.SongDatabaseHelper;
 import com.example.musebox.models.Song;
+import com.example.musebox.utils.PlaylistDialogHelper;
 import com.google.android.material.card.MaterialCardView;
 
 import java.io.File;
@@ -152,8 +153,8 @@ public class HomeFragment extends Fragment {
 
             @Override
             public void onAddToPlaylist(Song song) {
-                Toast.makeText(requireContext(), "Add " + song.getTitle() + " to playlist", Toast.LENGTH_SHORT).show();
-                // TODO: Show playlist selection dialog
+                // Show dialog to select playlist
+                PlaylistDialogHelper.showAddToPlaylistDialog(requireContext(), song, null);
             }
 
             @Override
@@ -218,10 +219,12 @@ public class HomeFragment extends Fragment {
     }
 
     /**
-     * Scan device for audio files - delegates to HomeActivity's unified import method
+     * Scan device for audio files - delegates to HomeActivity's unified import
+     * method
      */
     private void scanDeviceForAudioFiles() {
-        // Delegate to HomeActivity's importMusicFromMediaStore which now scans all volumes
+        // Delegate to HomeActivity's importMusicFromMediaStore which now scans all
+        // volumes
         if (getActivity() instanceof HomeActivity) {
             ((HomeActivity) getActivity()).onImportMusicSelected(null);
         } else {

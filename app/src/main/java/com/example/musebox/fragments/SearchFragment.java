@@ -30,6 +30,7 @@ import com.example.musebox.adapters.ArtistFilterAdapter;
 import com.example.musebox.adapters.SongAdapter;
 import com.example.musebox.database.SongDatabaseHelper;
 import com.example.musebox.models.Song;
+import com.example.musebox.utils.PlaylistDialogHelper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -141,7 +142,8 @@ public class SearchFragment extends Fragment {
 
             @Override
             public void onAddToPlaylist(Song song) {
-                Toast.makeText(requireContext(), "Playlist feature coming soon", Toast.LENGTH_SHORT).show();
+                // Show dialog to select playlist
+                PlaylistDialogHelper.showAddToPlaylistDialog(requireContext(), song, null);
             }
 
             @Override

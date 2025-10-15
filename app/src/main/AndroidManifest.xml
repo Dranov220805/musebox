@@ -48,6 +48,10 @@
             android:theme="@style/Theme.MuseBox.NoActionBar"
             android:exported="false" />
         <activity
+            android:name=".activities.QueueActivity"
+            android:theme="@style/Theme.MuseBox.NoActionBar"
+            android:exported="false" />
+        <activity
             android:name=".activities.LoginActivity"
             android:theme="@style/Base.Theme.MuseBox"
             android:exported="true">
