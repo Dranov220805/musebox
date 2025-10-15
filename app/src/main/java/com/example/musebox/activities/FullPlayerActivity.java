@@ -334,8 +334,22 @@ public class FullPlayerActivity extends AppCompatActivity {
     }
 
     private void showSpeedMenu(View anchor) {
-        PopupMenu popupMenu = new PopupMenu(this, anchor);
+        // Use ContextThemeWrapper to ensure proper theme application
+        android.view.ContextThemeWrapper wrapper = new android.view.ContextThemeWrapper(this,
+                R.style.Base_Theme_MuseBox);
+        PopupMenu popupMenu = new PopupMenu(wrapper, anchor);
         popupMenu.inflate(R.menu.playback_speed_menu);
+
+        // Manually set white text color for each menu item as fallback
+        android.view.Menu menu = popupMenu.getMenu();
+        for (int i = 0; i < menu.size(); i++) {
+            android.view.MenuItem item = menu.getItem(i);
+            android.text.SpannableString spanString = new android.text.SpannableString(item.getTitle().toString());
+            spanString.setSpan(new android.text.style.ForegroundColorSpan(
+                    getResources().getColor(R.color.white, getTheme())),
+                    0, spanString.length(), 0);
+            item.setTitle(spanString);
+        }
 
         popupMenu.setOnMenuItemClickListener(item -> {
             int itemId = item.getItemId();
