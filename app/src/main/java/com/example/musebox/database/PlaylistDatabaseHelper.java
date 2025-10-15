@@ -48,19 +48,39 @@ public class PlaylistDatabaseHelper extends SQLiteOpenHelper {
         String CREATE_PLAYLIST_SONGS = "CREATE TABLE IF NOT EXISTS " + TABLE_PLAYLIST_SONGS + " ("
                 + KEY_PLAYLIST_ID + " TEXT,"
                 + KEY_SONG_ID + " TEXT,"
-                + KEY_POSITION + " INTEGER," 
+                + KEY_POSITION + " INTEGER,"
                 + "PRIMARY KEY (" + KEY_PLAYLIST_ID + ", " + KEY_SONG_ID + ")"
                 + ")";
         db.execSQL(CREATE_PLAYLIST_SONGS);
 
         // Index for faster lookups
-        db.execSQL("CREATE INDEX IF NOT EXISTS idx_playlist_name ON " + TABLE_PLAYLISTS + "(" + KEY_PLAYLIST_NAME + ")");
-        db.execSQL("CREATE INDEX IF NOT EXISTS idx_playlist_songs_pos ON " + TABLE_PLAYLIST_SONGS + "(" + KEY_PLAYLIST_ID + ", " + KEY_POSITION + ")");
+        db.execSQL(
+                "CREATE INDEX IF NOT EXISTS idx_playlist_name ON " + TABLE_PLAYLISTS + "(" + KEY_PLAYLIST_NAME + ")");
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_playlist_songs_pos ON " + TABLE_PLAYLIST_SONGS + "("
+                + KEY_PLAYLIST_ID + ", " + KEY_POSITION + ")");
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         // Ensure tables exist when upgrading from older versions
+        ensureTablesExist(db);
+    }
+
+    @Override
+    public void onOpen(SQLiteDatabase db) {
+        super.onOpen(db);
+        // Ensure playlist tables exist every time database is opened
+        // This is needed because the database might have been created by
+        // SongDatabaseHelper
+        // which doesn't know about playlist tables
+        ensureTablesExist(db);
+    }
+
+    /**
+     * Ensure playlist tables exist in the database.
+     * Safe to call multiple times - uses CREATE TABLE IF NOT EXISTS.
+     */
+    private void ensureTablesExist(SQLiteDatabase db) {
         db.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_PLAYLISTS + " ("
                 + KEY_PLAYLIST_ID + " TEXT PRIMARY KEY,"
                 + KEY_PLAYLIST_NAME + " TEXT,"
@@ -75,8 +95,10 @@ public class PlaylistDatabaseHelper extends SQLiteOpenHelper {
                 + "PRIMARY KEY (" + KEY_PLAYLIST_ID + ", " + KEY_SONG_ID + ")"
                 + ")");
 
-        db.execSQL("CREATE INDEX IF NOT EXISTS idx_playlist_name ON " + TABLE_PLAYLISTS + "(" + KEY_PLAYLIST_NAME + ")");
-        db.execSQL("CREATE INDEX IF NOT EXISTS idx_playlist_songs_pos ON " + TABLE_PLAYLIST_SONGS + "(" + KEY_PLAYLIST_ID + ", " + KEY_POSITION + ")");
+        db.execSQL(
+                "CREATE INDEX IF NOT EXISTS idx_playlist_name ON " + TABLE_PLAYLISTS + "(" + KEY_PLAYLIST_NAME + ")");
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_playlist_songs_pos ON " + TABLE_PLAYLIST_SONGS + "("
+                + KEY_PLAYLIST_ID + ", " + KEY_POSITION + ")");
     }
 
     // Ensure tables exist for existing databases where onCreate won't be called
@@ -96,8 +118,10 @@ public class PlaylistDatabaseHelper extends SQLiteOpenHelper {
                 + "PRIMARY KEY (" + KEY_PLAYLIST_ID + ", " + KEY_SONG_ID + ")"
                 + ")");
 
-        db.execSQL("CREATE INDEX IF NOT EXISTS idx_playlist_name ON " + TABLE_PLAYLISTS + "(" + KEY_PLAYLIST_NAME + ")");
-        db.execSQL("CREATE INDEX IF NOT EXISTS idx_playlist_songs_pos ON " + TABLE_PLAYLIST_SONGS + "(" + KEY_PLAYLIST_ID + ", " + KEY_POSITION + ")");
+        db.execSQL(
+                "CREATE INDEX IF NOT EXISTS idx_playlist_name ON " + TABLE_PLAYLISTS + "(" + KEY_PLAYLIST_NAME + ")");
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_playlist_songs_pos ON " + TABLE_PLAYLIST_SONGS + "("
+                + KEY_PLAYLIST_ID + ", " + KEY_POSITION + ")");
     }
 
     /** Create a new playlist and return its generated id */
@@ -118,7 +142,7 @@ public class PlaylistDatabaseHelper extends SQLiteOpenHelper {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(KEY_PLAYLIST_NAME, newName);
-        int rows = db.update(TABLE_PLAYLISTS, values, KEY_PLAYLIST_ID + " = ?", new String[]{playlistId});
+        int rows = db.update(TABLE_PLAYLISTS, values, KEY_PLAYLIST_ID + " = ?", new String[] { playlistId });
         return rows > 0;
     }
 
@@ -126,22 +150,26 @@ public class PlaylistDatabaseHelper extends SQLiteOpenHelper {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(KEY_PLAYLIST_DESCRIPTION, description);
-        int rows = db.update(TABLE_PLAYLISTS, values, KEY_PLAYLIST_ID + " = ?", new String[]{playlistId});
+        int rows = db.update(TABLE_PLAYLISTS, values, KEY_PLAYLIST_ID + " = ?", new String[] { playlistId });
         return rows > 0;
     }
 
     public boolean deletePlaylist(String playlistId) {
         SQLiteDatabase db = this.getWritableDatabase();
         // Delete mappings first
-        db.delete(TABLE_PLAYLIST_SONGS, KEY_PLAYLIST_ID + " = ?", new String[]{playlistId});
-        int rows = db.delete(TABLE_PLAYLISTS, KEY_PLAYLIST_ID + " = ?", new String[]{playlistId});
+        db.delete(TABLE_PLAYLIST_SONGS, KEY_PLAYLIST_ID + " = ?", new String[] { playlistId });
+        int rows = db.delete(TABLE_PLAYLISTS, KEY_PLAYLIST_ID + " = ?", new String[] { playlistId });
         return rows > 0;
     }
 
     public List<Playlist> getAllPlaylists() {
         List<Playlist> playlists = new ArrayList<>();
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT " + KEY_PLAYLIST_ID + ", " + KEY_PLAYLIST_NAME + ", " + KEY_PLAYLIST_DESCRIPTION + " FROM " + TABLE_PLAYLISTS + " ORDER BY " + KEY_PLAYLIST_NAME + " COLLATE NOCASE ASC", null);
+        Cursor cursor = db
+                .rawQuery(
+                        "SELECT " + KEY_PLAYLIST_ID + ", " + KEY_PLAYLIST_NAME + ", " + KEY_PLAYLIST_DESCRIPTION
+                                + " FROM " + TABLE_PLAYLISTS + " ORDER BY " + KEY_PLAYLIST_NAME + " COLLATE NOCASE ASC",
+                        null);
 
         if (cursor.moveToFirst()) {
             do {
@@ -155,7 +183,11 @@ public class PlaylistDatabaseHelper extends SQLiteOpenHelper {
 
     public Playlist getPlaylistById(String playlistId) {
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT " + KEY_PLAYLIST_ID + ", " + KEY_PLAYLIST_NAME + ", " + KEY_PLAYLIST_DESCRIPTION + " FROM " + TABLE_PLAYLISTS + " WHERE " + KEY_PLAYLIST_ID + " = ? LIMIT 1", new String[]{playlistId});
+        Cursor cursor = db
+                .rawQuery(
+                        "SELECT " + KEY_PLAYLIST_ID + ", " + KEY_PLAYLIST_NAME + ", " + KEY_PLAYLIST_DESCRIPTION
+                                + " FROM " + TABLE_PLAYLISTS + " WHERE " + KEY_PLAYLIST_ID + " = ? LIMIT 1",
+                        new String[] { playlistId });
         if (!cursor.moveToFirst()) {
             cursor.close();
             return null;
@@ -167,17 +199,22 @@ public class PlaylistDatabaseHelper extends SQLiteOpenHelper {
 
     /** Add a song to a playlist (appends to the end) */
     public boolean addSongToPlaylist(String playlistId, Song song) {
-        if (playlistId == null || song == null) return false;
+        if (playlistId == null || song == null)
+            return false;
         SQLiteDatabase db = this.getWritableDatabase();
 
         // Check for existing mapping
-        Cursor check = db.rawQuery("SELECT 1 FROM " + TABLE_PLAYLIST_SONGS + " WHERE " + KEY_PLAYLIST_ID + " = ? AND " + KEY_SONG_ID + " = ? LIMIT 1", new String[]{playlistId, song.getId()});
+        Cursor check = db.rawQuery("SELECT 1 FROM " + TABLE_PLAYLIST_SONGS + " WHERE " + KEY_PLAYLIST_ID + " = ? AND "
+                + KEY_SONG_ID + " = ? LIMIT 1", new String[] { playlistId, song.getId() });
         boolean exists = check.moveToFirst();
         check.close();
-        if (exists) return false;
+        if (exists)
+            return false;
 
         // Determine next position
-        Cursor posCursor = db.rawQuery("SELECT MAX(" + KEY_POSITION + ") FROM " + TABLE_PLAYLIST_SONGS + " WHERE " + KEY_PLAYLIST_ID + " = ?", new String[]{playlistId});
+        Cursor posCursor = db.rawQuery(
+                "SELECT MAX(" + KEY_POSITION + ") FROM " + TABLE_PLAYLIST_SONGS + " WHERE " + KEY_PLAYLIST_ID + " = ?",
+                new String[] { playlistId });
         int nextPos = 0;
         if (posCursor.moveToFirst()) {
             int max = posCursor.isNull(0) ? -1 : posCursor.getInt(0);
@@ -196,21 +233,24 @@ public class PlaylistDatabaseHelper extends SQLiteOpenHelper {
 
     public boolean removeSongFromPlaylist(String playlistId, String songId) {
         SQLiteDatabase db = this.getWritableDatabase();
-        int rows = db.delete(TABLE_PLAYLIST_SONGS, KEY_PLAYLIST_ID + " = ? AND " + KEY_SONG_ID + " = ?", new String[]{playlistId, songId});
+        int rows = db.delete(TABLE_PLAYLIST_SONGS, KEY_PLAYLIST_ID + " = ? AND " + KEY_SONG_ID + " = ?",
+                new String[] { playlistId, songId });
         return rows > 0;
     }
 
     /** Get songs for a playlist in order */
     public List<Song> getSongsForPlaylist(String playlistId) {
         List<Song> songs = new ArrayList<>();
-        if (playlistId == null) return songs;
+        if (playlistId == null)
+            return songs;
 
         SQLiteDatabase db = this.getReadableDatabase();
-        // Join with songs table to get song metadata; assume songs table exists (SongDatabaseHelper)
+        // Join with songs table to get song metadata; assume songs table exists
+        // (SongDatabaseHelper)
         String query = "SELECT s.* FROM playlist_songs ps INNER JOIN songs s ON ps.song_id = s.id "
                 + "WHERE ps.playlist_id = ? ORDER BY ps." + KEY_POSITION + " ASC";
 
-        Cursor cursor = db.rawQuery(query, new String[]{playlistId});
+        Cursor cursor = db.rawQuery(query, new String[] { playlistId });
         if (cursor.moveToFirst()) {
             do {
                 Song song = new Song(
@@ -218,8 +258,8 @@ public class PlaylistDatabaseHelper extends SQLiteOpenHelper {
                         cursor.getString(1), // title
                         cursor.getString(2), // artist
                         cursor.getString(3), // uri
-                        cursor.getLong(4),   // duration
-                        cursor.getString(5)  // album_cover_path
+                        cursor.getLong(4), // duration
+                        cursor.getString(5) // album_cover_path
                 );
                 songs.add(song);
             } while (cursor.moveToNext());
@@ -232,14 +272,16 @@ public class PlaylistDatabaseHelper extends SQLiteOpenHelper {
         SQLiteDatabase db = this.getReadableDatabase();
         Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM " + TABLE_PLAYLISTS, null);
         int count = 0;
-        if (cursor.moveToFirst()) count = cursor.getInt(0);
+        if (cursor.moveToFirst())
+            count = cursor.getInt(0);
         cursor.close();
         return count;
     }
 
     public boolean playlistExists(String name) {
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT 1 FROM " + TABLE_PLAYLISTS + " WHERE " + KEY_PLAYLIST_NAME + " = ? LIMIT 1", new String[]{name});
+        Cursor cursor = db.rawQuery("SELECT 1 FROM " + TABLE_PLAYLISTS + " WHERE " + KEY_PLAYLIST_NAME + " = ? LIMIT 1",
+                new String[] { name });
         boolean exists = cursor.moveToFirst();
         cursor.close();
         return exists;
@@ -248,12 +290,13 @@ public class PlaylistDatabaseHelper extends SQLiteOpenHelper {
     /** Clear all songs from a playlist but keep the playlist itself */
     public void clearPlaylist(String playlistId) {
         SQLiteDatabase db = this.getWritableDatabase();
-        db.delete(TABLE_PLAYLIST_SONGS, KEY_PLAYLIST_ID + " = ?", new String[]{playlistId});
+        db.delete(TABLE_PLAYLIST_SONGS, KEY_PLAYLIST_ID + " = ?", new String[] { playlistId });
     }
 
     /** Reorder songs inside a playlist: provide list of songIds in desired order */
     public boolean reorderPlaylist(String playlistId, List<String> orderedSongIds) {
-        if (playlistId == null || orderedSongIds == null) return false;
+        if (playlistId == null || orderedSongIds == null)
+            return false;
         SQLiteDatabase db = this.getWritableDatabase();
         db.beginTransaction();
         try {
@@ -261,7 +304,8 @@ public class PlaylistDatabaseHelper extends SQLiteOpenHelper {
             for (String songId : orderedSongIds) {
                 ContentValues values = new ContentValues();
                 values.put(KEY_POSITION, pos);
-                db.update(TABLE_PLAYLIST_SONGS, values, KEY_PLAYLIST_ID + " = ? AND " + KEY_SONG_ID + " = ?", new String[]{playlistId, songId});
+                db.update(TABLE_PLAYLIST_SONGS, values, KEY_PLAYLIST_ID + " = ? AND " + KEY_SONG_ID + " = ?",
+                        new String[] { playlistId, songId });
                 pos++;
             }
             db.setTransactionSuccessful();
@@ -271,15 +315,20 @@ public class PlaylistDatabaseHelper extends SQLiteOpenHelper {
         return true;
     }
 
-    /** Add multiple songs to playlist preserving order of passed list. Skips duplicates. */
+    /**
+     * Add multiple songs to playlist preserving order of passed list. Skips
+     * duplicates.
+     */
     public int addSongsToPlaylistBatch(String playlistId, List<Song> songsList) {
-        if (playlistId == null || songsList == null || songsList.isEmpty()) return 0;
+        if (playlistId == null || songsList == null || songsList.isEmpty())
+            return 0;
         SQLiteDatabase db = this.getWritableDatabase();
         int added = 0;
         db.beginTransaction();
         try {
             // Get current max position
-            Cursor posCursor = db.rawQuery("SELECT MAX(" + KEY_POSITION + ") FROM " + TABLE_PLAYLIST_SONGS + " WHERE " + KEY_PLAYLIST_ID + " = ?", new String[]{playlistId});
+            Cursor posCursor = db.rawQuery("SELECT MAX(" + KEY_POSITION + ") FROM " + TABLE_PLAYLIST_SONGS + " WHERE "
+                    + KEY_PLAYLIST_ID + " = ?", new String[] { playlistId });
             int nextPos = 0;
             if (posCursor.moveToFirst()) {
                 int max = posCursor.isNull(0) ? -1 : posCursor.getInt(0);
@@ -288,10 +337,12 @@ public class PlaylistDatabaseHelper extends SQLiteOpenHelper {
             posCursor.close();
 
             for (Song song : songsList) {
-                Cursor check = db.rawQuery("SELECT 1 FROM " + TABLE_PLAYLIST_SONGS + " WHERE " + KEY_PLAYLIST_ID + " = ? AND " + KEY_SONG_ID + " = ? LIMIT 1", new String[]{playlistId, song.getId()});
+                Cursor check = db.rawQuery("SELECT 1 FROM " + TABLE_PLAYLIST_SONGS + " WHERE " + KEY_PLAYLIST_ID
+                        + " = ? AND " + KEY_SONG_ID + " = ? LIMIT 1", new String[] { playlistId, song.getId() });
                 boolean exists = check.moveToFirst();
                 check.close();
-                if (exists) continue;
+                if (exists)
+                    continue;
 
                 ContentValues values = new ContentValues();
                 values.put(KEY_PLAYLIST_ID, playlistId);
@@ -315,7 +366,8 @@ public class PlaylistDatabaseHelper extends SQLiteOpenHelper {
      */
     public Playlist getPlaylistWithSongs(String playlistId) {
         Playlist playlist = getPlaylistById(playlistId);
-        if (playlist == null) return null;
+        if (playlist == null)
+            return null;
         List<Song> songs = getSongsForPlaylist(playlistId);
         playlist.setSongs(songs);
         return playlist;
