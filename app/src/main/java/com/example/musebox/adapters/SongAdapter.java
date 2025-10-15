@@ -41,6 +41,7 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.SongViewHolder> {
     private OnSongMenuListener menuListener;
     private MenuActionOverride menuActionOverride; // For custom menu actions (like in FavoritesActivity)
     private OnSongFileDeletedListener fileDeletedListener;
+    private int customMenuResource = R.menu.menu_song_options; // Default menu
 
     public SongAdapter() {
         super(new SongDiffCallback());
@@ -61,25 +62,23 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.SongViewHolder> {
         // Check if the song file still exists before binding
         if (!isFileExists(song.getUri())) {
             android.util.Log.w("SongAdapter", "Song file no longer exists: " + song.getUri() + " - " + song.getTitle());
-            
+
             // Notify the listener about the deleted file
             if (fileDeletedListener != null) {
                 // Use Handler to post to main thread to avoid any potential issues
-                new Handler(Looper.getMainLooper()).post(() -> 
-                    fileDeletedListener.onSongFileDeleted(song, position)
-                );
+                new Handler(Looper.getMainLooper()).post(() -> fileDeletedListener.onSongFileDeleted(song, position));
             }
-            
+
             // Still show the song but indicate it's unavailable
             holder.tvTitle.setText(song.getTitle() + " (Unavailable)");
             holder.tvArtist.setText(song.getArtist());
             holder.tvDuration.setText("--:--");
             holder.ivAlbumArt.setImageResource(R.drawable.ic_music_note);
-            
+
             // Disable click listeners for unavailable songs
             holder.itemView.setOnClickListener(null);
             holder.btnMenu.setOnClickListener(null);
-            
+
             // Gray out the item to indicate it's unavailable
             holder.itemView.setAlpha(0.5f);
             return;
@@ -87,7 +86,7 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.SongViewHolder> {
 
         // Reset appearance for available songs
         holder.itemView.setAlpha(1.0f);
-        
+
         holder.tvTitle.setText(song.getTitle());
         holder.tvArtist.setText(song.getArtist());
 
@@ -114,7 +113,7 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.SongViewHolder> {
 
             // Default menu behavior
             PopupMenu popup = new PopupMenu(v.getContext(), v);
-            popup.inflate(R.menu.menu_song_options);
+            popup.inflate(customMenuResource);
 
             popup.setOnMenuItemClickListener(item -> {
                 if (menuListener != null) {
@@ -127,6 +126,10 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.SongViewHolder> {
                         return true;
                     } else if (itemId == R.id.menu_add_to_playlist) {
                         menuListener.onAddToPlaylist(song);
+                        return true;
+                    } else if (itemId == R.id.menu_remove_from_playlist) {
+                        // Handle remove from playlist (same as delete in playlist context)
+                        menuListener.onDeleteSong(song, position);
                         return true;
                     } else if (itemId == R.id.menu_delete_song) {
                         menuListener.onDeleteSong(song, position);
@@ -168,8 +171,9 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.SongViewHolder> {
                                 boolean isFirstResource) {
                             android.util.Log.d("AlbumArt", "Custom album cover FAILED for: " + song.getTitle()
                                     + ", falling back to embedded art");
-                            
-                            // Use Handler to post fallback request to main thread to avoid Glide callback restriction
+
+                            // Use Handler to post fallback request to main thread to avoid Glide callback
+                            // restriction
                             new Handler(Looper.getMainLooper()).post(() -> {
                                 // Check if file still exists before attempting to load
                                 if (isFileExists(song.getUri())) {
@@ -213,7 +217,7 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.SongViewHolder> {
             if (filePath == null || filePath.isEmpty()) {
                 return false;
             }
-            
+
             Uri uri = Uri.parse(filePath);
             if ("file".equals(uri.getScheme())) {
                 // For file:// URIs, check if file exists
@@ -257,12 +261,12 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.SongViewHolder> {
                             boolean isFirstResource) {
                         android.util.Log.d("AlbumArt",
                                 "✗ FAILED to load embedded album art from: " + audioUri.toString());
-                        
+
                         // Log the reason for failure without causing crashes
                         if (e != null) {
                             android.util.Log.w("AlbumArt", "Glide load failed: " + e.getMessage());
                         }
-                        
+
                         // Don't start any new Glide requests here - just let it show the error drawable
                         return false; // Let Glide handle showing error drawable
                     }
@@ -314,6 +318,7 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.SongViewHolder> {
 
     /**
      * Get all currently displayed songs in the adapter
+     * 
      * @return List of songs currently shown
      */
     public List<Song> getAllSongs() {
@@ -348,6 +353,10 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.SongViewHolder> {
 
     public void setOnSongMenuListener(OnSongMenuListener menuListener) {
         this.menuListener = menuListener;
+    }
+
+    public void setCustomMenuResource(int menuResource) {
+        this.customMenuResource = menuResource;
     }
 
     public void setMenuActionOverride(MenuActionOverride override) {

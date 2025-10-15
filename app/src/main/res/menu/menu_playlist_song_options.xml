@@ -13,14 +13,14 @@
         android:iconTint="@color/favorite_red" />
     
     <item
+        android:id="@+id/menu_remove_from_playlist"
+        android:title="Remove from Playlist"
+        android:icon="@drawable/ic_remove_circle"
+        android:iconTint="@color/error" />
+    
+    <item
         android:id="@+id/menu_add_to_playlist"
-        android:title="Add to Playlist"
+        android:title="Add to Another Playlist"
         android:icon="@drawable/ic_add_circle"
         android:iconTint="@color/spotify_green" />
-
-    <item
-        android:id="@+id/menu_delete_song"
-        android:title="Delete Song"
-        android:icon="@android:drawable/ic_menu_delete"
-        android:iconTint="@color/error" />
 </menu>

@@ -22,7 +22,7 @@ import java.util.List;
 public class PlaylistDialogHelper {
 
     public interface OnPlaylistSelectedListener {
-        void onPlaylistSelected(Playlist playlist);
+        void onPlaylistSelected(Playlist playlist, Song song);
     }
 
     /**
@@ -61,7 +61,7 @@ public class PlaylistDialogHelper {
             if (success) {
                 Toast.makeText(context, "Added to " + selectedPlaylist.getName(), Toast.LENGTH_SHORT).show();
                 if (listener != null) {
-                    listener.onPlaylistSelected(selectedPlaylist);
+                    listener.onPlaylistSelected(selectedPlaylist, song);
                 }
             } else {
                 Toast.makeText(context, "Song already in playlist or failed to add", Toast.LENGTH_SHORT).show();
@@ -105,15 +105,9 @@ public class PlaylistDialogHelper {
      * Show dialog to edit playlist name and description
      */
     public static void showEditPlaylistDialog(Context context, Playlist playlist, OnPlaylistEditedListener listener) {
-        View dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_create_playlist, null);
+        View dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_edit_playlist, null);
         android.widget.EditText etName = dialogView.findViewById(R.id.etPlaylistName);
         android.widget.EditText etDesc = dialogView.findViewById(R.id.etPlaylistDescription);
-
-        // Hide the songs recycler view as we're just editing playlist info
-        RecyclerView rvSongs = dialogView.findViewById(R.id.recyclerSongs);
-        if (rvSongs != null) {
-            rvSongs.setVisibility(View.GONE);
-        }
 
         // Pre-fill with existing data
         etName.setText(playlist.getName());
@@ -127,6 +121,12 @@ public class PlaylistDialogHelper {
                 .create();
 
         dialog.setOnShowListener(dialogInterface -> {
+            // Set title color to Spotify green
+            android.widget.TextView titleView = dialog.findViewById(androidx.appcompat.R.id.alertTitle);
+            if (titleView != null) {
+                titleView.setTextColor(context.getResources().getColor(R.color.spotify_green, null));
+            }
+
             android.widget.Button button = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
             button.setOnClickListener(v -> {
                 String newName = etName.getText().toString().trim();
@@ -158,6 +158,11 @@ public class PlaylistDialogHelper {
                 dialog.dismiss();
             });
         });
+
+        // Set dialog background to include buttons
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(R.drawable.dialog_bg_with_inset);
+        }
 
         dialog.show();
     }

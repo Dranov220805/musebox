@@ -4,6 +4,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.LinearLayout;
 import android.widget.PopupMenu;
 import android.widget.Toast;
 
@@ -28,16 +29,21 @@ public class PlaylistFragment extends Fragment {
     private PlaylistAdapter adapter;
     private PlaylistDatabaseHelper dbHelper;
     private FloatingActionButton fabCreate;
+    private LinearLayout emptyStateView;
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
             @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_playlist, container, false);
+
+        // Initialize views
         recyclerView = view.findViewById(R.id.recyclerPlaylists);
         fabCreate = view.findViewById(R.id.fabCreatePlaylist);
+        emptyStateView = view.findViewById(R.id.emptyStateView);
         dbHelper = new PlaylistDatabaseHelper(requireContext());
 
+        // Setup RecyclerView
         recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
         adapter = new PlaylistAdapter(playlist -> {
             // Open PlaylistDetailFragment
@@ -53,8 +59,10 @@ public class PlaylistFragment extends Fragment {
 
         recyclerView.setAdapter(adapter);
 
+        // Load playlists
         loadPlaylists();
 
+        // Setup FAB click listener
         fabCreate.setOnClickListener(v -> showCreatePlaylistDialog());
 
         return view;
@@ -72,6 +80,16 @@ public class PlaylistFragment extends Fragment {
         // Use the provided anchor view for the popup menu
         PopupMenu popup = new PopupMenu(requireContext(), anchorView);
         popup.getMenuInflater().inflate(R.menu.menu_playlist_options, popup.getMenu());
+
+        // Set text color to white for menu items
+        android.view.Menu menu = popup.getMenu();
+        for (int i = 0; i < menu.size(); i++) {
+            android.view.MenuItem menuItem = menu.getItem(i);
+            android.text.SpannableString spanString = new android.text.SpannableString(menuItem.getTitle().toString());
+            spanString.setSpan(new android.text.style.ForegroundColorSpan(getResources().getColor(R.color.white, null)),
+                    0, spanString.length(), 0);
+            menuItem.setTitle(spanString);
+        }
 
         popup.setOnMenuItemClickListener(item -> {
             int itemId = item.getItemId();
@@ -111,6 +129,23 @@ public class PlaylistFragment extends Fragment {
     private void loadPlaylists() {
         List<Playlist> playlists = dbHelper.getAllPlaylists();
         adapter.setPlaylists(playlists);
+        updateEmptyState(playlists.isEmpty());
+    }
+
+    /**
+     * Updates the visibility of the empty state view based on whether playlists
+     * exist
+     * 
+     * @param isEmpty true if there are no playlists, false otherwise
+     */
+    private void updateEmptyState(boolean isEmpty) {
+        if (isEmpty) {
+            emptyStateView.setVisibility(View.VISIBLE);
+            recyclerView.setVisibility(View.GONE);
+        } else {
+            emptyStateView.setVisibility(View.GONE);
+            recyclerView.setVisibility(View.VISIBLE);
+        }
     }
 
     private void showCreatePlaylistDialog() {
@@ -136,6 +171,19 @@ public class PlaylistFragment extends Fragment {
                 .setView(dialogView)
                 .setCancelable(true)
                 .create();
+
+        // Set dialog background to include buttons
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(R.drawable.dialog_bg_with_inset);
+        }
+
+        dialog.show();
+
+        // Set title color to Spotify green
+        android.widget.TextView titleView = dialog.findViewById(androidx.appcompat.R.id.alertTitle);
+        if (titleView != null) {
+            titleView.setTextColor(getResources().getColor(R.color.spotify_green, null));
+        }
 
         btnConfirm.setOnClickListener(v -> {
             String name = etName.getText().toString().trim();
