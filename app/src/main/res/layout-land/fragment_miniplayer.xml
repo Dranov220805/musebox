@@ -51,7 +51,7 @@
 
         <!-- Song Artist -->
         <TextView
-            android:id="@+id/txtSongArtist"
+            android:id="@+id/txtArtistName"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Unknown Artist"
@@ -86,9 +86,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 app:progress="0"
-                app:progressColor="@color/musebox_green"
+                app:progressColor="@color/spotify_green"
                 app:strokeWidth="2dp"
-                app:trackColor="@color/gray" />
+                app:trackColor="@color/spotify_light_gray" />
 
             <!-- Play/Pause Button -->
             <ImageButton

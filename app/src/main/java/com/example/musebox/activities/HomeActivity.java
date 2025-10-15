@@ -20,7 +20,6 @@ import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
-import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -54,8 +53,8 @@ public class HomeActivity extends AppCompatActivity
     // Mini player views
     private View miniPlayer;
     private TextView tvSongTitle;
+    private TextView tvArtistName;
     private ImageButton btnPlayPause, btnSpeed, btnQueue;
-    private SeekBar seekBar;
     private com.example.musebox.views.CircularProgressView circularProgress;
     private ImageView imgSongArt;
 
@@ -67,6 +66,12 @@ public class HomeActivity extends AppCompatActivity
     private Song currentSong;
     private List<Song> currentPlaylist = new ArrayList<>();
     private String lastSongTitle = "";
+    private int lastSongIndex = -1;
+    private int lastPlaybackPosition = 0;
+    private boolean wasPlaying = false;
+
+    // Flag to restore miniplayer state after orientation change
+    private boolean shouldRestoreMiniPlayer = false;
 
     // For permission handling
     private Uri pendingImportUri;
@@ -78,6 +83,102 @@ public class HomeActivity extends AppCompatActivity
             MusicService.LocalBinder binder = (MusicService.LocalBinder) service;
             musicService = binder.getService();
             isBound = true;
+
+            Song currentSong = musicService.getCurrentSong();
+            int songIndex = musicService.getCurrentSongIndex();
+            java.util.List<?> playlist = musicService.getPlaylist();
+
+            android.util.Log.d("HomeActivity", "onServiceConnected: currentSong=" +
+                    (currentSong != null ? currentSong.getTitle() : "null") +
+                    ", songIndex=" + songIndex +
+                    ", playlistSize=" + playlist.size());
+
+            // If service lost its playlist but should have one (e.g., after orientation
+            // change)
+            // Restore it from the database
+            if (playlist.isEmpty() && shouldRestoreMiniPlayer) {
+                android.util.Log.d("HomeActivity",
+                        "onServiceConnected: Service lost playlist, restoring from database");
+                // Load all songs from database
+                List<Song> allSongs = dbHelper.getAllSongs();
+                if (!allSongs.isEmpty()) {
+                    // Use saved index if available and valid, otherwise search by title
+                    int restoredIndex = 0;
+
+                    if (lastSongIndex >= 0 && lastSongIndex < allSongs.size()) {
+                        // Verify the song at this index matches the saved title
+                        if (lastSongTitle != null && allSongs.get(lastSongIndex).getTitle().equals(lastSongTitle)) {
+                            restoredIndex = lastSongIndex;
+                            android.util.Log.d("HomeActivity", "onServiceConnected: Using saved index " + restoredIndex
+                                    + " for song '" + lastSongTitle + "'");
+                        } else {
+                            android.util.Log.d("HomeActivity",
+                                    "onServiceConnected: Index mismatch, searching by title");
+                            // Index doesn't match, search by title
+                            if (lastSongTitle != null && !lastSongTitle.isEmpty()) {
+                                for (int i = 0; i < allSongs.size(); i++) {
+                                    if (allSongs.get(i).getTitle().equals(lastSongTitle)) {
+                                        restoredIndex = i;
+                                        android.util.Log.d("HomeActivity", "onServiceConnected: Found saved song '"
+                                                + lastSongTitle + "' at index " + restoredIndex);
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    } else if (lastSongTitle != null && !lastSongTitle.isEmpty()) {
+                        // No valid index saved, search by title
+                        android.util.Log.d("HomeActivity",
+                                "onServiceConnected: No valid saved index, searching by title");
+                        for (int i = 0; i < allSongs.size(); i++) {
+                            if (allSongs.get(i).getTitle().equals(lastSongTitle)) {
+                                restoredIndex = i;
+                                android.util.Log.d("HomeActivity", "onServiceConnected: Found saved song '"
+                                        + lastSongTitle + "' at index " + restoredIndex);
+                                break;
+                            }
+                        }
+                    }
+
+                    // Restore the playlist to the service
+                    musicService.setPlaylist(allSongs, restoredIndex);
+                    currentSong = musicService.getCurrentSong();
+                    android.util.Log.d("HomeActivity",
+                            "onServiceConnected: Playlist restored with " + allSongs.size() + " songs, currentSong=" +
+                                    (currentSong != null ? currentSong.getTitle() : "null"));
+                    
+                    // Restore playback position if available
+                    if (lastPlaybackPosition > 0) {
+                        musicService.seekTo(lastPlaybackPosition);
+                        android.util.Log.d("HomeActivity", "onServiceConnected: Restored playback position to " + lastPlaybackPosition);
+                    }
+                    
+                    // Resume playback if it was playing before orientation change
+                    if (wasPlaying && !musicService.isPlaying()) {
+                        musicService.pauseOrResume();
+                        android.util.Log.d("HomeActivity", "onServiceConnected: Resumed playback");
+                    }
+                }
+            }
+
+            // Update mini player when service reconnects (e.g., after orientation change)
+            // Check if there's a current song playing
+            if (currentSong != null || shouldRestoreMiniPlayer) {
+                shouldRestoreMiniPlayer = true;
+                // Ensure miniplayer is visible
+                if (miniPlayer.getVisibility() != View.VISIBLE) {
+                    miniPlayer.setVisibility(View.VISIBLE);
+                    android.util.Log.d("HomeActivity", "onServiceConnected: Set miniPlayer to VISIBLE");
+                }
+                // Post to ensure all views are fully initialized and service metadata is set
+                miniPlayer.postDelayed(() -> {
+                    android.util.Log.d("HomeActivity", "onServiceConnected: Calling updateMiniPlayer");
+                    updateMiniPlayer();
+                    progressHandler.post(progressRunnable);
+                }, 100); // Small delay to ensure service has finished setting metadata
+            } else {
+                android.util.Log.d("HomeActivity", "onServiceConnected: No current song");
+            }
         }
 
         @Override
@@ -94,10 +195,14 @@ public class HomeActivity extends AppCompatActivity
 
         miniPlayer = findViewById(R.id.includeMiniPlayer);
         tvSongTitle = miniPlayer.findViewById(R.id.txtSongTitle);
+        tvArtistName = miniPlayer.findViewById(R.id.txtArtistName);
         btnPlayPause = miniPlayer.findViewById(R.id.btnPlayPause);
         btnQueue = miniPlayer.findViewById(R.id.btnQueue);
         circularProgress = miniPlayer.findViewById(R.id.circularProgress);
         imgSongArt = miniPlayer.findViewById(R.id.imgSongArt);
+
+        android.util.Log.d("HomeActivity", "onCreate: Views initialized - miniPlayer=" + miniPlayer +
+                ", tvSongTitle=" + tvSongTitle + ", btnPlayPause=" + btnPlayPause);
 
         // Bind to MusicService
         Intent serviceIntent = new Intent(this, MusicService.class);
@@ -180,6 +285,26 @@ public class HomeActivity extends AppCompatActivity
             getSupportFragmentManager().beginTransaction()
                     .replace(R.id.navigation_container, new NavigationBarFragment())
                     .commit();
+        } else {
+            // Restoring from saved state (e.g., orientation change)
+            // Restore miniplayer visibility if it was visible before
+            shouldRestoreMiniPlayer = savedInstanceState.getBoolean("isMiniPlayerVisible", false);
+            String savedTitle = savedInstanceState.getString("lastSongTitle", "");
+            lastSongIndex = savedInstanceState.getInt("lastSongIndex", -1);
+            android.util.Log.d("HomeActivity", "onCreate: Restoring from saved state, shouldRestoreMiniPlayer=" +
+                    shouldRestoreMiniPlayer + ", savedTitle=" + savedTitle + ", lastSongIndex=" + lastSongIndex);
+
+            if (shouldRestoreMiniPlayer) {
+                // Set visibility immediately if we know it should be visible
+                // The actual content will be updated when service connects
+                miniPlayer.setVisibility(View.VISIBLE);
+
+                // Also restore the last song title temporarily
+                if (!savedTitle.isEmpty() && tvSongTitle != null) {
+                    tvSongTitle.setText(savedTitle);
+                    android.util.Log.d("HomeActivity", "onCreate: Set temporary title: " + savedTitle);
+                }
+            }
         }
     }
 
@@ -247,10 +372,52 @@ public class HomeActivity extends AppCompatActivity
     protected void onResume() {
         super.onResume();
         // Resume updating when activity is visible
-        if (musicService != null) {
+        if (musicService != null && musicService.getCurrentSong() != null) {
             // Update mini player with current song info
             updateMiniPlayer();
             // Start progress updates
+            progressHandler.post(progressRunnable);
+        }
+    }
+
+    @Override
+    protected void onSaveInstanceState(@androidx.annotation.NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        // Save mini player state
+        boolean isMiniPlayerVisible = miniPlayer != null && miniPlayer.getVisibility() == View.VISIBLE;
+        outState.putBoolean("isMiniPlayerVisible", isMiniPlayerVisible);
+        outState.putString("lastSongTitle", lastSongTitle);
+
+        // Save song index, playback position, and playing state if service is available
+        if (musicService != null) {
+            lastSongIndex = musicService.getCurrentSongIndex();
+            lastPlaybackPosition = musicService.getCurrentPosition();
+            wasPlaying = musicService.isPlaying();
+            android.util.Log.d("HomeActivity", "onSaveInstanceState: Saving state - index=" + lastSongIndex + 
+                ", position=" + lastPlaybackPosition + ", wasPlaying=" + wasPlaying);
+        }
+        outState.putInt("lastSongIndex", lastSongIndex);
+        outState.putInt("lastPlaybackPosition", lastPlaybackPosition);
+        outState.putBoolean("wasPlaying", wasPlaying);
+    }
+
+    @Override
+    protected void onRestoreInstanceState(@androidx.annotation.NonNull Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        // Restore mini player state
+        shouldRestoreMiniPlayer = savedInstanceState.getBoolean("isMiniPlayerVisible", false);
+        lastSongTitle = savedInstanceState.getString("lastSongTitle", "");
+        lastSongIndex = savedInstanceState.getInt("lastSongIndex", -1);
+        lastPlaybackPosition = savedInstanceState.getInt("lastPlaybackPosition", 0);
+        wasPlaying = savedInstanceState.getBoolean("wasPlaying", false);
+        
+        android.util.Log.d("HomeActivity", "onRestoreInstanceState: Restored state - shouldRestore=" + shouldRestoreMiniPlayer +
+            ", title=" + lastSongTitle + ", index=" + lastSongIndex + 
+            ", position=" + lastPlaybackPosition + ", wasPlaying=" + wasPlaying);
+
+        // Update mini player if it was visible and service is already bound
+        if (shouldRestoreMiniPlayer && musicService != null && musicService.getCurrentSong() != null) {
+            updateMiniPlayer();
             progressHandler.post(progressRunnable);
         }
     }
@@ -370,36 +537,53 @@ public class HomeActivity extends AppCompatActivity
 
     // Update mini player UI with current song info from service
     private void updateMiniPlayer() {
-        if (musicService != null) {
-            String title = musicService.getCurrentSongTitle();
-            if (title != null && !title.equals("No song playing")) {
-                tvSongTitle.setText(title);
-                miniPlayer.setVisibility(View.VISIBLE);
+        if (musicService == null) {
+            android.util.Log.d("HomeActivity", "updateMiniPlayer: musicService is null");
+            return;
+        }
 
-                // Update play/pause button
-                if (musicService.isPlaying()) {
-                    btnPlayPause.setImageResource(R.drawable.ic_pause);
-                } else {
-                    btnPlayPause.setImageResource(R.drawable.ic_play);
-                }
+        if (miniPlayer == null || tvSongTitle == null || btnPlayPause == null) {
+            android.util.Log.e("HomeActivity", "updateMiniPlayer: Views not initialized");
+            return;
+        }
 
-                // Update current song reference
-                currentSong = musicService.getCurrentSong();
-                lastSongTitle = title;
+        String title = musicService.getCurrentSongTitle();
+        String artist = musicService.getCurrentSongArtist();
+        android.util.Log.d("HomeActivity", "updateMiniPlayer: title = " + title + ", artist = " + artist);
 
-                // Load album art for current song in mini player
-                if (currentSong != null && imgSongArt != null) {
-                    loadMiniPlayerAlbumArt(currentSong);
-                }
+        if (title != null && !title.equals("No song playing")) {
+            tvSongTitle.setText(title);
 
-                // Refresh fragments if they are currently visible
-                refreshCurrentFragment();
-            } else {
-                // No song playing, hide mini player
-                miniPlayer.setVisibility(View.GONE);
-                currentSong = null;
-                lastSongTitle = "";
+            // Update artist name if the view exists
+            if (tvArtistName != null) {
+                tvArtistName.setText(artist != null ? artist : "Unknown Artist");
             }
+
+            miniPlayer.setVisibility(View.VISIBLE);
+
+            // Update play/pause button
+            if (musicService.isPlaying()) {
+                btnPlayPause.setImageResource(R.drawable.ic_pause);
+            } else {
+                btnPlayPause.setImageResource(R.drawable.ic_play);
+            }
+
+            // Update current song reference
+            currentSong = musicService.getCurrentSong();
+            lastSongTitle = title;
+
+            // Load album art for current song in mini player
+            if (currentSong != null && imgSongArt != null) {
+                loadMiniPlayerAlbumArt(currentSong);
+            }
+
+            // Refresh fragments if they are currently visible
+            refreshCurrentFragment();
+        } else {
+            // No song playing, hide mini player
+            miniPlayer.setVisibility(View.GONE);
+            currentSong = null;
+            lastSongTitle = "";
         }
     }
 

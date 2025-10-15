@@ -4,12 +4,14 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -19,11 +21,13 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
 import com.example.musebox.R;
 import com.example.musebox.adapters.QueueAdapter;
 import com.example.musebox.models.Song;
 import com.example.musebox.services.MusicService;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -32,6 +36,7 @@ public class QueueFragment extends Fragment {
     private RecyclerView recyclerQueue;
     private LinearLayout emptyQueue;
     private TextView tvCurrentTitle, tvCurrentArtist;
+    private ImageView ivCurrentAlbumArt;
     private ImageButton btnBack, btnClearQueue;
     private QueueAdapter adapter;
 
@@ -76,6 +81,7 @@ public class QueueFragment extends Fragment {
         emptyQueue = view.findViewById(R.id.emptyQueue);
         tvCurrentTitle = view.findViewById(R.id.tvCurrentTitle);
         tvCurrentArtist = view.findViewById(R.id.tvCurrentArtist);
+        ivCurrentAlbumArt = view.findViewById(R.id.ivCurrentAlbumArt);
         btnBack = view.findViewById(R.id.btnBack);
         btnClearQueue = view.findViewById(R.id.btnClearQueue);
 
@@ -144,9 +150,11 @@ public class QueueFragment extends Fragment {
         if (currentSong != null) {
             tvCurrentTitle.setText(currentSong.getTitle());
             tvCurrentArtist.setText(currentSong.getArtist());
+            loadAlbumArt(ivCurrentAlbumArt, currentSong);
         } else {
             tvCurrentTitle.setText("No song playing");
             tvCurrentArtist.setText("Unknown Artist");
+            ivCurrentAlbumArt.setImageResource(R.drawable.ic_music_note);
         }
 
         // Get queue (all songs after current)
@@ -167,6 +175,40 @@ public class QueueFragment extends Fragment {
         } else {
             recyclerQueue.setVisibility(View.VISIBLE);
             emptyQueue.setVisibility(View.GONE);
+        }
+    }
+
+    /**
+     * Load album art for the song using Glide
+     */
+    private void loadAlbumArt(ImageView imageView, Song song) {
+        // Set default placeholder
+        imageView.setImageResource(R.drawable.ic_music_note);
+
+        if (song.getAlbumCoverPath() != null && !song.getAlbumCoverPath().isEmpty()) {
+            File albumArtFile = new File(song.getAlbumCoverPath());
+            if (albumArtFile.exists()) {
+                Glide.with(this)
+                        .load(albumArtFile)
+                        .placeholder(R.drawable.ic_music_note)
+                        .error(R.drawable.ic_music_note)
+                        .centerCrop()
+                        .into(imageView);
+                return;
+            }
+        }
+
+        // Try to load from content URI
+        try {
+            Uri contentUri = Uri.parse(song.getUri());
+            Glide.with(this)
+                    .load(contentUri)
+                    .placeholder(R.drawable.ic_music_note)
+                    .error(R.drawable.ic_music_note)
+                    .centerCrop()
+                    .into(imageView);
+        } catch (Exception e) {
+            imageView.setImageResource(R.drawable.ic_music_note);
         }
     }
 

@@ -5,7 +5,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/light_background"
+    android:background="@color/spotify_black">
     tools:context=".fragments.ProfileFragment">
 
     <ScrollView
@@ -43,7 +43,7 @@
                         android:layout_height="match_parent"
                         android:scaleType="centerCrop"
                         android:src="@drawable/ic_account_circle"
-                        android:background="@color/white"
+                        android:background="@color/black"
                         android:contentDescription="User Avatar" />
                 </com.google.android.material.card.MaterialCardView>
 
@@ -85,7 +85,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="8dp"
                     app:cardCornerRadius="12dp"
-                    app:cardElevation="2dp"
+                    app:cardElevation="0dp"
                     android:clickable="true"
                     android:focusable="true"
                     android:foreground="?android:attr/selectableItemBackground">
@@ -101,8 +101,8 @@
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:src="@drawable/ic_camera"
-                            android:tint="@color/musebox_green"
-                            android:layout_marginEnd="16dp" />
+                            android:layout_marginEnd="16dp"
+                            app:tint="@color/spotify_green" />
 
                         <TextView
                             android:layout_width="0dp"
@@ -116,7 +116,7 @@
                             android:layout_width="20dp"
                             android:layout_height="20dp"
                             android:src="@drawable/ic_arrow_forward"
-                            android:tint="@color/text_secondary" />
+                            app:tint="@color/text_secondary" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
@@ -127,7 +127,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="8dp"
                     app:cardCornerRadius="12dp"
-                    app:cardElevation="2dp"
+                    app:cardElevation="0dp"
                     android:clickable="true"
                     android:focusable="true"
                     android:foreground="?android:attr/selectableItemBackground">
@@ -143,8 +143,8 @@
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:src="@drawable/ic_palette"
-                            android:tint="@color/musebox_green"
-                            android:layout_marginEnd="16dp" />
+                            android:layout_marginEnd="16dp"
+                            app:tint="@color/spotify_green" />
 
                         <LinearLayout
                             android:layout_width="0dp"
@@ -173,7 +173,7 @@
                             android:layout_width="20dp"
                             android:layout_height="20dp"
                             android:src="@drawable/ic_arrow_forward"
-                            android:tint="@color/text_secondary" />
+                            app:tint="@color/text_secondary" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
@@ -196,7 +196,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="8dp"
                     app:cardCornerRadius="12dp"
-                    app:cardElevation="2dp"
+                    app:cardElevation="0dp"
                     android:clickable="true"
                     android:focusable="true"
                     android:foreground="?android:attr/selectableItemBackground">
@@ -212,8 +212,8 @@
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:src="@drawable/ic_widgets"
-                            android:tint="@color/musebox_green"
-                            android:layout_marginEnd="16dp" />
+                            android:layout_marginEnd="16dp"
+                            app:tint="@color/spotify_green" />
 
                         <LinearLayout
                             android:layout_width="0dp"
@@ -241,7 +241,7 @@
                             android:layout_width="20dp"
                             android:layout_height="20dp"
                             android:src="@drawable/ic_arrow_forward"
-                            android:tint="@color/text_secondary" />
+                            app:tint="@color/text_secondary" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
@@ -252,7 +252,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="8dp"
                     app:cardCornerRadius="12dp"
-                    app:cardElevation="2dp"
+                    app:cardElevation="0dp"
                     android:clickable="true"
                     android:focusable="true"
                     android:foreground="?android:attr/selectableItemBackground">
@@ -268,8 +268,8 @@
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:src="@drawable/ic_language"
-                            android:tint="@color/musebox_green"
-                            android:layout_marginEnd="16dp" />
+                            android:layout_marginEnd="16dp"
+                            app:tint="@color/spotify_green" />
 
                         <LinearLayout
                             android:layout_width="0dp"
@@ -297,7 +297,7 @@
                             android:layout_width="20dp"
                             android:layout_height="20dp"
                             android:src="@drawable/ic_arrow_forward"
-                            android:tint="@color/text_secondary" />
+                            app:tint="@color/text_secondary" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
@@ -308,7 +308,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="8dp"
                     app:cardCornerRadius="12dp"
-                    app:cardElevation="2dp"
+                    app:cardElevation="0dp"
                     android:clickable="true"
                     android:focusable="true"
                     android:foreground="?android:attr/selectableItemBackground">
@@ -324,8 +324,8 @@
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:src="@drawable/ic_folder_music"
-                            android:tint="@color/musebox_green"
-                            android:layout_marginEnd="16dp" />
+                            android:layout_marginEnd="16dp"
+                            app:tint="@color/spotify_green" />
 
                         <LinearLayout
                             android:layout_width="0dp"
@@ -353,7 +353,7 @@
                             android:layout_width="20dp"
                             android:layout_height="20dp"
                             android:src="@drawable/ic_arrow_forward"
-                            android:tint="@color/text_secondary" />
+                            app:tint="@color/text_secondary" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
@@ -364,7 +364,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="8dp"
                     app:cardCornerRadius="12dp"
-                    app:cardElevation="2dp"
+                    app:cardElevation="0dp"
                     android:clickable="true"
                     android:focusable="true"
                     android:foreground="?android:attr/selectableItemBackground">
@@ -380,8 +380,8 @@
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:src="@drawable/ic_clear_cache"
-                            android:tint="@color/musebox_green"
-                            android:layout_marginEnd="16dp" />
+                            android:layout_marginEnd="16dp"
+                            app:tint="@color/spotify_green" />
 
                         <TextView
                             android:layout_width="0dp"
@@ -395,7 +395,7 @@
                             android:layout_width="20dp"
                             android:layout_height="20dp"
                             android:src="@drawable/ic_arrow_forward"
-                            android:tint="@color/text_secondary" />
+                            app:tint="@color/text_secondary" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
@@ -406,7 +406,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
                     app:cardCornerRadius="12dp"
-                    app:cardElevation="2dp"
+                    app:cardElevation="0dp"
                     android:clickable="true"
                     android:focusable="true"
                     android:foreground="?android:attr/selectableItemBackground">
@@ -422,8 +422,8 @@
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:src="@drawable/ic_delete_sweep"
-                            android:tint="@color/musebox_green"
-                            android:layout_marginEnd="16dp" />
+                            android:layout_marginEnd="16dp"
+                            app:tint="@color/spotify_green" />
 
                         <LinearLayout
                             android:layout_width="0dp"
@@ -451,7 +451,7 @@
                             android:layout_width="20dp"
                             android:layout_height="20dp"
                             android:src="@drawable/ic_arrow_forward"
-                            android:tint="@color/text_secondary" />
+                            app:tint="@color/text_secondary" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
@@ -462,7 +462,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="32dp"
                     app:cardCornerRadius="12dp"
-                    app:cardElevation="2dp"
+                    app:cardElevation="0dp"
                     app:cardBackgroundColor="@color/light_surface"
                     android:clickable="true"
                     android:focusable="true"
@@ -479,8 +479,8 @@
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:src="@drawable/ic_logout"
-                            android:tint="@android:color/holo_red_dark"
-                            android:layout_marginEnd="16dp" />
+                            android:layout_marginEnd="16dp"
+                            app:tint="@android:color/holo_red_dark" />
 
                         <TextView
                             android:layout_width="0dp"
@@ -495,7 +495,7 @@
                             android:layout_width="20dp"
                             android:layout_height="20dp"
                             android:src="@drawable/ic_arrow_forward"
-                            android:tint="@android:color/holo_red_dark" />
+                            app:tint="@android:color/holo_red_dark" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 

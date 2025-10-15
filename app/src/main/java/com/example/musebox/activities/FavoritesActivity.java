@@ -68,7 +68,10 @@ public class FavoritesActivity extends AppCompatActivity
             MusicService.LocalBinder binder = (MusicService.LocalBinder) service;
             musicService = binder.getService();
             serviceBound = true;
+
+            // Update mini player when service reconnects (e.g., after orientation change)
             updateMiniPlayer();
+            progressHandler.post(progressRunnable);
         }
 
         @Override
@@ -213,6 +216,30 @@ public class FavoritesActivity extends AppCompatActivity
             // Update mini player with current song info
             updateMiniPlayer();
             // Start progress updates
+            progressHandler.post(progressRunnable);
+        }
+    }
+
+    @Override
+    protected void onSaveInstanceState(@androidx.annotation.NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        // Save mini player state
+        if (musicService != null) {
+            outState.putBoolean("isMiniPlayerVisible", miniPlayer.getVisibility() == View.VISIBLE);
+            outState.putString("lastSongTitle", lastSongTitle);
+        }
+    }
+
+    @Override
+    protected void onRestoreInstanceState(@androidx.annotation.NonNull Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        // Restore mini player state
+        boolean wasMiniPlayerVisible = savedInstanceState.getBoolean("isMiniPlayerVisible", false);
+        lastSongTitle = savedInstanceState.getString("lastSongTitle", "");
+
+        // Update mini player if it was visible and service is bound
+        if (wasMiniPlayerVisible && musicService != null) {
+            updateMiniPlayer();
             progressHandler.post(progressRunnable);
         }
     }

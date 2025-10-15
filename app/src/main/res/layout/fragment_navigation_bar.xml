@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="56dp"
     android:orientation="horizontal"
-    android:background="@color/musebox_green"
+    android:background="@color/spotify_black"
     android:elevation="6dp">
 
     <!-- Home -->
@@ -24,7 +24,7 @@
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:src="@drawable/ic_home"
-            app:tint="@android:color/white" />
+            app:tint="@color/nav_icon_color" />
 
         <TextView
             android:id="@+id/text_home"
@@ -32,7 +32,7 @@
             android:layout_height="wrap_content"
             android:text="@string/home"
             android:textSize="12sp"
-            android:textColor="@android:color/white"
+            android:textColor="@color/nav_text_color"
             android:paddingTop="2dp" />
     </LinearLayout>
 
@@ -52,7 +52,7 @@
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:src="@drawable/ic_search"
-            app:tint="@android:color/white" />
+            app:tint="@color/nav_icon_color" />
 
         <TextView
             android:id="@+id/text_search"
@@ -60,7 +60,7 @@
             android:layout_height="wrap_content"
             android:text="@string/search"
             android:textSize="12sp"
-            android:textColor="@android:color/white"
+            android:textColor="@color/nav_text_color"
             android:paddingTop="2dp" />
     </LinearLayout>
 
@@ -80,7 +80,7 @@
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:src="@drawable/ic_create"
-            app:tint="@android:color/white" />
+            app:tint="@color/nav_icon_color" />
 
         <TextView
             android:id="@+id/text_create"
@@ -88,7 +88,7 @@
             android:layout_height="wrap_content"
             android:text="@string/create"
             android:textSize="12sp"
-            android:textColor="@android:color/white"
+            android:textColor="@color/nav_text_color"
             android:paddingTop="2dp" />
     </LinearLayout>
 
@@ -108,7 +108,7 @@
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:src="@drawable/ic_playlist"
-            app:tint="@android:color/white" />
+            app:tint="@color/nav_icon_color" />
 
         <TextView
             android:id="@+id/text_playlist"
@@ -116,7 +116,7 @@
             android:layout_height="wrap_content"
             android:text="@string/playlist"
             android:textSize="12sp"
-            android:textColor="@android:color/white"
+            android:textColor="@color/nav_text_color"
             android:paddingTop="2dp" />
     </LinearLayout>
 
@@ -136,7 +136,7 @@
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:src="@drawable/ic_person"
-            app:tint="@android:color/white" />
+            app:tint="@color/nav_icon_color" />
 
         <TextView
             android:id="@+id/text_profile"
@@ -144,7 +144,7 @@
             android:layout_height="wrap_content"
             android:text="@string/profile"
             android:textSize="12sp"
-            android:textColor="@android:color/white"
+            android:textColor="@color/nav_text_color"
             android:paddingTop="2dp" />
     </LinearLayout>
 
