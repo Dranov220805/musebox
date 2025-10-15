@@ -13,7 +13,6 @@ import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
-import com.example.musebox.fragments.HomeFragment;
 
 import com.example.musebox.R;
 

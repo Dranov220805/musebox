@@ -6,8 +6,6 @@ import android.view.View;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.musebox.R;
 import com.example.musebox.database.PlaylistDatabaseHelper;

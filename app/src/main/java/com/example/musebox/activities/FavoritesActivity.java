@@ -33,7 +33,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import android.net.Uri;
-import androidx.appcompat.app.AlertDialog;
 
 public class FavoritesActivity extends AppCompatActivity
         implements NavigationBarFragment.OnNavigationItemSelectedListener {
