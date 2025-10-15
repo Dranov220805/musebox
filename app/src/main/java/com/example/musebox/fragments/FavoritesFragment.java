@@ -45,7 +45,7 @@ public class FavoritesFragment extends Fragment {
 
         boolean isMusicServiceBound();
 
-        void onSongSelected(Song song);
+        void onSongSelected(Song song, List<Song> displayedSongs);
 
         void onFavoriteSongSelected(Song song, List<Song> favoritesPlaylist);
 

@@ -312,6 +312,14 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.SongViewHolder> {
         submitList(new ArrayList<>());
     }
 
+    /**
+     * Get all currently displayed songs in the adapter
+     * @return List of songs currently shown
+     */
+    public List<Song> getAllSongs() {
+        return new ArrayList<>(getCurrentList());
+    }
+
     public interface OnSongClickListener {
         void onSongClick(Song song);
     }

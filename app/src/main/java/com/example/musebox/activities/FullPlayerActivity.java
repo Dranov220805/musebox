@@ -1,8 +1,10 @@
 package com.example.musebox.activities;
 
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.media.AudioManager;
 import android.os.Bundle;
@@ -40,6 +42,7 @@ public class FullPlayerActivity extends AppCompatActivity {
     private boolean isMuted = false;
     private int lastVolumeLevel = 70;
     private float currentPlaybackSpeed = 1.0f;
+    private BroadcastReceiver volumeReceiver;
 
     private Handler progressHandler = new Handler();
     private Runnable progressRunnable;
@@ -309,23 +312,39 @@ public class FullPlayerActivity extends AppCompatActivity {
     }
 
     private void setupVolumeControl() {
+        updateVolumeUI();
+
+        // Initialize volume change receiver
+        volumeReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if (intent.getAction() != null &&
+                        intent.getAction().equals("android.media.VOLUME_CHANGED_ACTION")) {
+                    updateVolumeUI();
+                }
+            }
+        };
+    }
+
+    /**
+     * Update volume UI based on current device volume
+     */
+    private void updateVolumeUI() {
         int maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
         int currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
 
-        // Initialize last volume level with current volume
-        lastVolumeLevel = currentVolume;
-        
-        // Update volume display
-        int percentage = currentVolume * 100 / maxVolume;
+        // Calculate percentage
+        int percentage = maxVolume > 0 ? (currentVolume * 100 / maxVolume) : 0;
         txtVolumeLevel.setText(percentage + "%");
 
-        // Update volume icon
+        // Update icon and mute state
         if (currentVolume == 0) {
             btnVolumeToggle.setImageResource(R.drawable.ic_volume_off);
             isMuted = true;
         } else {
             btnVolumeToggle.setImageResource(R.drawable.ic_volume_up);
             isMuted = false;
+            lastVolumeLevel = currentVolume; // Store non-zero volume
         }
     }
 
@@ -334,45 +353,60 @@ public class FullPlayerActivity extends AppCompatActivity {
     }
 
     private void showSpeedMenu(View anchor) {
-        PopupMenu popupMenu = new PopupMenu(this, anchor);
-        
-        // Add menu items
-        popupMenu.getMenu().add(0, 0, 0, "0.5x");
-        popupMenu.getMenu().add(0, 1, 1, "0.75x");
-        popupMenu.getMenu().add(0, 2, 2, "1.0x");
-        popupMenu.getMenu().add(0, 3, 3, "1.25x");
-        popupMenu.getMenu().add(0, 4, 4, "1.5x");
-        popupMenu.getMenu().add(0, 5, 5, "2.0x");
-        
+        // Use ContextThemeWrapper to ensure proper theme application
+        android.view.ContextThemeWrapper wrapper = new android.view.ContextThemeWrapper(this,
+                R.style.Base_Theme_MuseBox);
+        PopupMenu popupMenu = new PopupMenu(wrapper, anchor);
+        popupMenu.inflate(R.menu.playback_speed_menu);
+
+        // Manually set white text color for each menu item as fallback
+        android.view.Menu menu = popupMenu.getMenu();
+        for (int i = 0; i < menu.size(); i++) {
+            android.view.MenuItem item = menu.getItem(i);
+            android.text.SpannableString spanString = new android.text.SpannableString(item.getTitle().toString());
+            spanString.setSpan(new android.text.style.ForegroundColorSpan(
+                    getResources().getColor(R.color.white, getTheme())),
+                    0, spanString.length(), 0);
+            item.setTitle(spanString);
+        }
+
         popupMenu.setOnMenuItemClickListener(item -> {
-            float[] speeds = { 0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 2.0f };
-            String[] speedLabels = { "0.5x", "0.75x", "1.0x", "1.25x", "1.5x", "2.0x" };
-            
             int itemId = item.getItemId();
-            if (itemId >= 0 && itemId < speeds.length) {
-                currentPlaybackSpeed = speeds[itemId];
-                btnPlaybackSpeed.setText(speedLabels[itemId]);
-                
-                if (musicService != null) {
-                    musicService.setPlaybackSpeed(currentPlaybackSpeed);
-                }
+
+            if (itemId == R.id.speed_0_5) {
+                currentPlaybackSpeed = 0.5f;
+                btnPlaybackSpeed.setText("0.5x");
+            } else if (itemId == R.id.speed_0_75) {
+                currentPlaybackSpeed = 0.75f;
+                btnPlaybackSpeed.setText("0.75x");
+            } else if (itemId == R.id.speed_1_0) {
+                currentPlaybackSpeed = 1.0f;
+                btnPlaybackSpeed.setText("1.0x");
+            } else if (itemId == R.id.speed_1_25) {
+                currentPlaybackSpeed = 1.25f;
+                btnPlaybackSpeed.setText("1.25x");
+            } else if (itemId == R.id.speed_1_5) {
+                currentPlaybackSpeed = 1.5f;
+                btnPlaybackSpeed.setText("1.5x");
+            } else if (itemId == R.id.speed_2_0) {
+                currentPlaybackSpeed = 2.0f;
+                btnPlaybackSpeed.setText("2.0x");
             }
+
+            if (musicService != null) {
+                musicService.setPlaybackSpeed(currentPlaybackSpeed);
+            }
+
             return true;
         });
-        
+
         popupMenu.show();
     }
 
     private void toggleMute() {
-        int maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
-        
         if (isMuted) {
             // Unmute - restore previous volume
             audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, lastVolumeLevel, 0);
-            btnVolumeToggle.setImageResource(R.drawable.ic_volume_up);
-            int percentage = lastVolumeLevel * 100 / maxVolume;
-            txtVolumeLevel.setText(percentage + "%");
-            isMuted = false;
         } else {
             // Mute - save current volume and set to 0
             int currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
@@ -380,10 +414,9 @@ public class FullPlayerActivity extends AppCompatActivity {
                 lastVolumeLevel = currentVolume;
             }
             audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 0, 0);
-            btnVolumeToggle.setImageResource(R.drawable.ic_volume_off);
-            txtVolumeLevel.setText("0%");
-            isMuted = true;
         }
+        // UI will be updated by volume change receiver
+        updateVolumeUI();
     }
 
     private void skipBackward() {
@@ -417,6 +450,15 @@ public class FullPlayerActivity extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
         progressHandler.removeCallbacks(progressRunnable);
+
+        // Unregister volume change receiver
+        if (volumeReceiver != null) {
+            try {
+                unregisterReceiver(volumeReceiver);
+            } catch (IllegalArgumentException e) {
+                // Receiver not registered, ignore
+            }
+        }
     }
 
     @Override
@@ -426,6 +468,15 @@ public class FullPlayerActivity extends AppCompatActivity {
             updateUI();
             startProgressUpdates();
         }
+
+        // Register volume change receiver
+        if (volumeReceiver != null) {
+            IntentFilter filter = new IntentFilter("android.media.VOLUME_CHANGED_ACTION");
+            registerReceiver(volumeReceiver, filter);
+        }
+
+        // Update volume UI to reflect current state
+        updateVolumeUI();
     }
 
     /**
