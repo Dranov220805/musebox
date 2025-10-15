@@ -1,8 +1,10 @@
 package com.example.musebox.activities;
 
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.media.AudioManager;
 import android.os.Bundle;
@@ -40,6 +42,7 @@ public class FullPlayerActivity extends AppCompatActivity {
     private boolean isMuted = false;
     private int lastVolumeLevel = 70;
     private float currentPlaybackSpeed = 1.0f;
+    private BroadcastReceiver volumeReceiver;
 
     private Handler progressHandler = new Handler();
     private Runnable progressRunnable;
@@ -309,23 +312,39 @@ public class FullPlayerActivity extends AppCompatActivity {
     }
 
     private void setupVolumeControl() {
+        updateVolumeUI();
+
+        // Initialize volume change receiver
+        volumeReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if (intent.getAction() != null &&
+                        intent.getAction().equals("android.media.VOLUME_CHANGED_ACTION")) {
+                    updateVolumeUI();
+                }
+            }
+        };
+    }
+
+    /**
+     * Update volume UI based on current device volume
+     */
+    private void updateVolumeUI() {
         int maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
         int currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
 
-        // Initialize last volume level with current volume
-        lastVolumeLevel = currentVolume;
-
-        // Update volume display
-        int percentage = currentVolume * 100 / maxVolume;
+        // Calculate percentage
+        int percentage = maxVolume > 0 ? (currentVolume * 100 / maxVolume) : 0;
         txtVolumeLevel.setText(percentage + "%");
 
-        // Update volume icon
+        // Update icon and mute state
         if (currentVolume == 0) {
             btnVolumeToggle.setImageResource(R.drawable.ic_volume_off);
             isMuted = true;
         } else {
             btnVolumeToggle.setImageResource(R.drawable.ic_volume_up);
             isMuted = false;
+            lastVolumeLevel = currentVolume; // Store non-zero volume
         }
     }
 
@@ -385,15 +404,9 @@ public class FullPlayerActivity extends AppCompatActivity {
     }
 
     private void toggleMute() {
-        int maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
-
         if (isMuted) {
             // Unmute - restore previous volume
             audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, lastVolumeLevel, 0);
-            btnVolumeToggle.setImageResource(R.drawable.ic_volume_up);
-            int percentage = lastVolumeLevel * 100 / maxVolume;
-            txtVolumeLevel.setText(percentage + "%");
-            isMuted = false;
         } else {
             // Mute - save current volume and set to 0
             int currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
@@ -401,10 +414,9 @@ public class FullPlayerActivity extends AppCompatActivity {
                 lastVolumeLevel = currentVolume;
             }
             audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 0, 0);
-            btnVolumeToggle.setImageResource(R.drawable.ic_volume_off);
-            txtVolumeLevel.setText("0%");
-            isMuted = true;
         }
+        // UI will be updated by volume change receiver
+        updateVolumeUI();
     }
 
     private void skipBackward() {
@@ -438,6 +450,15 @@ public class FullPlayerActivity extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
         progressHandler.removeCallbacks(progressRunnable);
+
+        // Unregister volume change receiver
+        if (volumeReceiver != null) {
+            try {
+                unregisterReceiver(volumeReceiver);
+            } catch (IllegalArgumentException e) {
+                // Receiver not registered, ignore
+            }
+        }
     }
 
     @Override
@@ -447,6 +468,15 @@ public class FullPlayerActivity extends AppCompatActivity {
             updateUI();
             startProgressUpdates();
         }
+
+        // Register volume change receiver
+        if (volumeReceiver != null) {
+            IntentFilter filter = new IntentFilter("android.media.VOLUME_CHANGED_ACTION");
+            registerReceiver(volumeReceiver, filter);
+        }
+
+        // Update volume UI to reflect current state
+        updateVolumeUI();
     }
 
     /**

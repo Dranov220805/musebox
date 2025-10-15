@@ -1,15 +1,148 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:orientation="vertical"
     android:background="@color/spotify_black"
     tools:context=".fragments.SearchFragment">
 
-    <!-- TODO: Update blank fragment layout -->
-    <TextView
+    <!-- Search Bar Container -->
+    <androidx.cardview.widget.CardView
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:text="@string/search" />
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        app:cardCornerRadius="24dp"
+        app:cardElevation="4dp"
+        app:cardBackgroundColor="@color/spotify_dark_gray">
 
-</FrameLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="8dp">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="center_vertical"
+                android:layout_marginStart="8dp"
+                android:src="@android:drawable/ic_menu_search"
+                app:tint="@color/spotify_light_gray" />
+
+            <EditText
+                android:id="@+id/etSearch"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
+                android:background="@android:color/transparent"
+                android:hint="Search songs, artists..."
+                android:textColor="@android:color/white"
+                android:textColorHint="@color/spotify_light_gray"
+                android:textSize="16sp"
+                android:inputType="text"
+                android:maxLines="1"
+                android:imeOptions="actionSearch" />
+
+            <ImageButton
+                android:id="@+id/btnClearSearch"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_gravity="center_vertical"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@android:drawable/ic_menu_close_clear_cancel"
+                android:visibility="gone"
+                app:tint="@color/spotify_light_gray" />
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
+    <!-- Filter and Sort Controls -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="8dp">
+
+        <Button
+            android:id="@+id/btnSort"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="8dp"
+            android:text="Sort: Title"
+            android:textColor="@android:color/white"
+            android:textSize="14sp"
+            android:backgroundTint="@color/spotify_dark_gray"
+            android:drawableStart="@android:drawable/ic_menu_sort_by_size"
+            android:drawablePadding="8dp"
+            app:drawableTint="@color/spotify_green" />
+
+        <Button
+            android:id="@+id/btnFilter"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:text="Filter: All"
+            android:textColor="@android:color/white"
+            android:textSize="14sp"
+            android:backgroundTint="@color/spotify_dark_gray"
+            android:drawableStart="@android:drawable/ic_menu_agenda"
+            android:drawablePadding="8dp"
+            app:drawableTint="@color/spotify_green" />
+    </LinearLayout>
+
+    <!-- Results Count -->
+    <TextView
+        android:id="@+id/tvResultsCount"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="8dp"
+        android:text="0 songs"
+        android:textColor="@color/spotify_light_gray"
+        android:textSize="14sp" />
+
+    <!-- Search Results RecyclerView -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvSearchResults"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:paddingBottom="100dp" />
+
+    <!-- Empty State -->
+    <LinearLayout
+        android:id="@+id/layoutEmptyState"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:visibility="gone">
+
+        <ImageView
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:src="@android:drawable/ic_menu_search"
+            android:alpha="0.3"
+            app:tint="@color/spotify_light_gray" />
+
+        <TextView
+            android:id="@+id/tvEmptyMessage"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="Search your music library"
+            android:textColor="@color/spotify_light_gray"
+            android:textSize="16sp" />
+    </LinearLayout>
+
+</LinearLayout>

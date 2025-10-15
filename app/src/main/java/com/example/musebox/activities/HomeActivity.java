@@ -751,7 +751,8 @@ public class HomeActivity extends AppCompatActivity
             try {
                 ContentResolver resolver = getContentResolver();
 
-                // Get all available volumes (internal storage, SDCard, etc.) to avoid duplicates
+                // Get all available volumes (internal storage, SDCard, etc.) to avoid
+                // duplicates
                 java.util.Set<String> volumes = new java.util.HashSet<>();
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     // Android 10+ - Use getExternalVolumeNames to get all volumes
@@ -834,9 +835,11 @@ public class HomeActivity extends AppCompatActivity
                         while (cursor.moveToNext()) {
                             long id = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID));
                             String title = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE));
-                            String artist = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST));
+                            String artist = cursor
+                                    .getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST));
                             String path = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA));
-                            long duration = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION));
+                            long duration = cursor
+                                    .getLong(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION));
 
                             // Skip non-existent files
                             if (path == null)

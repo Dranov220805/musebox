@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@color/spotify_dark_gray"
+    android:padding="8dp">
+
+    <!-- Title -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Sort By"
+        android:textColor="@android:color/white"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="8dp" />
+
+    <!-- Sort Options in Horizontal Layout for Landscape -->
+    <RadioGroup
+        android:id="@+id/radioGroupSort"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp">
+
+        <RadioButton
+            android:id="@+id/radioTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Title"
+            android:textColor="@android:color/white"
+            android:textSize="14sp"
+            android:padding="8dp"
+            android:buttonTint="@color/spotify_green"
+            android:drawableTop="@android:drawable/ic_menu_sort_alphabetically"
+            android:drawablePadding="4dp"
+            android:drawableTint="@color/spotify_light_gray"
+            android:gravity="center" />
+
+        <RadioButton
+            android:id="@+id/radioArtist"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Artist"
+            android:textColor="@android:color/white"
+            android:textSize="14sp"
+            android:padding="8dp"
+            android:buttonTint="@color/spotify_green"
+            android:drawableTop="@android:drawable/ic_menu_sort_alphabetically"
+            android:drawablePadding="4dp"
+            android:drawableTint="@color/spotify_light_gray"
+            android:gravity="center" />
+
+        <RadioButton
+            android:id="@+id/radioDuration"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Duration"
+            android:textColor="@android:color/white"
+            android:textSize="14sp"
+            android:padding="8dp"
+            android:buttonTint="@color/spotify_green"
+            android:drawableTop="@android:drawable/ic_menu_recent_history"
+            android:drawablePadding="4dp"
+            android:drawableTint="@color/spotify_light_gray"
+            android:gravity="center" />
+
+        <RadioButton
+            android:id="@+id/radioRecent"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Recent"
+            android:textColor="@android:color/white"
+            android:textSize="14sp"
+            android:padding="8dp"
+            android:buttonTint="@color/spotify_green"
+            android:drawableTop="@android:drawable/ic_menu_add"
+            android:drawablePadding="4dp"
+            android:drawableTint="@color/spotify_light_gray"
+            android:gravity="center" />
+
+    </RadioGroup>
+
+    <!-- Buttons -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="end"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp">
+
+        <Button
+            android:id="@+id/btnCancel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Cancel"
+            android:textColor="@color/spotify_light_gray"
+            android:backgroundTint="@android:color/transparent"
+            style="?android:attr/borderlessButtonStyle" />
+
+        <Button
+            android:id="@+id/btnApply"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Apply"
+            android:textColor="@android:color/white"
+            android:backgroundTint="@color/spotify_green"
+            android:layout_marginStart="8dp" />
+
+    </LinearLayout>
+
+</LinearLayout>

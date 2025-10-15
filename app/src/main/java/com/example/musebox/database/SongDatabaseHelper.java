@@ -385,4 +385,201 @@ public class SongDatabaseHelper extends SQLiteOpenHelper {
         // Don't close db - let SQLiteOpenHelper manage the connection pool
         return result > 0;
     }
+
+    /**
+     * Search songs by query string (searches in title and artist)
+     * 
+     * @param query     Search query
+     * @param sortOrder Sort order (title, artist, duration, or recent)
+     * @return List of matching songs
+     */
+    public List<Song> searchSongs(String query, String sortOrder) {
+        List<Song> songList = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        String orderByClause;
+        switch (sortOrder.toLowerCase()) {
+            case "artist":
+                orderByClause = KEY_ARTIST + " ASC, " + KEY_TITLE + " ASC";
+                break;
+            case "duration":
+                orderByClause = KEY_DURATION + " DESC";
+                break;
+            case "recent":
+                orderByClause = "rowid DESC"; // Most recently added
+                break;
+            case "title":
+            default:
+                orderByClause = KEY_TITLE + " ASC";
+                break;
+        }
+
+        String selection = KEY_TITLE + " LIKE ? OR " + KEY_ARTIST + " LIKE ?";
+        String[] selectionArgs = new String[] { "%" + query + "%", "%" + query + "%" };
+
+        Cursor cursor = db.query(
+                TABLE_SONGS,
+                null,
+                selection,
+                selectionArgs,
+                null,
+                null,
+                orderByClause);
+
+        if (cursor.moveToFirst()) {
+            do {
+                Song song = new Song(
+                        cursor.getString(cursor.getColumnIndexOrThrow(KEY_ID)),
+                        cursor.getString(cursor.getColumnIndexOrThrow(KEY_TITLE)),
+                        cursor.getString(cursor.getColumnIndexOrThrow(KEY_ARTIST)),
+                        cursor.getString(cursor.getColumnIndexOrThrow(KEY_URI)),
+                        cursor.getLong(cursor.getColumnIndexOrThrow(KEY_DURATION)),
+                        cursor.getString(cursor.getColumnIndexOrThrow(KEY_ALBUM_COVER_PATH)));
+                songList.add(song);
+            } while (cursor.moveToNext());
+        }
+
+        cursor.close();
+        return songList;
+    }
+
+    /**
+     * Get all songs with sorting
+     * 
+     * @param sortOrder Sort order (title, artist, duration, or recent)
+     * @return Sorted list of all songs
+     */
+    public List<Song> getAllSongsSorted(String sortOrder) {
+        List<Song> songList = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        String orderByClause;
+        switch (sortOrder.toLowerCase()) {
+            case "artist":
+                orderByClause = KEY_ARTIST + " ASC, " + KEY_TITLE + " ASC";
+                break;
+            case "duration":
+                orderByClause = KEY_DURATION + " DESC";
+                break;
+            case "recent":
+                orderByClause = "rowid DESC"; // Most recently added
+                break;
+            case "title":
+            default:
+                orderByClause = KEY_TITLE + " ASC";
+                break;
+        }
+
+        Cursor cursor = db.query(
+                TABLE_SONGS,
+                null,
+                null,
+                null,
+                null,
+                null,
+                orderByClause);
+
+        if (cursor.moveToFirst()) {
+            do {
+                Song song = new Song(
+                        cursor.getString(cursor.getColumnIndexOrThrow(KEY_ID)),
+                        cursor.getString(cursor.getColumnIndexOrThrow(KEY_TITLE)),
+                        cursor.getString(cursor.getColumnIndexOrThrow(KEY_ARTIST)),
+                        cursor.getString(cursor.getColumnIndexOrThrow(KEY_URI)),
+                        cursor.getLong(cursor.getColumnIndexOrThrow(KEY_DURATION)),
+                        cursor.getString(cursor.getColumnIndexOrThrow(KEY_ALBUM_COVER_PATH)));
+                songList.add(song);
+            } while (cursor.moveToNext());
+        }
+
+        cursor.close();
+        return songList;
+    }
+
+    /**
+     * Get songs filtered by artist
+     * 
+     * @param artist    Artist name
+     * @param sortOrder Sort order
+     * @return List of songs by the artist
+     */
+    public List<Song> getSongsByArtist(String artist, String sortOrder) {
+        List<Song> songList = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        String orderByClause;
+        switch (sortOrder.toLowerCase()) {
+            case "duration":
+                orderByClause = KEY_DURATION + " DESC";
+                break;
+            case "recent":
+                orderByClause = "rowid DESC";
+                break;
+            case "title":
+            default:
+                orderByClause = KEY_TITLE + " ASC";
+                break;
+        }
+
+        String selection = KEY_ARTIST + " = ?";
+        String[] selectionArgs = new String[] { artist };
+
+        Cursor cursor = db.query(
+                TABLE_SONGS,
+                null,
+                selection,
+                selectionArgs,
+                null,
+                null,
+                orderByClause);
+
+        if (cursor.moveToFirst()) {
+            do {
+                Song song = new Song(
+                        cursor.getString(cursor.getColumnIndexOrThrow(KEY_ID)),
+                        cursor.getString(cursor.getColumnIndexOrThrow(KEY_TITLE)),
+                        cursor.getString(cursor.getColumnIndexOrThrow(KEY_ARTIST)),
+                        cursor.getString(cursor.getColumnIndexOrThrow(KEY_URI)),
+                        cursor.getLong(cursor.getColumnIndexOrThrow(KEY_DURATION)),
+                        cursor.getString(cursor.getColumnIndexOrThrow(KEY_ALBUM_COVER_PATH)));
+                songList.add(song);
+            } while (cursor.moveToNext());
+        }
+
+        cursor.close();
+        return songList;
+    }
+
+    /**
+     * Get list of unique artists
+     * 
+     * @return List of artist names
+     */
+    public List<String> getAllArtists() {
+        List<String> artistList = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        Cursor cursor = db.query(
+                true, // distinct
+                TABLE_SONGS,
+                new String[] { KEY_ARTIST },
+                null,
+                null,
+                null,
+                null,
+                KEY_ARTIST + " ASC",
+                null);
+
+        if (cursor.moveToFirst()) {
+            do {
+                String artist = cursor.getString(0);
+                if (artist != null && !artist.isEmpty()) {
+                    artistList.add(artist);
+                }
+            } while (cursor.moveToNext());
+        }
+
+        cursor.close();
+        return artistList;
+    }
 }
