@@ -18,6 +18,7 @@ import com.example.musebox.database.PlaylistDatabaseHelper;
 import com.example.musebox.models.Playlist;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class PlaylistFragment extends Fragment {
@@ -35,7 +36,12 @@ public class PlaylistFragment extends Fragment {
         dbHelper = new PlaylistDatabaseHelper(requireContext());
 
         recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
-    adapter = new PlaylistAdapter();
+    adapter = new PlaylistAdapter(playlist -> {
+        // Open PlaylistDetailActivity
+        android.content.Intent intent = new android.content.Intent(requireContext(), com.example.musebox.activities.PlaylistDetailActivity.class);
+        intent.putExtra("playlist_id", playlist.getId());
+        startActivity(intent);
+    });
     recyclerView.setAdapter(adapter);
 
         loadPlaylists();
@@ -54,24 +60,100 @@ public class PlaylistFragment extends Fragment {
         View dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_create_playlist, null);
         final android.widget.EditText etName = dialogView.findViewById(R.id.etPlaylistName);
         final android.widget.EditText etDesc = dialogView.findViewById(R.id.etPlaylistDescription);
+        final RecyclerView rvSongs = dialogView.findViewById(R.id.recyclerSongs);
+        final android.widget.Button btnConfirm = dialogView.findViewById(R.id.btnConfirmCreatePlaylist);
 
-        androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(requireContext());
-        builder.setTitle("Create Playlist");
-        builder.setView(dialogView);
-        builder.setPositiveButton("Create", (dialog, which) -> {
+        // Load all songs from the database
+        com.example.musebox.database.SongDatabaseHelper songDbHelper = new com.example.musebox.database.SongDatabaseHelper(requireContext());
+        List<com.example.musebox.models.Song> allSongs = songDbHelper.getAllSongs();
+
+        // Adapter for selecting songs
+        SongSelectAdapter songSelectAdapter = new SongSelectAdapter(allSongs);
+        rvSongs.setLayoutManager(new LinearLayoutManager(requireContext()));
+        rvSongs.setAdapter(songSelectAdapter);
+
+        final androidx.appcompat.app.AlertDialog dialog = new androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                .setTitle("Create Playlist")
+                .setView(dialogView)
+                .setCancelable(true)
+                .create();
+
+        btnConfirm.setOnClickListener(v -> {
             String name = etName.getText().toString().trim();
             String desc = etDesc.getText().toString().trim();
             if (name.isEmpty()) {
                 Toast.makeText(requireContext(), "Playlist name cannot be empty", Toast.LENGTH_SHORT).show();
                 return;
             }
-            dbHelper.createPlaylist(name, desc);
+            // Create playlist and add selected songs
+            String playlistId = dbHelper.createPlaylist(name, desc);
+            List<com.example.musebox.models.Song> selectedSongs = songSelectAdapter.getSelectedSongs();
+            for (com.example.musebox.models.Song song : selectedSongs) {
+                dbHelper.addSongToPlaylist(playlistId, song);
+            }
             loadPlaylists();
             Toast.makeText(requireContext(), "Playlist created!", Toast.LENGTH_SHORT).show();
+            dialog.dismiss();
         });
-        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
-        builder.show();
+
+        dialog.show();
     }
 
-    // ...existing code...
+    // Adapter for selecting songs with checkboxes
+    private static class SongSelectAdapter extends RecyclerView.Adapter<SongSelectAdapter.SongViewHolder> {
+        private final List<com.example.musebox.models.Song> songs;
+        private final List<com.example.musebox.models.Song> selected = new ArrayList<>();
+
+        public SongSelectAdapter(List<com.example.musebox.models.Song> songs) {
+            this.songs = songs;
+        }
+
+        public List<com.example.musebox.models.Song> getSelectedSongs() {
+            return selected;
+        }
+
+        @NonNull
+        @Override
+        public SongViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_song_select, parent, false);
+            return new SongViewHolder(view);
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull SongViewHolder holder, int position) {
+            com.example.musebox.models.Song song = songs.get(position);
+            holder.bind(song, selected);
+        }
+
+        @Override
+        public int getItemCount() {
+            return songs == null ? 0 : songs.size();
+        }
+
+        static class SongViewHolder extends RecyclerView.ViewHolder {
+            private final android.widget.TextView tvTitle;
+            private final android.widget.TextView tvArtist;
+            private final android.widget.CheckBox cbSelect;
+
+            public SongViewHolder(@NonNull View itemView) {
+                super(itemView);
+                tvTitle = itemView.findViewById(R.id.tvTitle);
+                tvArtist = itemView.findViewById(R.id.tvArtist);
+                cbSelect = itemView.findViewById(R.id.cbSelectSong);
+            }
+
+            public void bind(final com.example.musebox.models.Song song, final List<com.example.musebox.models.Song> selected) {
+                tvTitle.setText(song.getTitle());
+                tvArtist.setText(song.getArtist());
+                cbSelect.setChecked(selected.contains(song));
+                cbSelect.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                    if (isChecked) {
+                        if (!selected.contains(song)) selected.add(song);
+                    } else {
+                        selected.remove(song);
+                    }
+                });
+            }
+        }
+    }
 }
