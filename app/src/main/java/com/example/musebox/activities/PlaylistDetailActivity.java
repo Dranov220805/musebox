@@ -60,12 +60,7 @@ public class PlaylistDetailActivity extends AppCompatActivity {
         }
         tvTitle.setText(playlist.getName());
         tvDescription.setText(playlist.getDescription());
-        songAdapter = new SongAdapter(playlist.getSongs(), new SongAdapter.SongClickListener() {
-            @Override
-            public void onSongClick(Song song) {
-                showRemoveSongDialog(song);
-            }
-        });
+
         recyclerSongs.setLayoutManager(new LinearLayoutManager(this));
         recyclerSongs.setAdapter(songAdapter);
     }
