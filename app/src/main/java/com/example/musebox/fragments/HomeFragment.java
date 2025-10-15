@@ -41,7 +41,7 @@ import java.util.List;
 public class HomeFragment extends Fragment {
 
     public interface OnSongSelectedListener {
-        void onSongSelected(Song song);
+        void onSongSelected(Song song, List<Song> displayedSongs);
 
         void onFavoritesClicked();
     }
@@ -131,7 +131,8 @@ public class HomeFragment extends Fragment {
         // Set the click listener for song items
         adapter.setOnSongClickListener(song -> {
             if (listener != null) {
-                listener.onSongSelected(song);
+                // Pass the currently displayed songs list along with the selected song
+                listener.onSongSelected(song, adapter.getAllSongs());
             }
         });
 

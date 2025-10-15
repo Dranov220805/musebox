@@ -219,6 +219,8 @@ public class HomeActivity extends AppCompatActivity
                     if (currentTitle != null && !currentTitle.equals(lastSongTitle)) {
                         lastSongTitle = currentTitle;
                         updateMiniPlayer();
+                        // Refresh queue when song changes (e.g., when auto-playing next)
+                        refreshCurrentFragment();
                     }
 
                     // Update play/pause button state
@@ -442,13 +444,14 @@ public class HomeActivity extends AppCompatActivity
 
     // Implement HomeFragment.OnSongSelectedListener
     @Override
-    public void onSongSelected(Song song) {
+    public void onSongSelected(Song song, List<Song> displayedSongs) {
         if (musicService != null && song != null) {
             // Store current song
             currentSong = song;
 
-            // Load all songs from database as playlist
-            currentPlaylist = dbHelper.getAllSongs();
+            // Use the displayed songs list as the playlist (what user sees in HomeFragment)
+            // instead of loading all songs from database
+            currentPlaylist = new ArrayList<>(displayedSongs);
             int songIndex = currentPlaylist.indexOf(song);
             if (songIndex == -1)
                 songIndex = 0;
@@ -607,6 +610,7 @@ public class HomeActivity extends AppCompatActivity
 
             // Update mini player and refresh fragments
             updateMiniPlayer();
+            refreshCurrentFragment(); // Refresh queue display if visible
         } else {
             Toast.makeText(this, "Music service not available", Toast.LENGTH_SHORT).show();
         }
