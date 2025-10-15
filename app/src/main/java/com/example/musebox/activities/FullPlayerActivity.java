@@ -1,22 +1,22 @@
 package com.example.musebox.activities;
 
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.media.AudioManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.view.View;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.SeekBar;
-import android.widget.Spinner;
 import android.widget.TextView;
 import android.net.Uri;
+import android.widget.PopupMenu;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -33,14 +33,16 @@ public class FullPlayerActivity extends AppCompatActivity {
 
     private ImageButton btnClose, btnFullPlayPause, btnFullPrevious, btnFullNext, btnFullShuffle, btnFullRepeat;
     private ImageButton btnVolumeToggle, btnSkipBackward, btnSkipForward;
-    private SeekBar seekBarProgress, seekBarVolume;
+    private SeekBar seekBarProgress;
     private TextView txtFullSongTitle, txtFullArtist, txtCurrentTime, txtTotalTime, txtVolumeLevel;
-    private Spinner spinnerPlaybackSpeed;
+    private TextView btnPlaybackSpeed;
     private ImageView imgAlbumArt;
 
     private AudioManager audioManager;
     private boolean isMuted = false;
     private int lastVolumeLevel = 70;
+    private float currentPlaybackSpeed = 1.0f;
+    private BroadcastReceiver volumeReceiver;
 
     private Handler progressHandler = new Handler();
     private Runnable progressRunnable;
@@ -79,13 +81,12 @@ public class FullPlayerActivity extends AppCompatActivity {
         btnSkipBackward = findViewById(R.id.btnSkipBackward);
         btnSkipForward = findViewById(R.id.btnSkipForward);
         seekBarProgress = findViewById(R.id.seekBarProgress);
-        seekBarVolume = findViewById(R.id.seekBarVolume);
         txtFullSongTitle = findViewById(R.id.txtFullSongTitle);
         txtFullArtist = findViewById(R.id.txtFullArtist);
         txtCurrentTime = findViewById(R.id.txtCurrentTime);
         txtTotalTime = findViewById(R.id.txtTotalTime);
         txtVolumeLevel = findViewById(R.id.txtVolumeLevel);
-        spinnerPlaybackSpeed = findViewById(R.id.spinnerPlaybackSpeed);
+        btnPlaybackSpeed = findViewById(R.id.btnPlaybackSpeed);
         imgAlbumArt = findViewById(R.id.imgAlbumArt);
 
         // Initialize AudioManager
@@ -94,8 +95,8 @@ public class FullPlayerActivity extends AppCompatActivity {
         // Setup volume control
         setupVolumeControl();
 
-        // Setup playback speed spinner
-        setupPlaybackSpeedSpinner();
+        // Setup playback speed button
+        setupPlaybackSpeedButton();
 
         // Bind to service
         Intent serviceIntent = new Intent(this, MusicService.class);
@@ -311,83 +312,111 @@ public class FullPlayerActivity extends AppCompatActivity {
     }
 
     private void setupVolumeControl() {
+        updateVolumeUI();
+
+        // Initialize volume change receiver
+        volumeReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if (intent.getAction() != null &&
+                        intent.getAction().equals("android.media.VOLUME_CHANGED_ACTION")) {
+                    updateVolumeUI();
+                }
+            }
+        };
+    }
+
+    /**
+     * Update volume UI based on current device volume
+     */
+    private void updateVolumeUI() {
         int maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
         int currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
 
-        seekBarVolume.setMax(maxVolume);
-        seekBarVolume.setProgress(currentVolume);
-        txtVolumeLevel.setText((currentVolume * 100 / maxVolume) + "%");
+        // Calculate percentage
+        int percentage = maxVolume > 0 ? (currentVolume * 100 / maxVolume) : 0;
+        txtVolumeLevel.setText(percentage + "%");
 
-        seekBarVolume.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                if (fromUser) {
-                    audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, progress, 0);
-                    int percentage = progress * 100 / maxVolume;
-                    txtVolumeLevel.setText(percentage + "%");
-
-                    // Update volume icon
-                    if (progress == 0) {
-                        btnVolumeToggle.setImageResource(R.drawable.ic_volume_off);
-                        isMuted = true;
-                    } else {
-                        btnVolumeToggle.setImageResource(R.drawable.ic_volume_up);
-                        isMuted = false;
-                        lastVolumeLevel = progress;
-                    }
-                }
-            }
-
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
-            }
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
-            }
-        });
+        // Update icon and mute state
+        if (currentVolume == 0) {
+            btnVolumeToggle.setImageResource(R.drawable.ic_volume_off);
+            isMuted = true;
+        } else {
+            btnVolumeToggle.setImageResource(R.drawable.ic_volume_up);
+            isMuted = false;
+            lastVolumeLevel = currentVolume; // Store non-zero volume
+        }
     }
 
-    private void setupPlaybackSpeedSpinner() {
-        String[] speedOptions = { "0.5x", "0.75x", "1.0x", "1.25x", "1.5x", "2.0x" };
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, speedOptions);
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinnerPlaybackSpeed.setAdapter(adapter);
-        spinnerPlaybackSpeed.setSelection(2); // Default to 1.0x
+    private void setupPlaybackSpeedButton() {
+        btnPlaybackSpeed.setOnClickListener(v -> showSpeedMenu(v));
+    }
 
-        spinnerPlaybackSpeed.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                float[] speeds = { 0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 2.0f };
-                if (musicService != null) {
-                    musicService.setPlaybackSpeed(speeds[position]);
-                }
+    private void showSpeedMenu(View anchor) {
+        // Use ContextThemeWrapper to ensure proper theme application
+        android.view.ContextThemeWrapper wrapper = new android.view.ContextThemeWrapper(this,
+                R.style.Base_Theme_MuseBox);
+        PopupMenu popupMenu = new PopupMenu(wrapper, anchor);
+        popupMenu.inflate(R.menu.playback_speed_menu);
+
+        // Manually set white text color for each menu item as fallback
+        android.view.Menu menu = popupMenu.getMenu();
+        for (int i = 0; i < menu.size(); i++) {
+            android.view.MenuItem item = menu.getItem(i);
+            android.text.SpannableString spanString = new android.text.SpannableString(item.getTitle().toString());
+            spanString.setSpan(new android.text.style.ForegroundColorSpan(
+                    getResources().getColor(R.color.white, getTheme())),
+                    0, spanString.length(), 0);
+            item.setTitle(spanString);
+        }
+
+        popupMenu.setOnMenuItemClickListener(item -> {
+            int itemId = item.getItemId();
+
+            if (itemId == R.id.speed_0_5) {
+                currentPlaybackSpeed = 0.5f;
+                btnPlaybackSpeed.setText("0.5x");
+            } else if (itemId == R.id.speed_0_75) {
+                currentPlaybackSpeed = 0.75f;
+                btnPlaybackSpeed.setText("0.75x");
+            } else if (itemId == R.id.speed_1_0) {
+                currentPlaybackSpeed = 1.0f;
+                btnPlaybackSpeed.setText("1.0x");
+            } else if (itemId == R.id.speed_1_25) {
+                currentPlaybackSpeed = 1.25f;
+                btnPlaybackSpeed.setText("1.25x");
+            } else if (itemId == R.id.speed_1_5) {
+                currentPlaybackSpeed = 1.5f;
+                btnPlaybackSpeed.setText("1.5x");
+            } else if (itemId == R.id.speed_2_0) {
+                currentPlaybackSpeed = 2.0f;
+                btnPlaybackSpeed.setText("2.0x");
             }
 
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
+            if (musicService != null) {
+                musicService.setPlaybackSpeed(currentPlaybackSpeed);
             }
+
+            return true;
         });
+
+        popupMenu.show();
     }
 
     private void toggleMute() {
         if (isMuted) {
             // Unmute - restore previous volume
             audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, lastVolumeLevel, 0);
-            seekBarVolume.setProgress(lastVolumeLevel);
-            btnVolumeToggle.setImageResource(R.drawable.ic_volume_up);
-            int maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
-            txtVolumeLevel.setText((lastVolumeLevel * 100 / maxVolume) + "%");
-            isMuted = false;
         } else {
             // Mute - save current volume and set to 0
-            lastVolumeLevel = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
+            int currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
+            if (currentVolume > 0) {
+                lastVolumeLevel = currentVolume;
+            }
             audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 0, 0);
-            seekBarVolume.setProgress(0);
-            btnVolumeToggle.setImageResource(R.drawable.ic_volume_off);
-            txtVolumeLevel.setText("0%");
-            isMuted = true;
         }
+        // UI will be updated by volume change receiver
+        updateVolumeUI();
     }
 
     private void skipBackward() {
@@ -421,6 +450,15 @@ public class FullPlayerActivity extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
         progressHandler.removeCallbacks(progressRunnable);
+
+        // Unregister volume change receiver
+        if (volumeReceiver != null) {
+            try {
+                unregisterReceiver(volumeReceiver);
+            } catch (IllegalArgumentException e) {
+                // Receiver not registered, ignore
+            }
+        }
     }
 
     @Override
@@ -430,6 +468,15 @@ public class FullPlayerActivity extends AppCompatActivity {
             updateUI();
             startProgressUpdates();
         }
+
+        // Register volume change receiver
+        if (volumeReceiver != null) {
+            IntentFilter filter = new IntentFilter("android.media.VOLUME_CHANGED_ACTION");
+            registerReceiver(volumeReceiver, filter);
+        }
+
+        // Update volume UI to reflect current state
+        updateVolumeUI();
     }
 
     /**

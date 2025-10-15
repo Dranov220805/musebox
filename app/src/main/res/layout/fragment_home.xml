@@ -4,7 +4,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/light_background">
+    android:background="@color/spotify_black">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -147,7 +147,7 @@
                 android:text="Import Songs"
                 android:textStyle="bold"
                 android:textColor="@color/white"
-                android:backgroundTint="@color/musebox_green"
+                android:backgroundTint="@color/spotify_green"
                 android:paddingStart="32dp"
                 android:paddingEnd="32dp"
                 android:paddingTop="12dp"
@@ -231,7 +231,7 @@
                         android:layout_gravity="center"
                         android:layout_marginTop="16dp"
                         android:layout_marginBottom="16dp"
-                        android:indeterminateTint="@color/musebox_green"
+                        android:indeterminateTint="@color/spotify_green"
                         android:visibility="gone" />
 
                 </LinearLayout>

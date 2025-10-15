@@ -9,33 +9,20 @@ public class Song {
     private String uri;
     private long duration;
     private boolean isFavorite;
-    private String albumCoverPath; // New field for album cover
+    private String albumCoverPath;
 
-    // Constructor for new song — auto-generate unique ID
-    public Song(String title, String artist, String uri, long duration) {
+    /**
+     * Constructor for creating new songs (generates UUID automatically).
+     * Use this when importing new songs from media library or folders.
+     * 
+     * @param title Song title
+     * @param artist Artist name
+     * @param uri Content URI or file path
+     * @param duration Duration in milliseconds
+     * @param albumCoverPath Path to album cover image (can be null)
+     */
+    public Song(String title, String artist, String uri, long duration, String albumCoverPath) {
         this.id = UUID.randomUUID().toString();
-        this.title = title;
-        this.artist = artist;
-        this.uri = uri;
-        this.duration = duration;
-        this.isFavorite = false;
-        this.albumCoverPath = null; // Default to null (will use embedded art)
-    }
-
-    // Constructor for song loaded from DB (keeps same ID)
-    public Song(String id, String title, String artist, String uri, long duration) {
-        this.id = id;
-        this.title = title;
-        this.artist = artist;
-        this.uri = uri;
-        this.duration = duration;
-        this.isFavorite = false;
-        this.albumCoverPath = null;
-    }
-
-    // Constructor with album cover path
-    public Song(String id, String title, String artist, String uri, long duration, String albumCoverPath) {
-        this.id = id;
         this.title = title;
         this.artist = artist;
         this.uri = uri;
@@ -44,9 +31,19 @@ public class Song {
         this.albumCoverPath = albumCoverPath;
     }
 
-    // Constructor for new song with album cover
-    public Song(String title, String artist, String uri, long duration, String albumCoverPath) {
-        this.id = UUID.randomUUID().toString();
+    /**
+     * Constructor for loading existing songs from database.
+     * Use this when reading songs that already have an ID.
+     * 
+     * @param id Existing song ID from database
+     * @param title Song title
+     * @param artist Artist name
+     * @param uri Content URI or file path
+     * @param duration Duration in milliseconds
+     * @param albumCoverPath Path to album cover image (can be null)
+     */
+    public Song(String id, String title, String artist, String uri, long duration, String albumCoverPath) {
+        this.id = id;
         this.title = title;
         this.artist = artist;
         this.uri = uri;

@@ -20,7 +20,6 @@ import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
-import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -54,8 +53,8 @@ public class HomeActivity extends AppCompatActivity
     // Mini player views
     private View miniPlayer;
     private TextView tvSongTitle;
+    private TextView tvArtistName;
     private ImageButton btnPlayPause, btnSpeed, btnQueue;
-    private SeekBar seekBar;
     private com.example.musebox.views.CircularProgressView circularProgress;
     private ImageView imgSongArt;
 
@@ -67,6 +66,12 @@ public class HomeActivity extends AppCompatActivity
     private Song currentSong;
     private List<Song> currentPlaylist = new ArrayList<>();
     private String lastSongTitle = "";
+    private int lastSongIndex = -1;
+    private int lastPlaybackPosition = 0;
+    private boolean wasPlaying = false;
+
+    // Flag to restore miniplayer state after orientation change
+    private boolean shouldRestoreMiniPlayer = false;
 
     // For permission handling
     private Uri pendingImportUri;
@@ -78,6 +83,103 @@ public class HomeActivity extends AppCompatActivity
             MusicService.LocalBinder binder = (MusicService.LocalBinder) service;
             musicService = binder.getService();
             isBound = true;
+
+            Song currentSong = musicService.getCurrentSong();
+            int songIndex = musicService.getCurrentSongIndex();
+            java.util.List<?> playlist = musicService.getPlaylist();
+
+            android.util.Log.d("HomeActivity", "onServiceConnected: currentSong=" +
+                    (currentSong != null ? currentSong.getTitle() : "null") +
+                    ", songIndex=" + songIndex +
+                    ", playlistSize=" + playlist.size());
+
+            // If service lost its playlist but should have one (e.g., after orientation
+            // change)
+            // Restore it from the database
+            if (playlist.isEmpty() && shouldRestoreMiniPlayer) {
+                android.util.Log.d("HomeActivity",
+                        "onServiceConnected: Service lost playlist, restoring from database");
+                // Load all songs from database
+                List<Song> allSongs = dbHelper.getAllSongs();
+                if (!allSongs.isEmpty()) {
+                    // Use saved index if available and valid, otherwise search by title
+                    int restoredIndex = 0;
+
+                    if (lastSongIndex >= 0 && lastSongIndex < allSongs.size()) {
+                        // Verify the song at this index matches the saved title
+                        if (lastSongTitle != null && allSongs.get(lastSongIndex).getTitle().equals(lastSongTitle)) {
+                            restoredIndex = lastSongIndex;
+                            android.util.Log.d("HomeActivity", "onServiceConnected: Using saved index " + restoredIndex
+                                    + " for song '" + lastSongTitle + "'");
+                        } else {
+                            android.util.Log.d("HomeActivity",
+                                    "onServiceConnected: Index mismatch, searching by title");
+                            // Index doesn't match, search by title
+                            if (lastSongTitle != null && !lastSongTitle.isEmpty()) {
+                                for (int i = 0; i < allSongs.size(); i++) {
+                                    if (allSongs.get(i).getTitle().equals(lastSongTitle)) {
+                                        restoredIndex = i;
+                                        android.util.Log.d("HomeActivity", "onServiceConnected: Found saved song '"
+                                                + lastSongTitle + "' at index " + restoredIndex);
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    } else if (lastSongTitle != null && !lastSongTitle.isEmpty()) {
+                        // No valid index saved, search by title
+                        android.util.Log.d("HomeActivity",
+                                "onServiceConnected: No valid saved index, searching by title");
+                        for (int i = 0; i < allSongs.size(); i++) {
+                            if (allSongs.get(i).getTitle().equals(lastSongTitle)) {
+                                restoredIndex = i;
+                                android.util.Log.d("HomeActivity", "onServiceConnected: Found saved song '"
+                                        + lastSongTitle + "' at index " + restoredIndex);
+                                break;
+                            }
+                        }
+                    }
+
+                    // Restore the playlist to the service
+                    musicService.setPlaylist(allSongs, restoredIndex);
+                    currentSong = musicService.getCurrentSong();
+                    android.util.Log.d("HomeActivity",
+                            "onServiceConnected: Playlist restored with " + allSongs.size() + " songs, currentSong=" +
+                                    (currentSong != null ? currentSong.getTitle() : "null"));
+
+                    // Restore playback position if available
+                    if (lastPlaybackPosition > 0) {
+                        musicService.seekTo(lastPlaybackPosition);
+                        android.util.Log.d("HomeActivity",
+                                "onServiceConnected: Restored playback position to " + lastPlaybackPosition);
+                    }
+
+                    // Resume playback if it was playing before orientation change
+                    if (wasPlaying && !musicService.isPlaying()) {
+                        musicService.pauseOrResume();
+                        android.util.Log.d("HomeActivity", "onServiceConnected: Resumed playback");
+                    }
+                }
+            }
+
+            // Update mini player when service reconnects (e.g., after orientation change)
+            // Check if there's a current song playing
+            if (currentSong != null || shouldRestoreMiniPlayer) {
+                shouldRestoreMiniPlayer = true;
+                // Ensure miniplayer is visible
+                if (miniPlayer.getVisibility() != View.VISIBLE) {
+                    miniPlayer.setVisibility(View.VISIBLE);
+                    android.util.Log.d("HomeActivity", "onServiceConnected: Set miniPlayer to VISIBLE");
+                }
+                // Post to ensure all views are fully initialized and service metadata is set
+                miniPlayer.postDelayed(() -> {
+                    android.util.Log.d("HomeActivity", "onServiceConnected: Calling updateMiniPlayer");
+                    updateMiniPlayer();
+                    progressHandler.post(progressRunnable);
+                }, 100); // Small delay to ensure service has finished setting metadata
+            } else {
+                android.util.Log.d("HomeActivity", "onServiceConnected: No current song");
+            }
         }
 
         @Override
@@ -94,10 +196,14 @@ public class HomeActivity extends AppCompatActivity
 
         miniPlayer = findViewById(R.id.includeMiniPlayer);
         tvSongTitle = miniPlayer.findViewById(R.id.txtSongTitle);
+        tvArtistName = miniPlayer.findViewById(R.id.txtArtistName);
         btnPlayPause = miniPlayer.findViewById(R.id.btnPlayPause);
         btnQueue = miniPlayer.findViewById(R.id.btnQueue);
         circularProgress = miniPlayer.findViewById(R.id.circularProgress);
         imgSongArt = miniPlayer.findViewById(R.id.imgSongArt);
+
+        android.util.Log.d("HomeActivity", "onCreate: Views initialized - miniPlayer=" + miniPlayer +
+                ", tvSongTitle=" + tvSongTitle + ", btnPlayPause=" + btnPlayPause);
 
         // Bind to MusicService
         Intent serviceIntent = new Intent(this, MusicService.class);
@@ -113,6 +219,8 @@ public class HomeActivity extends AppCompatActivity
                     if (currentTitle != null && !currentTitle.equals(lastSongTitle)) {
                         lastSongTitle = currentTitle;
                         updateMiniPlayer();
+                        // Refresh queue when song changes (e.g., when auto-playing next)
+                        refreshCurrentFragment();
                     }
 
                     // Update play/pause button state
@@ -180,6 +288,26 @@ public class HomeActivity extends AppCompatActivity
             getSupportFragmentManager().beginTransaction()
                     .replace(R.id.navigation_container, new NavigationBarFragment())
                     .commit();
+        } else {
+            // Restoring from saved state (e.g., orientation change)
+            // Restore miniplayer visibility if it was visible before
+            shouldRestoreMiniPlayer = savedInstanceState.getBoolean("isMiniPlayerVisible", false);
+            String savedTitle = savedInstanceState.getString("lastSongTitle", "");
+            lastSongIndex = savedInstanceState.getInt("lastSongIndex", -1);
+            android.util.Log.d("HomeActivity", "onCreate: Restoring from saved state, shouldRestoreMiniPlayer=" +
+                    shouldRestoreMiniPlayer + ", savedTitle=" + savedTitle + ", lastSongIndex=" + lastSongIndex);
+
+            if (shouldRestoreMiniPlayer) {
+                // Set visibility immediately if we know it should be visible
+                // The actual content will be updated when service connects
+                miniPlayer.setVisibility(View.VISIBLE);
+
+                // Also restore the last song title temporarily
+                if (!savedTitle.isEmpty() && tvSongTitle != null) {
+                    tvSongTitle.setText(savedTitle);
+                    android.util.Log.d("HomeActivity", "onCreate: Set temporary title: " + savedTitle);
+                }
+            }
         }
     }
 
@@ -247,10 +375,53 @@ public class HomeActivity extends AppCompatActivity
     protected void onResume() {
         super.onResume();
         // Resume updating when activity is visible
-        if (musicService != null) {
+        if (musicService != null && musicService.getCurrentSong() != null) {
             // Update mini player with current song info
             updateMiniPlayer();
             // Start progress updates
+            progressHandler.post(progressRunnable);
+        }
+    }
+
+    @Override
+    protected void onSaveInstanceState(@androidx.annotation.NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        // Save mini player state
+        boolean isMiniPlayerVisible = miniPlayer != null && miniPlayer.getVisibility() == View.VISIBLE;
+        outState.putBoolean("isMiniPlayerVisible", isMiniPlayerVisible);
+        outState.putString("lastSongTitle", lastSongTitle);
+
+        // Save song index, playback position, and playing state if service is available
+        if (musicService != null) {
+            lastSongIndex = musicService.getCurrentSongIndex();
+            lastPlaybackPosition = musicService.getCurrentPosition();
+            wasPlaying = musicService.isPlaying();
+            android.util.Log.d("HomeActivity", "onSaveInstanceState: Saving state - index=" + lastSongIndex +
+                    ", position=" + lastPlaybackPosition + ", wasPlaying=" + wasPlaying);
+        }
+        outState.putInt("lastSongIndex", lastSongIndex);
+        outState.putInt("lastPlaybackPosition", lastPlaybackPosition);
+        outState.putBoolean("wasPlaying", wasPlaying);
+    }
+
+    @Override
+    protected void onRestoreInstanceState(@androidx.annotation.NonNull Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        // Restore mini player state
+        shouldRestoreMiniPlayer = savedInstanceState.getBoolean("isMiniPlayerVisible", false);
+        lastSongTitle = savedInstanceState.getString("lastSongTitle", "");
+        lastSongIndex = savedInstanceState.getInt("lastSongIndex", -1);
+        lastPlaybackPosition = savedInstanceState.getInt("lastPlaybackPosition", 0);
+        wasPlaying = savedInstanceState.getBoolean("wasPlaying", false);
+
+        android.util.Log.d("HomeActivity",
+                "onRestoreInstanceState: Restored state - shouldRestore=" + shouldRestoreMiniPlayer +
+                        ", title=" + lastSongTitle + ", index=" + lastSongIndex +
+                        ", position=" + lastPlaybackPosition + ", wasPlaying=" + wasPlaying);
+
+        // Update mini player if it was visible and service is already bound
+        if (shouldRestoreMiniPlayer && musicService != null && musicService.getCurrentSong() != null) {
+            updateMiniPlayer();
             progressHandler.post(progressRunnable);
         }
     }
@@ -273,13 +444,14 @@ public class HomeActivity extends AppCompatActivity
 
     // Implement HomeFragment.OnSongSelectedListener
     @Override
-    public void onSongSelected(Song song) {
+    public void onSongSelected(Song song, List<Song> displayedSongs) {
         if (musicService != null && song != null) {
             // Store current song
             currentSong = song;
 
-            // Load all songs from database as playlist
-            currentPlaylist = dbHelper.getAllSongs();
+            // Use the displayed songs list as the playlist (what user sees in HomeFragment)
+            // instead of loading all songs from database
+            currentPlaylist = new ArrayList<>(displayedSongs);
             int songIndex = currentPlaylist.indexOf(song);
             if (songIndex == -1)
                 songIndex = 0;
@@ -370,36 +542,53 @@ public class HomeActivity extends AppCompatActivity
 
     // Update mini player UI with current song info from service
     private void updateMiniPlayer() {
-        if (musicService != null) {
-            String title = musicService.getCurrentSongTitle();
-            if (title != null && !title.equals("No song playing")) {
-                tvSongTitle.setText(title);
-                miniPlayer.setVisibility(View.VISIBLE);
+        if (musicService == null) {
+            android.util.Log.d("HomeActivity", "updateMiniPlayer: musicService is null");
+            return;
+        }
 
-                // Update play/pause button
-                if (musicService.isPlaying()) {
-                    btnPlayPause.setImageResource(R.drawable.ic_pause);
-                } else {
-                    btnPlayPause.setImageResource(R.drawable.ic_play);
-                }
+        if (miniPlayer == null || tvSongTitle == null || btnPlayPause == null) {
+            android.util.Log.e("HomeActivity", "updateMiniPlayer: Views not initialized");
+            return;
+        }
 
-                // Update current song reference
-                currentSong = musicService.getCurrentSong();
-                lastSongTitle = title;
+        String title = musicService.getCurrentSongTitle();
+        String artist = musicService.getCurrentSongArtist();
+        android.util.Log.d("HomeActivity", "updateMiniPlayer: title = " + title + ", artist = " + artist);
 
-                // Load album art for current song in mini player
-                if (currentSong != null && imgSongArt != null) {
-                    loadMiniPlayerAlbumArt(currentSong);
-                }
+        if (title != null && !title.equals("No song playing")) {
+            tvSongTitle.setText(title);
 
-                // Refresh fragments if they are currently visible
-                refreshCurrentFragment();
-            } else {
-                // No song playing, hide mini player
-                miniPlayer.setVisibility(View.GONE);
-                currentSong = null;
-                lastSongTitle = "";
+            // Update artist name if the view exists
+            if (tvArtistName != null) {
+                tvArtistName.setText(artist != null ? artist : "Unknown Artist");
             }
+
+            miniPlayer.setVisibility(View.VISIBLE);
+
+            // Update play/pause button
+            if (musicService.isPlaying()) {
+                btnPlayPause.setImageResource(R.drawable.ic_pause);
+            } else {
+                btnPlayPause.setImageResource(R.drawable.ic_play);
+            }
+
+            // Update current song reference
+            currentSong = musicService.getCurrentSong();
+            lastSongTitle = title;
+
+            // Load album art for current song in mini player
+            if (currentSong != null && imgSongArt != null) {
+                loadMiniPlayerAlbumArt(currentSong);
+            }
+
+            // Refresh fragments if they are currently visible
+            refreshCurrentFragment();
+        } else {
+            // No song playing, hide mini player
+            miniPlayer.setVisibility(View.GONE);
+            currentSong = null;
+            lastSongTitle = "";
         }
     }
 
@@ -421,6 +610,7 @@ public class HomeActivity extends AppCompatActivity
 
             // Update mini player and refresh fragments
             updateMiniPlayer();
+            refreshCurrentFragment(); // Refresh queue display if visible
         } else {
             Toast.makeText(this, "Music service not available", Toast.LENGTH_SHORT).show();
         }
@@ -539,13 +729,19 @@ public class HomeActivity extends AppCompatActivity
      */
     private void importMusicFromMediaStore(Uri folderUri) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Importing Music");
         builder.setCancelable(false);
 
         final View progressView = getLayoutInflater().inflate(R.layout.dialog_import_progress, null);
         builder.setView(progressView);
 
         AlertDialog dialog = builder.create();
+
+        // Set transparent background to remove white background behind CardView
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(
+                    new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT));
+        }
+
         dialog.show();
 
         ProgressBar progressBar = progressView.findViewById(R.id.progressBar);
@@ -553,12 +749,22 @@ public class HomeActivity extends AppCompatActivity
         TextView textCount = progressView.findViewById(R.id.textCount);
 
         new Thread(() -> {
-            final int[] duplicates = { 0 }; // Declare outside try block
+            final int[] duplicates = { 0 };
             int newCount = 0;
 
             try {
                 ContentResolver resolver = getContentResolver();
-                Uri uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
+
+                // Get all available volumes (internal storage, SDCard, etc.) to avoid
+                // duplicates
+                java.util.Set<String> volumes = new java.util.HashSet<>();
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    // Android 10+ - Use getExternalVolumeNames to get all volumes
+                    volumes.addAll(MediaStore.getExternalVolumeNames(this));
+                } else {
+                    // Fallback for older Android versions
+                    volumes.add(MediaStore.VOLUME_EXTERNAL);
+                }
 
                 String[] projection = {
                         MediaStore.Audio.Media._ID,
@@ -568,108 +774,160 @@ public class HomeActivity extends AppCompatActivity
                         MediaStore.Audio.Media.DURATION
                 };
 
-                try (Cursor cursor = resolver.query(uri, projection, null, null, null)) {
-                    if (cursor == null || cursor.getCount() == 0) {
-                        // If MediaStore gives nothing and we have a specific folder, try scanning it
-                        runOnUiThread(() -> {
-                            dialog.dismiss();
-                            if (folderUri != null) {
-                                Toast.makeText(this, "No MediaStore data, scanning folder manually...",
-                                        Toast.LENGTH_SHORT).show();
-                                // Call folder import on main thread to avoid Handler issues
-                                importMusicFromFolder(folderUri);
-                            } else {
-                                Toast.makeText(this, "No music found on device", Toast.LENGTH_LONG).show();
-                            }
-                        });
-                        return;
-                    }
+                int totalSongs = 0;
 
-                    int total = cursor.getCount();
-                    final int BATCH_SIZE = 50; // Process 50 songs at a time
-                    List<Song> batch = new ArrayList<>();
-                    int processed = 0;
+                // First pass: Count total songs across all volumes
+                runOnUiThread(() -> {
+                    textStatus.setText("Scanning all storage volumes...");
+                    textCount.setText("Counting songs...");
+                });
+
+                for (String volume : volumes) {
+                    Uri uri = MediaStore.Audio.Media.getContentUri(volume);
+                    android.util.Log.d("ImportMusic", "Scanning volume: " + volume + " at URI: " + uri);
+
+                    try (Cursor cursor = resolver.query(uri, projection, null, null, null)) {
+                        if (cursor != null) {
+                            totalSongs += cursor.getCount();
+                            android.util.Log.d("ImportMusic",
+                                    "Volume " + volume + " has " + cursor.getCount() + " songs");
+                        }
+                    } catch (Exception e) {
+                        android.util.Log.w("ImportMusic",
+                                "Failed to scan volume " + volume + ": " + e.getMessage());
+                    }
+                }
+
+                if (totalSongs == 0) {
+                    runOnUiThread(() -> {
+                        dialog.dismiss();
+                        if (folderUri != null) {
+                            Toast.makeText(this, "No MediaStore data, scanning folder manually...",
+                                    Toast.LENGTH_SHORT).show();
+                            importMusicFromFolder(folderUri);
+                        } else {
+                            Toast.makeText(this, "No music found on any storage volume", Toast.LENGTH_LONG).show();
+                        }
+                    });
+                    return;
+                }
+
+                final int finalTotalSongs = totalSongs;
+                runOnUiThread(() -> {
+                    progressBar.setMax(finalTotalSongs);
+                    textStatus.setText("Found " + finalTotalSongs + " songs across " + volumes.size() + " volume(s)");
+                    textCount.setText("0 / " + finalTotalSongs);
+                });
+
+                // Second pass: Actually import songs from all volumes
+                final int BATCH_SIZE = 50;
+                List<Song> batch = new ArrayList<>();
+                int processed = 0;
+
+                for (String volume : volumes) {
+                    Uri uri = MediaStore.Audio.Media.getContentUri(volume);
+                    android.util.Log.d("ImportMusic", "Processing volume: " + volume);
 
                     runOnUiThread(() -> {
-                        progressBar.setMax(total);
-                        textStatus.setText("Importing from MediaStore...");
-                        textCount.setText("0 / " + total);
+                        textStatus.setText("Importing from " + volume + " storage...");
                     });
 
-                    while (cursor.moveToNext()) {
-                        long id = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID));
-                        String title = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE));
-                        String artist = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST));
-                        String path = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA));
-                        long duration = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION));
+                    try (Cursor cursor = resolver.query(uri, projection, null, null, null)) {
+                        if (cursor == null)
+                            continue;
 
-                        Uri contentUri = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id);
+                        while (cursor.moveToNext()) {
+                            long id = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID));
+                            String title = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE));
+                            String artist = cursor
+                                    .getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST));
+                            String path = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA));
+                            long duration = cursor
+                                    .getLong(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION));
 
-                        // TODO: TEMPORARY LOG - Check if we can extract album cover info
-                        android.util.Log.d("ImportMusic", "Processing song: " + title + " by " + artist);
-                        android.util.Log.d("ImportMusic", "Content URI: " + contentUri.toString());
-                        android.util.Log.d("ImportMusic", "File path: " + path);
+                            // Skip non-existent files
+                            if (path == null)
+                                continue;
 
-                        // Extract and save embedded album art if present
-                        String albumArtPath = null;
-                        try {
-                            android.media.MediaMetadataRetriever retriever = new android.media.MediaMetadataRetriever();
-                            retriever.setDataSource(getApplicationContext(), contentUri);
-                            byte[] art = retriever.getEmbeddedPicture();
-                            if (art != null) {
-                                android.util.Log.d("ImportMusic", "✓ FOUND embedded album art in: " + title + " (size: "
-                                        + art.length + " bytes)");
+                            Uri contentUri = ContentUris.withAppendedId(uri, id);
 
-                                // Save embedded art to internal storage
-                                albumArtPath = saveEmbeddedAlbumArt(art, title, artist);
-                                if (albumArtPath != null) {
-                                    android.util.Log.d("ImportMusic", "✓ SAVED album art to: " + albumArtPath);
-                                }
-                            } else {
-                                android.util.Log.d("ImportMusic", "✗ NO embedded album art in: " + title);
-                            }
-                            retriever.release();
-                        } catch (Exception e) {
                             android.util.Log.d("ImportMusic",
-                                    "Error extracting album art for " + title + ": " + e.getMessage());
+                                    "Processing: " + title + " by " + artist + " from " + volume);
+
+                            // Extract and save embedded album art if present
+                            String albumArtPath = null;
+                            try {
+                                android.media.MediaMetadataRetriever retriever = new android.media.MediaMetadataRetriever();
+
+                                // Try content URI first, fallback to file path for SDCard compatibility
+                                try {
+                                    retriever.setDataSource(getApplicationContext(), contentUri);
+                                } catch (Exception e) {
+                                    android.util.Log.d("ImportMusic",
+                                            "Content URI failed for " + title + ", trying file path");
+                                    retriever.setDataSource(path);
+                                }
+
+                                byte[] art = retriever.getEmbeddedPicture();
+                                if (art != null) {
+                                    android.util.Log.d("ImportMusic", "✓ FOUND embedded album art in: " + title
+                                            + " (size: " + art.length + " bytes)");
+
+                                    // Save embedded art to internal storage
+                                    albumArtPath = saveEmbeddedAlbumArt(art, title, artist);
+                                    if (albumArtPath != null) {
+                                        android.util.Log.d("ImportMusic", "✓ SAVED album art to: " + albumArtPath);
+                                    }
+                                } else {
+                                    android.util.Log.d("ImportMusic", "✗ NO embedded album art in: " + title);
+                                }
+                                retriever.release();
+                            } catch (Exception e) {
+                                android.util.Log.d("ImportMusic",
+                                        "Error extracting album art for " + title + ": " + e.getMessage());
+                            }
+
+                            Song song = new Song(title, artist, contentUri.toString(), (int) duration, albumArtPath);
+                            batch.add(song);
+
+                            // Process batch when it reaches BATCH_SIZE or on last item
+                            if (batch.size() >= BATCH_SIZE || (!cursor.isAfterLast() && cursor.isLast())) {
+                                int[] result = dbHelper.addSongsIfNotExistBatch(batch);
+                                newCount += result[0];
+                                duplicates[0] += result[1];
+                                processed += batch.size();
+
+                                // Update UI
+                                int finalProcessed = processed;
+                                String finalTitle = title;
+                                String finalVolume = volume;
+                                runOnUiThread(() -> {
+                                    textStatus.setText("Importing: " + finalTitle + " (" + finalVolume + ")");
+                                    textCount.setText(finalProcessed + " / " + finalTotalSongs);
+                                    progressBar.setProgress(finalProcessed);
+                                });
+
+                                batch.clear();
+                            }
                         }
-
-                        Song song = new Song(title, artist, contentUri.toString(), (int) duration, albumArtPath);
-                        batch.add(song);
-
-                        // Process batch when it reaches BATCH_SIZE or on last item
-                        if (batch.size() >= BATCH_SIZE || !cursor.isAfterLast() && cursor.isLast()) {
-                            int[] result = dbHelper.addSongsIfNotExistBatch(batch);
-                            newCount += result[0];
-                            duplicates[0] += result[1];
-                            processed += batch.size();
-
-                            // Update UI
-                            int finalProcessed = processed;
-                            String finalTitle = title;
-                            runOnUiThread(() -> {
-                                textStatus.setText("Importing: " + finalTitle);
-                                textCount.setText(finalProcessed + " / " + total);
-                                progressBar.setProgress(finalProcessed);
-                            });
-
-                            batch.clear();
-                        }
+                    } catch (Exception e) {
+                        android.util.Log.w("ImportMusic",
+                                "Error scanning volume " + volume + ": " + e.getMessage());
                     }
+                }
 
-                    // Process any remaining songs
-                    if (!batch.isEmpty()) {
-                        int[] result = dbHelper.addSongsIfNotExistBatch(batch);
-                        newCount += result[0];
-                        duplicates[0] += result[1];
-                        processed += batch.size();
+                // Process any remaining songs
+                if (!batch.isEmpty()) {
+                    int[] result = dbHelper.addSongsIfNotExistBatch(batch);
+                    newCount += result[0];
+                    duplicates[0] += result[1];
+                    processed += batch.size();
 
-                        int finalProcessed = processed;
-                        runOnUiThread(() -> {
-                            textCount.setText(finalProcessed + " / " + total);
-                            progressBar.setProgress(finalProcessed);
-                        });
-                    }
+                    int finalProcessed = processed;
+                    runOnUiThread(() -> {
+                        textCount.setText(finalProcessed + " / " + finalTotalSongs);
+                        progressBar.setProgress(finalProcessed);
+                    });
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -678,10 +936,10 @@ public class HomeActivity extends AppCompatActivity
                     if (folderUri != null) {
                         Toast.makeText(this, "Error using MediaStore. Falling back to folder scan.", Toast.LENGTH_SHORT)
                                 .show();
-                        // Call folder import on main thread to avoid Handler issues
                         importMusicFromFolder(folderUri);
                     } else {
-                        Toast.makeText(this, "Error scanning device music.", Toast.LENGTH_LONG).show();
+                        Toast.makeText(this, "Error scanning device music: " + e.getMessage(), Toast.LENGTH_LONG)
+                                .show();
                     }
                 });
                 return;
@@ -697,7 +955,8 @@ public class HomeActivity extends AppCompatActivity
                     Toast.makeText(this, "Added 0 new songs. " + finalDuplicates + " duplicate(s) skipped.",
                             Toast.LENGTH_LONG).show();
                 } else {
-                    String message = "Imported " + finalNewCount + " new song(s)";
+                    String message = "Imported " + finalNewCount
+                            + " new song(s) with album art from all storage volumes";
                     if (finalDuplicates > 0) {
                         message += ". " + finalDuplicates + " duplicate(s) skipped.";
                     }
@@ -717,13 +976,19 @@ public class HomeActivity extends AppCompatActivity
      */
     private void importMusicFromFolder(Uri treeUri) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Scanning Folder");
         builder.setCancelable(false);
 
         final View progressView = getLayoutInflater().inflate(R.layout.dialog_import_progress, null);
         builder.setView(progressView);
 
         AlertDialog dialog = builder.create();
+
+        // Set transparent background to remove white background behind CardView
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(
+                    new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT));
+        }
+
         dialog.show();
 
         ProgressBar progressBar = progressView.findViewById(R.id.progressBar);
@@ -967,13 +1232,19 @@ public class HomeActivity extends AppCompatActivity
         Toast.makeText(this, "Updating album art for existing songs...", Toast.LENGTH_SHORT).show();
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Updating Album Art");
         builder.setCancelable(false);
 
         final View progressView = getLayoutInflater().inflate(R.layout.dialog_import_progress, null);
         builder.setView(progressView);
 
         AlertDialog dialog = builder.create();
+
+        // Set transparent background to remove white background behind CardView
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(
+                    new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT));
+        }
+
         dialog.show();
 
         ProgressBar progressBar = progressView.findViewById(R.id.progressBar);

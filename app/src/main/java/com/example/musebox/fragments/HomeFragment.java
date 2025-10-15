@@ -28,6 +28,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.musebox.R;
+import com.example.musebox.activities.HomeActivity;
 import com.example.musebox.adapters.SongAdapter;
 import com.example.musebox.database.SongDatabaseHelper;
 import com.example.musebox.models.Song;
@@ -40,7 +41,7 @@ import java.util.List;
 public class HomeFragment extends Fragment {
 
     public interface OnSongSelectedListener {
-        void onSongSelected(Song song);
+        void onSongSelected(Song song, List<Song> displayedSongs);
 
         void onFavoritesClicked();
     }
@@ -130,7 +131,8 @@ public class HomeFragment extends Fragment {
         // Set the click listener for song items
         adapter.setOnSongClickListener(song -> {
             if (listener != null) {
-                listener.onSongSelected(song);
+                // Pass the currently displayed songs list along with the selected song
+                listener.onSongSelected(song, adapter.getAllSongs());
             }
         });
 
@@ -166,30 +168,30 @@ public class HomeFragment extends Fragment {
             public void onSongFileDeleted(Song song, int position) {
                 // Show a dialog asking if user wants to remove this song from the library
                 new AlertDialog.Builder(requireContext())
-                    .setTitle("Song File Not Found")
-                    .setMessage("The file for \"" + song.getTitle() + "\" was not found on your device. " +
-                               "It may have been moved or deleted. Do you want to remove it from your library?")
-                    .setPositiveButton("Remove", (dialog, which) -> {
-                        // Remove from database
-                        dbHelper.deleteSong(song.getId());
-                        
-                        // Remove from adapter
-                        adapter.removeSong(position);
-                        
-                        // Update song count display
-                        updateSongCountDisplay();
-                        
-                        Toast.makeText(requireContext(), "Removed from library", Toast.LENGTH_SHORT).show();
-                    })
-                    .setNegativeButton("Keep", (dialog, which) -> {
-                        // Do nothing - keep the song in the library even though file is missing
-                        dialog.dismiss();
-                    })
-                    .setNeutralButton("Refresh Library", (dialog, which) -> {
-                        // Trigger a full rescan of the music library
-                        checkPermissionAndScan();
-                    })
-                    .show();
+                        .setTitle("Song File Not Found")
+                        .setMessage("The file for \"" + song.getTitle() + "\" was not found on your device. " +
+                                "It may have been moved or deleted. Do you want to remove it from your library?")
+                        .setPositiveButton("Remove", (dialog, which) -> {
+                            // Remove from database
+                            dbHelper.deleteSong(song.getId());
+
+                            // Remove from adapter
+                            adapter.removeSong(position);
+
+                            // Update song count display
+                            updateSongCountDisplay();
+
+                            Toast.makeText(requireContext(), "Removed from library", Toast.LENGTH_SHORT).show();
+                        })
+                        .setNegativeButton("Keep", (dialog, which) -> {
+                            // Do nothing - keep the song in the library even though file is missing
+                            dialog.dismiss();
+                        })
+                        .setNeutralButton("Refresh Library", (dialog, which) -> {
+                            // Trigger a full rescan of the music library
+                            checkPermissionAndScan();
+                        })
+                        .show();
             }
         });
 
@@ -215,222 +217,16 @@ public class HomeFragment extends Fragment {
         }
     }
 
-    private android.app.AlertDialog showImportProgressDialog() {
-        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(requireContext());
-        builder.setTitle("Importing Music");
-        builder.setCancelable(false);
-
-        final View progressView = getLayoutInflater().inflate(R.layout.dialog_import_progress, null);
-        builder.setView(progressView);
-
-        android.app.AlertDialog dialog = builder.create();
-        dialog.show();
-
-        return dialog;
-    }
-
+    /**
+     * Scan device for audio files - delegates to HomeActivity's unified import method
+     */
     private void scanDeviceForAudioFiles() {
-        // Show progress dialog
-        android.app.AlertDialog dialog = showImportProgressDialog();
-        android.widget.ProgressBar progressBar = dialog.findViewById(R.id.progressBar);
-        android.widget.TextView textStatus = dialog.findViewById(R.id.textStatus);
-        android.widget.TextView textCount = dialog.findViewById(R.id.textCount);
-
-        new Thread(() -> {
-            int newCount = 0;
-            int[] duplicates = { 0 };
-
-            try {
-                ContentResolver resolver = requireContext().getContentResolver();
-                
-                // Get all available volumes (internal storage, SDCard, etc.)
-                java.util.Set<String> volumes = new java.util.HashSet<>();
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    // Android 10+ - Use getExternalVolumeNames to get all volumes
-                    volumes.addAll(MediaStore.getExternalVolumeNames(requireContext()));
-                } else {
-                    // Fallback for older Android versions
-                    volumes.add(MediaStore.VOLUME_EXTERNAL);
-                }
-
-                String[] projection = {
-                        MediaStore.Audio.Media._ID,
-                        MediaStore.Audio.Media.TITLE,
-                        MediaStore.Audio.Media.ARTIST,
-                        MediaStore.Audio.Media.DATA,
-                        MediaStore.Audio.Media.DURATION
-                };
-
-                int totalSongs = 0;
-
-                // First pass: Count total songs across all volumes
-                requireActivity().runOnUiThread(() -> {
-                    textStatus.setText("Scanning all storage volumes...");
-                    textCount.setText("Counting songs...");
-                });
-
-                for (String volume : volumes) {
-                    Uri uri = MediaStore.Audio.Media.getContentUri(volume);
-                    android.util.Log.d("HomeFragmentScan", "Scanning volume: " + volume + " at URI: " + uri);
-                    
-                    try (Cursor cursor = resolver.query(uri, projection, null, null, null)) {
-                        if (cursor != null) {
-                            totalSongs += cursor.getCount();
-                            android.util.Log.d("HomeFragmentScan", "Volume " + volume + " has " + cursor.getCount() + " songs");
-                        }
-                    } catch (Exception e) {
-                        android.util.Log.w("HomeFragmentScan", "Failed to scan volume " + volume + ": " + e.getMessage());
-                    }
-                }
-
-                if (totalSongs == 0) {
-                    requireActivity().runOnUiThread(() -> {
-                        dialog.dismiss();
-                        Toast.makeText(requireContext(), "No music found on any storage volume", Toast.LENGTH_LONG).show();
-                    });
-                    return;
-                }
-
-                final int finalTotalSongs = totalSongs;
-                requireActivity().runOnUiThread(() -> {
-                    progressBar.setMax(finalTotalSongs);
-                    textStatus.setText("Found " + finalTotalSongs + " songs across " + volumes.size() + " volume(s)");
-                    textCount.setText("0 / " + finalTotalSongs);
-                });
-
-                // Second pass: Actually import songs from all volumes
-                final int BATCH_SIZE = 50;
-                List<Song> batch = new ArrayList<>();
-                int processed = 0;
-
-                for (String volume : volumes) {
-                    Uri uri = MediaStore.Audio.Media.getContentUri(volume);
-                    android.util.Log.d("HomeFragmentScan", "Processing volume: " + volume);
-                    
-                    requireActivity().runOnUiThread(() -> {
-                        textStatus.setText("Importing from " + volume + " storage...");
-                    });
-
-                    try (Cursor cursor = resolver.query(uri, projection, null, null, null)) {
-                        if (cursor == null) continue;
-
-                        while (cursor.moveToNext()) {
-                            long id = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID));
-                            String title = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE));
-                            String artist = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST));
-                            String path = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA));
-                            long duration = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION));
-
-                            // Skip non-existent files
-                            if (path == null) continue;
-
-                            Uri contentUri = ContentUris.withAppendedId(uri, id);
-
-                            android.util.Log.d("HomeFragmentScan", "Processing: " + title + " by " + artist + " from " + volume);
-
-                            // Extract and save embedded album art if present
-                            String albumArtPath = null;
-                            try {
-                                android.media.MediaMetadataRetriever retriever = new android.media.MediaMetadataRetriever();
-                                
-                                // Try content URI first, fallback to file path for SDCard compatibility
-                                try {
-                                    retriever.setDataSource(requireContext(), contentUri);
-                                } catch (Exception e) {
-                                    android.util.Log.d("HomeFragmentScan", "Content URI failed for " + title + ", trying file path");
-                                    retriever.setDataSource(path);
-                                }
-                                
-                                byte[] art = retriever.getEmbeddedPicture();
-                                if (art != null && getActivity() instanceof com.example.musebox.activities.HomeActivity) {
-                                    android.util.Log.d("HomeFragmentScan", "✓ FOUND embedded album art in: " + title + " (size: " + art.length + " bytes)");
-
-                                    // Save embedded art to internal storage
-                                    com.example.musebox.activities.HomeActivity homeActivity = 
-                                        (com.example.musebox.activities.HomeActivity) getActivity();
-                                    albumArtPath = homeActivity.saveEmbeddedAlbumArt(art, title, artist);
-                                    if (albumArtPath != null) {
-                                        android.util.Log.d("HomeFragmentScan", "✓ SAVED album art to: " + albumArtPath);
-                                    }
-                                } else {
-                                    android.util.Log.d("HomeFragmentScan", "✗ NO embedded album art in: " + title);
-                                }
-                                retriever.release();
-                            } catch (Exception e) {
-                                android.util.Log.d("HomeFragmentScan", "Error extracting album art for " + title + ": " + e.getMessage());
-                            }
-
-                            Song song = new Song(title, artist, contentUri.toString(), (int) duration, albumArtPath);
-                            batch.add(song);
-
-                            // Process batch when it reaches BATCH_SIZE or on last item
-                            if (batch.size() >= BATCH_SIZE || (!cursor.isAfterLast() && cursor.isLast())) {
-                                int[] result = dbHelper.addSongsIfNotExistBatch(batch);
-                                newCount += result[0];
-                                duplicates[0] += result[1];
-                                processed += batch.size();
-
-                                // Update UI
-                                int finalProcessed = processed;
-                                String finalTitle = title;
-                                String finalVolume = volume;
-                                requireActivity().runOnUiThread(() -> {
-                                    textStatus.setText("Importing: " + finalTitle + " (" + finalVolume + ")");
-                                    textCount.setText(finalProcessed + " / " + finalTotalSongs);
-                                    progressBar.setProgress(finalProcessed);
-                                });
-
-                                batch.clear();
-                            }
-                        }
-                    } catch (Exception e) {
-                        android.util.Log.w("HomeFragmentScan", "Error scanning volume " + volume + ": " + e.getMessage());
-                    }
-                }
-
-                // Process any remaining songs
-                if (!batch.isEmpty()) {
-                    int[] result = dbHelper.addSongsIfNotExistBatch(batch);
-                    newCount += result[0];
-                    duplicates[0] += result[1];
-                    processed += batch.size();
-
-                    int finalProcessed = processed;
-                    requireActivity().runOnUiThread(() -> {
-                        textCount.setText(finalProcessed + " / " + finalTotalSongs);
-                        progressBar.setProgress(finalProcessed);
-                    });
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-                requireActivity().runOnUiThread(() -> {
-                    dialog.dismiss();
-                    Toast.makeText(requireContext(), "Error scanning device music: " + e.getMessage(),
-                            Toast.LENGTH_LONG).show();
-                });
-                return;
-            }
-
-            int finalNewCount = newCount;
-            int finalDuplicates = duplicates[0];
-            requireActivity().runOnUiThread(() -> {
-                dialog.dismiss();
-                if (finalNewCount == 0 && finalDuplicates == 0) {
-                    Toast.makeText(requireContext(), "No songs found", Toast.LENGTH_LONG).show();
-                } else if (finalNewCount == 0) {
-                    Toast.makeText(requireContext(), "Added 0 new songs. " + finalDuplicates + " duplicate(s) skipped.",
-                            Toast.LENGTH_LONG).show();
-                } else {
-                    String message = "Imported " + finalNewCount + " new song(s) with album art from all storage volumes";
-                    if (finalDuplicates > 0) {
-                        message += ". " + finalDuplicates + " duplicate(s) skipped.";
-                    }
-                    Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show();
-                }
-                loadSongsFromDatabase();
-                loadFavorites(); // Also reload favorites
-            });
-        }).start();
+        // Delegate to HomeActivity's importMusicFromMediaStore which now scans all volumes
+        if (getActivity() instanceof HomeActivity) {
+            ((HomeActivity) getActivity()).onImportMusicSelected(null);
+        } else {
+            Toast.makeText(requireContext(), "Error: Unable to access import functionality", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void loadSongsFromDatabase() {
@@ -704,5 +500,6 @@ public class HomeFragment extends Fragment {
 
         // Reload from database
         loadSongsFromDatabase();
+        loadFavorites(); // Also reload favorites
     }
 }
