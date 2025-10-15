@@ -5,7 +5,7 @@ MuseBox - an android music app based on Java
 
 app/\
  └── java/\
-      └── com.example.mediaplayer/\
+      └── com.example.musebox/\
            ├── activities/          → Activities (MainActivity, PlayerActivity)\
            ├── adapters/            → RecyclerView/ListView adapters\
            ├── fragments/           → UI fragments (PlaylistFragment, NowPlayingFragment)\

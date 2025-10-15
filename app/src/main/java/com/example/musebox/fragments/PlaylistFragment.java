@@ -1,66 +1,159 @@
 package com.example.musebox.fragments;
 
 import android.os.Bundle;
-
-import androidx.fragment.app.Fragment;
-
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import com.example.musebox.adapters.PlaylistAdapter;
 
 import com.example.musebox.R;
+import com.example.musebox.database.PlaylistDatabaseHelper;
+import com.example.musebox.models.Playlist;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
-/**
- * A simple {@link Fragment} subclass.
- * Use the {@link PlaylistFragment#newInstance} factory method to
- * create an instance of this fragment.
- */
+import java.util.ArrayList;
+import java.util.List;
+
 public class PlaylistFragment extends Fragment {
+    private RecyclerView recyclerView;
+    private PlaylistAdapter adapter;
+    private PlaylistDatabaseHelper dbHelper;
+    private FloatingActionButton fabCreate;
 
-    // TODO: Rename parameter arguments, choose names that match
-    // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-    private static final String ARG_PARAM1 = "param1";
-    private static final String ARG_PARAM2 = "param2";
-
-    // TODO: Rename and change types of parameters
-    private String mParam1;
-    private String mParam2;
-
-    public PlaylistFragment() {
-        // Required empty public constructor
-    }
-
-    /**
-     * Use this factory method to create a new instance of
-     * this fragment using the provided parameters.
-     *
-     * @param param1 Parameter 1.
-     * @param param2 Parameter 2.
-     * @return A new instance of fragment PlaylistFragment.
-     */
-    // TODO: Rename and change types and number of parameters
-    public static PlaylistFragment newInstance(String param1, String param2) {
-        PlaylistFragment fragment = new PlaylistFragment();
-        Bundle args = new Bundle();
-        args.putString(ARG_PARAM1, param1);
-        args.putString(ARG_PARAM2, param2);
-        fragment.setArguments(args);
-        return fragment;
-    }
-
+    @Nullable
     @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        if (getArguments() != null) {
-            mParam1 = getArguments().getString(ARG_PARAM1);
-            mParam2 = getArguments().getString(ARG_PARAM2);
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        View view = inflater.inflate(R.layout.fragment_playlist, container, false);
+        recyclerView = view.findViewById(R.id.recyclerPlaylists);
+        fabCreate = view.findViewById(R.id.fabCreatePlaylist);
+        dbHelper = new PlaylistDatabaseHelper(requireContext());
+
+        recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
+    adapter = new PlaylistAdapter(playlist -> {
+        // Open PlaylistDetailActivity
+        android.content.Intent intent = new android.content.Intent(requireContext(), com.example.musebox.activities.PlaylistDetailActivity.class);
+        intent.putExtra("playlist_id", playlist.getId());
+        startActivity(intent);
+    });
+    recyclerView.setAdapter(adapter);
+
+        loadPlaylists();
+
+        fabCreate.setOnClickListener(v -> showCreatePlaylistDialog());
+
+        return view;
+    }
+
+    private void loadPlaylists() {
+        List<Playlist> playlists = dbHelper.getAllPlaylists();
+        adapter.setPlaylists(playlists);
+    }
+
+    private void showCreatePlaylistDialog() {
+        View dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_create_playlist, null);
+        final android.widget.EditText etName = dialogView.findViewById(R.id.etPlaylistName);
+        final android.widget.EditText etDesc = dialogView.findViewById(R.id.etPlaylistDescription);
+        final RecyclerView rvSongs = dialogView.findViewById(R.id.recyclerSongs);
+        final android.widget.Button btnConfirm = dialogView.findViewById(R.id.btnConfirmCreatePlaylist);
+
+        // Load all songs from the database
+        com.example.musebox.database.SongDatabaseHelper songDbHelper = new com.example.musebox.database.SongDatabaseHelper(requireContext());
+        List<com.example.musebox.models.Song> allSongs = songDbHelper.getAllSongs();
+
+        // Adapter for selecting songs
+        SongSelectAdapter songSelectAdapter = new SongSelectAdapter(allSongs);
+        rvSongs.setLayoutManager(new LinearLayoutManager(requireContext()));
+        rvSongs.setAdapter(songSelectAdapter);
+
+        final androidx.appcompat.app.AlertDialog dialog = new androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                .setTitle("Create Playlist")
+                .setView(dialogView)
+                .setCancelable(true)
+                .create();
+
+        btnConfirm.setOnClickListener(v -> {
+            String name = etName.getText().toString().trim();
+            String desc = etDesc.getText().toString().trim();
+            if (name.isEmpty()) {
+                Toast.makeText(requireContext(), "Playlist name cannot be empty", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            // Create playlist and add selected songs
+            String playlistId = dbHelper.createPlaylist(name, desc);
+            List<com.example.musebox.models.Song> selectedSongs = songSelectAdapter.getSelectedSongs();
+            for (com.example.musebox.models.Song song : selectedSongs) {
+                dbHelper.addSongToPlaylist(playlistId, song);
+            }
+            loadPlaylists();
+            Toast.makeText(requireContext(), "Playlist created!", Toast.LENGTH_SHORT).show();
+            dialog.dismiss();
+        });
+
+        dialog.show();
+    }
+
+    // Adapter for selecting songs with checkboxes
+    private static class SongSelectAdapter extends RecyclerView.Adapter<SongSelectAdapter.SongViewHolder> {
+        private final List<com.example.musebox.models.Song> songs;
+        private final List<com.example.musebox.models.Song> selected = new ArrayList<>();
+
+        public SongSelectAdapter(List<com.example.musebox.models.Song> songs) {
+            this.songs = songs;
         }
-    }
 
-    @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_playlist, container, false);
+        public List<com.example.musebox.models.Song> getSelectedSongs() {
+            return selected;
+        }
+
+        @NonNull
+        @Override
+        public SongViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_song_select, parent, false);
+            return new SongViewHolder(view);
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull SongViewHolder holder, int position) {
+            com.example.musebox.models.Song song = songs.get(position);
+            holder.bind(song, selected);
+        }
+
+        @Override
+        public int getItemCount() {
+            return songs == null ? 0 : songs.size();
+        }
+
+        static class SongViewHolder extends RecyclerView.ViewHolder {
+            private final android.widget.TextView tvTitle;
+            private final android.widget.TextView tvArtist;
+            private final android.widget.CheckBox cbSelect;
+
+            public SongViewHolder(@NonNull View itemView) {
+                super(itemView);
+                tvTitle = itemView.findViewById(R.id.tvTitle);
+                tvArtist = itemView.findViewById(R.id.tvArtist);
+                cbSelect = itemView.findViewById(R.id.cbSelectSong);
+            }
+
+            public void bind(final com.example.musebox.models.Song song, final List<com.example.musebox.models.Song> selected) {
+                tvTitle.setText(song.getTitle());
+                tvArtist.setText(song.getArtist());
+                cbSelect.setChecked(selected.contains(song));
+                cbSelect.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                    if (isChecked) {
+                        if (!selected.contains(song)) selected.add(song);
+                    } else {
+                        selected.remove(song);
+                    }
+                });
+            }
+        }
     }
 }

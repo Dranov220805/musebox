@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <EditText
+        android:id="@+id/etPlaylistName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Playlist Name"
+        android:inputType="textPersonName"
+        android:maxLines="1" />
+
+    <EditText
+        android:id="@+id/etPlaylistDescription"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Description (optional)"
+        android:inputType="textMultiLine"
+        android:minLines="2"
+        android:maxLines="4" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Select songs to add"
+        android:textStyle="bold"
+        android:textSize="16sp"
+        android:layout_marginTop="16dp" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerSongs"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:layout_marginTop="8dp"
+        android:scrollbars="vertical" />
+
+    <Button
+        android:id="@+id/btnConfirmCreatePlaylist"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Create Playlist"
+        android:layout_marginTop="16dp"
+        android:backgroundTint="@color/musebox_green"
+        android:textColor="@color/white"
+        android:textStyle="bold" />
+
+</LinearLayout>
