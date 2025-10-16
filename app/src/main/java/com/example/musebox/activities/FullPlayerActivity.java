@@ -10,6 +10,8 @@ import android.media.AudioManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
+import android.view.GestureDetector;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -47,6 +49,10 @@ public class FullPlayerActivity extends AppCompatActivity {
     private Handler progressHandler = new Handler();
     private Runnable progressRunnable;
     private String lastSongTitle = "";
+
+    private GestureDetector gestureDetector;
+    private static final int SWIPE_THRESHOLD = 100;
+    private static final int SWIPE_VELOCITY_THRESHOLD = 100;
 
     private ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
@@ -91,6 +97,9 @@ public class FullPlayerActivity extends AppCompatActivity {
 
         // Initialize AudioManager
         audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+
+        // Setup swipe gesture detector
+        setupSwipeGesture();
 
         // Setup volume control
         setupVolumeControl();
@@ -445,6 +454,72 @@ public class FullPlayerActivity extends AppCompatActivity {
             int newPosition = Math.min(duration, currentPosition + 10000); // Skip forward 1 seconds
             musicService.seekTo(newPosition);
         }
+    }
+
+    /**
+     * Setup swipe gesture detector for changing songs
+     */
+    private void setupSwipeGesture() {
+        gestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
+            @Override
+            public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+                if (e1 == null || e2 == null) {
+                    return false;
+                }
+
+                float diffX = e2.getX() - e1.getX();
+                float diffY = e2.getY() - e1.getY();
+
+                // Check if horizontal swipe is dominant
+                if (Math.abs(diffX) > Math.abs(diffY)) {
+                    if (Math.abs(diffX) > SWIPE_THRESHOLD && Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
+                        if (diffX > 0) {
+                            // Swipe right - previous song
+                            onSwipeRight();
+                        } else {
+                            // Swipe left - next song
+                            onSwipeLeft();
+                        }
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            @Override
+            public boolean onDown(MotionEvent e) {
+                // Return true to indicate we want to handle touch events
+                return true;
+            }
+        });
+    }
+
+    /**
+     * Handle swipe left gesture - play next song
+     */
+    private void onSwipeLeft() {
+        if (musicService != null) {
+            musicService.playNext();
+            updateUI();
+        }
+    }
+
+    /**
+     * Handle swipe right gesture - play previous song
+     */
+    private void onSwipeRight() {
+        if (musicService != null) {
+            musicService.playPrevious();
+            updateUI();
+        }
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        if (gestureDetector != null && gestureDetector.onTouchEvent(event)) {
+            return true;
+        }
+        return super.onTouchEvent(event);
     }
 
     @Override
