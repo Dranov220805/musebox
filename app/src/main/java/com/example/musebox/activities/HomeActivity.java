@@ -192,13 +192,14 @@ public class HomeActivity extends AppCompatActivity
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        
-        // Ensure content doesn't go behind system bars - let fitsSystemWindows handle padding
+
+        // Ensure content doesn't go behind system bars - let fitsSystemWindows handle
+        // padding
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             // On Android 11+, explicitly tell the window to respect system windows
             getWindow().setDecorFitsSystemWindows(true);
         }
-        
+
         setContentView(R.layout.activity_home);
 
         miniPlayer = findViewById(R.id.includeMiniPlayer);

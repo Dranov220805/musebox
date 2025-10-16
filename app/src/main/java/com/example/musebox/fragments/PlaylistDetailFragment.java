@@ -379,7 +379,7 @@ public class PlaylistDetailFragment extends Fragment {
             Song song = songs.get(position);
             holder.tvTitle.setText(song.getTitle());
             holder.tvArtist.setText(song.getArtist());
-            
+
             // Load album cover
             String albumCoverPath = song.getAlbumCoverPath();
             if (albumCoverPath != null && !albumCoverPath.isEmpty()) {
@@ -392,11 +392,11 @@ public class PlaylistDetailFragment extends Fragment {
             } else {
                 holder.ivAlbumCover.setImageResource(R.drawable.ic_music_note);
             }
-            
+
             // Update check icon visibility
             boolean isSelected = selectedSongs.contains(song);
             holder.iconCheck.setVisibility(isSelected ? View.VISIBLE : View.GONE);
-            
+
             // Handle entire item click to toggle selection
             holder.itemView.setOnClickListener(v -> {
                 if (selectedSongs.contains(song)) {
