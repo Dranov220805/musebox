@@ -53,10 +53,6 @@ public class HomeFragment extends Fragment {
     private OnSongSelectedListener listener;
 
     private static final int REQUEST_PERMISSION = 200;
-    private static final int PAGE_SIZE = 30; // Load 30 songs at a time for faster response
-    private int currentOffset = 0;
-    private boolean isLoading = false;
-    private boolean hasMoreData = true;
 
     @Override
     public void onAttach(@NonNull Context context) {
@@ -98,29 +94,6 @@ public class HomeFragment extends Fragment {
         recyclerSongs.setLayoutManager(layoutManager);
         adapter = new SongAdapter(); // Using optimized adapter with DiffUtil
         recyclerSongs.setAdapter(adapter);
-
-        // Add scroll listener to NestedScrollView for pagination
-        scrollContent.setOnScrollChangeListener(new View.OnScrollChangeListener() {
-            @Override
-            public void onScrollChange(View v, int scrollX, int scrollY, int oldScrollX, int oldScrollY) {
-                if (v instanceof androidx.core.widget.NestedScrollView) {
-                    androidx.core.widget.NestedScrollView scrollView = (androidx.core.widget.NestedScrollView) v;
-                    View child = scrollView.getChildAt(0);
-                    if (child != null) {
-                        int diff = (child.getBottom() - (scrollView.getHeight() + scrollView.getScrollY()));
-
-                        android.util.Log.d("HomeFragment", "Scroll: diff=" + diff +
-                                ", isLoading=" + isLoading + ", hasMore=" + hasMoreData);
-
-                        // Load more when within 500 pixels from bottom
-                        if (diff <= 500 && !isLoading && hasMoreData && scrollY > oldScrollY) {
-                            android.util.Log.d("HomeFragment", "Triggering loadMoreSongs()");
-                            loadMoreSongs();
-                        }
-                    }
-                }
-            }
-        });
 
         // Set the click listener for song items
         adapter.setOnSongClickListener(song -> {
@@ -226,11 +199,6 @@ public class HomeFragment extends Fragment {
     }
 
     private void loadSongsFromDatabase() {
-        // Reset pagination
-        currentOffset = 0;
-        hasMoreData = true;
-        adapter.clearSongs();
-
         // Update song count
         int totalCount = dbHelper.getSongCount();
         if (totalCount == 0) {
@@ -242,53 +210,33 @@ public class HomeFragment extends Fragment {
             emptyView.setVisibility(View.GONE);
             tvSongCount.setText(totalCount + (totalCount == 1 ? " song" : " songs"));
 
-            // Load first page
-            loadMoreSongs();
+            // Show loading indicator
+            if (progressBarLoading != null) {
+                progressBarLoading.setVisibility(View.VISIBLE);
+            }
+
+            // Load all songs at once
+            new Thread(() -> {
+                long startTime = System.currentTimeMillis();
+                List<Song> songs = dbHelper.getAllSongs();
+                long loadTime = System.currentTimeMillis() - startTime;
+
+                android.util.Log.d("HomeFragment",
+                        "Loaded " + songs.size() + " songs in " + loadTime + "ms");
+
+                requireActivity().runOnUiThread(() -> {
+                    adapter.setSongs(songs);
+
+                    // Hide loading indicator
+                    if (progressBarLoading != null) {
+                        progressBarLoading.setVisibility(View.GONE);
+                    }
+                });
+            }).start();
         }
 
         // Load favorites
         loadFavorites();
-    }
-
-    private void loadMoreSongs() {
-        if (isLoading || !hasMoreData)
-            return;
-
-        isLoading = true;
-
-        // Show loading indicator
-        if (progressBarLoading != null) {
-            progressBarLoading.setVisibility(View.VISIBLE);
-        }
-
-        new Thread(() -> {
-            long startTime = System.currentTimeMillis();
-            List<Song> songs = dbHelper.getSongsPaginated(PAGE_SIZE, currentOffset);
-            long loadTime = System.currentTimeMillis() - startTime;
-
-            android.util.Log.d("HomeFragment",
-                    "Loaded " + songs.size() + " songs in " + loadTime + "ms from offset " + currentOffset);
-
-            requireActivity().runOnUiThread(() -> {
-                if (songs.isEmpty()) {
-                    hasMoreData = false;
-                } else {
-                    adapter.addSongs(songs);
-                    currentOffset += songs.size();
-
-                    // If we got less than PAGE_SIZE, we're at the end
-                    if (songs.size() < PAGE_SIZE) {
-                        hasMoreData = false;
-                    }
-                }
-                isLoading = false;
-
-                // Hide loading indicator
-                if (progressBarLoading != null) {
-                    progressBarLoading.setVisibility(View.GONE);
-                }
-            });
-        }).start();
     }
 
     @Override
@@ -489,11 +437,6 @@ public class HomeFragment extends Fragment {
     }
 
     public void refreshSongs() {
-        // Reset pagination state and reload from the beginning
-        currentOffset = 0;
-        hasMoreData = true;
-        isLoading = false;
-
         // Reload from database
         loadSongsFromDatabase();
         loadFavorites(); // Also reload favorites
