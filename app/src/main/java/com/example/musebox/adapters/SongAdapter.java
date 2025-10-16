@@ -22,6 +22,7 @@ import com.bumptech.glide.request.target.Target;
 import android.graphics.drawable.Drawable;
 import androidx.annotation.Nullable;
 import com.example.musebox.R;
+import com.example.musebox.database.SongDatabaseHelper;
 import com.example.musebox.models.Song;
 
 import java.io.File;
@@ -42,9 +43,15 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.SongViewHolder> {
     private MenuActionOverride menuActionOverride; // For custom menu actions (like in FavoritesActivity)
     private OnSongFileDeletedListener fileDeletedListener;
     private int customMenuResource = R.menu.menu_song_options; // Default menu
+    private SongDatabaseHelper dbHelper; // For checking favorite status
 
     public SongAdapter() {
         super(new SongDiffCallback());
+    }
+
+    public SongAdapter(SongDatabaseHelper dbHelper) {
+        super(new SongDiffCallback());
+        this.dbHelper = dbHelper;
     }
 
     @NonNull
@@ -95,6 +102,14 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.SongViewHolder> {
         long seconds = (durationMs / 1000) % 60;
         holder.tvDuration.setText(String.format("%d:%02d", minutes, seconds));
 
+        // Check if song is in favorites and show/hide heart icon
+        if (dbHelper != null) {
+            boolean isFavorite = dbHelper.isFavorite(song.getId());
+            holder.ivFavoriteHeart.setVisibility(isFavorite ? View.VISIBLE : View.GONE);
+        } else {
+            holder.ivFavoriteHeart.setVisibility(View.GONE);
+        }
+
         // Load album art asynchronously with Glide (with caching)
         loadAlbumArt(holder.ivAlbumArt, song);
 
@@ -115,6 +130,15 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.SongViewHolder> {
             PopupMenu popup = new PopupMenu(v.getContext(), v);
             popup.inflate(customMenuResource);
 
+            // Update menu item text based on favorite status
+            if (dbHelper != null) {
+                boolean isFavorite = dbHelper.isFavorite(song.getId());
+                android.view.MenuItem favoriteItem = popup.getMenu().findItem(R.id.menu_add_to_favourite);
+                if (favoriteItem != null) {
+                    favoriteItem.setTitle(isFavorite ? "Remove from Favourites" : "Add to Favourites");
+                }
+            }
+
             popup.setOnMenuItemClickListener(item -> {
                 if (menuListener != null) {
                     int itemId = item.getItemId();
@@ -122,7 +146,7 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.SongViewHolder> {
                         menuListener.onAddToQueue(song);
                         return true;
                     } else if (itemId == R.id.menu_add_to_favourite) {
-                        menuListener.onAddToFavourite(song);
+                        menuListener.onAddToFavourite(song, position);
                         return true;
                     } else if (itemId == R.id.menu_add_to_playlist) {
                         menuListener.onAddToPlaylist(song);
@@ -332,7 +356,7 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.SongViewHolder> {
     public interface OnSongMenuListener {
         void onAddToQueue(Song song);
 
-        void onAddToFavourite(Song song);
+        void onAddToFavourite(Song song, int position);
 
         void onAddToPlaylist(Song song);
 
@@ -367,14 +391,20 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.SongViewHolder> {
         this.fileDeletedListener = listener;
     }
 
+    public void setDatabaseHelper(SongDatabaseHelper dbHelper) {
+        this.dbHelper = dbHelper;
+    }
+
     static class SongViewHolder extends RecyclerView.ViewHolder {
         ImageView ivAlbumArt;
+        ImageView ivFavoriteHeart;
         TextView tvTitle, tvArtist, tvDuration;
         ImageButton btnMenu;
 
         public SongViewHolder(@NonNull View itemView) {
             super(itemView);
             ivAlbumArt = itemView.findViewById(R.id.ivAlbumArt);
+            ivFavoriteHeart = itemView.findViewById(R.id.ivFavoriteHeart);
             tvTitle = itemView.findViewById(R.id.tvTitle);
             tvArtist = itemView.findViewById(R.id.tvArtist);
             tvDuration = itemView.findViewById(R.id.tvDuration);

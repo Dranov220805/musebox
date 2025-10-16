@@ -668,12 +668,12 @@ public class HomeActivity extends AppCompatActivity
 
     @Override
     public void onCreatePlaylistSelected() {
-        // Import the utility class
-        com.example.musebox.utils.ThemedDialogUtils.showInfoDialog(
-                this,
-                "Create Playlist",
-                "Feature coming soon! This will allow you to create custom playlists from your music library.",
-                null);
+        // Navigate to PlaylistFragment and auto-open the create playlist dialog
+        Fragment playlistFragment = com.example.musebox.fragments.PlaylistFragment.newInstance(true);
+        getSupportFragmentManager().beginTransaction()
+                .replace(R.id.content_container, playlistFragment)
+                .addToBackStack(null)
+                .commit();
     }
 
     @Override

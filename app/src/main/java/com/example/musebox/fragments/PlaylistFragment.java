@@ -65,7 +65,28 @@ public class PlaylistFragment extends Fragment {
         // Setup FAB click listener
         fabCreate.setOnClickListener(v -> showCreatePlaylistDialog());
 
+        // If the fragment was created with the "open_create" argument, open the
+        // create playlist dialog once the view has been laid out.
+        Bundle args = getArguments();
+        if (args != null && args.getBoolean("open_create", false)) {
+            // Post to the view queue to ensure the fragment is fully attached and
+            // views are available before showing the dialog.
+            view.post(() -> showCreatePlaylistDialog());
+        }
+
         return view;
+    }
+
+    /**
+     * Factory method to create a PlaylistFragment and optionally auto-open the
+     * create playlist dialog when the fragment appears.
+     */
+    public static PlaylistFragment newInstance(boolean openCreate) {
+        PlaylistFragment fragment = new PlaylistFragment();
+        Bundle args = new Bundle();
+        args.putBoolean("open_create", openCreate);
+        fragment.setArguments(args);
+        return fragment;
     }
 
     @Override
@@ -154,6 +175,7 @@ public class PlaylistFragment extends Fragment {
         final android.widget.EditText etDesc = dialogView.findViewById(R.id.etPlaylistDescription);
         final RecyclerView rvSongs = dialogView.findViewById(R.id.recyclerSongs);
         final android.widget.Button btnConfirm = dialogView.findViewById(R.id.btnConfirmCreatePlaylist);
+        final android.widget.ImageButton btnCancel = dialogView.findViewById(R.id.btnCancelDialog);
 
         // Load all songs from the database
         com.example.musebox.database.SongDatabaseHelper songDbHelper = new com.example.musebox.database.SongDatabaseHelper(
@@ -167,7 +189,6 @@ public class PlaylistFragment extends Fragment {
 
         final androidx.appcompat.app.AlertDialog dialog = new androidx.appcompat.app.AlertDialog.Builder(
                 requireContext())
-                .setTitle("Create Playlist")
                 .setView(dialogView)
                 .setCancelable(true)
                 .create();
@@ -179,11 +200,8 @@ public class PlaylistFragment extends Fragment {
 
         dialog.show();
 
-        // Set title color to Spotify green
-        android.widget.TextView titleView = dialog.findViewById(androidx.appcompat.R.id.alertTitle);
-        if (titleView != null) {
-            titleView.setTextColor(getResources().getColor(R.color.spotify_green, null));
-        }
+        // Cancel button click listener
+        btnCancel.setOnClickListener(v -> dialog.dismiss());
 
         btnConfirm.setOnClickListener(v -> {
             String name = etName.getText().toString().trim();
@@ -202,8 +220,6 @@ public class PlaylistFragment extends Fragment {
             Toast.makeText(requireContext(), "Playlist created!", Toast.LENGTH_SHORT).show();
             dialog.dismiss();
         });
-
-        dialog.show();
     }
 
     // Adapter for selecting songs with checkboxes
@@ -240,26 +256,47 @@ public class PlaylistFragment extends Fragment {
         static class SongViewHolder extends RecyclerView.ViewHolder {
             private final android.widget.TextView tvTitle;
             private final android.widget.TextView tvArtist;
-            private final android.widget.CheckBox cbSelect;
+            private final android.widget.ImageView ivAlbumCover;
+            private final android.widget.ImageView iconCheck;
 
             public SongViewHolder(@NonNull View itemView) {
                 super(itemView);
                 tvTitle = itemView.findViewById(R.id.tvTitle);
                 tvArtist = itemView.findViewById(R.id.tvArtist);
-                cbSelect = itemView.findViewById(R.id.cbSelectSong);
+                ivAlbumCover = itemView.findViewById(R.id.ivAlbumCover);
+                iconCheck = itemView.findViewById(R.id.iconCheck);
             }
 
             public void bind(final com.example.musebox.models.Song song,
                     final List<com.example.musebox.models.Song> selected) {
                 tvTitle.setText(song.getTitle());
                 tvArtist.setText(song.getArtist());
-                cbSelect.setChecked(selected.contains(song));
-                cbSelect.setOnCheckedChangeListener((buttonView, isChecked) -> {
-                    if (isChecked) {
-                        if (!selected.contains(song))
-                            selected.add(song);
-                    } else {
+                
+                // Load album cover
+                String albumCoverPath = song.getAlbumCoverPath();
+                if (albumCoverPath != null && !albumCoverPath.isEmpty()) {
+                    com.bumptech.glide.Glide.with(itemView.getContext())
+                            .load(albumCoverPath)
+                            .placeholder(R.drawable.ic_music_note)
+                            .error(R.drawable.ic_music_note)
+                            .centerCrop()
+                            .into(ivAlbumCover);
+                } else {
+                    ivAlbumCover.setImageResource(R.drawable.ic_music_note);
+                }
+                
+                // Update check icon visibility
+                boolean isSelected = selected.contains(song);
+                iconCheck.setVisibility(isSelected ? View.VISIBLE : View.GONE);
+                
+                // Handle entire item click to toggle selection
+                itemView.setOnClickListener(v -> {
+                    if (selected.contains(song)) {
                         selected.remove(song);
+                        iconCheck.setVisibility(View.GONE);
+                    } else {
+                        selected.add(song);
+                        iconCheck.setVisibility(View.VISIBLE);
                     }
                 });
             }

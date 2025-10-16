@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    app:cardCornerRadius="20dp"
+    app:cardElevation="8dp"
+    android:layout_margin="24dp">
+
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/light_card"
+        android:padding="24dp">
+
+        <!-- Header with Icon and Cancel Button -->
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_alignParentStart="true"
+                android:layout_centerVertical="true">
+
+                <FrameLayout
+                    android:id="@+id/icon_container"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="@drawable/circle_background_green">
+
+                    <ImageView
+                        android:id="@+id/dialog_icon"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_playlist"
+                        app:tint="@color/white" />
+                </FrameLayout>
+
+                <TextView
+                    android:id="@+id/dialog_title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Title"
+                    android:textStyle="bold"
+                    android:textSize="20sp"
+                    android:textColor="@color/text_primary"
+                    android:layout_marginStart="16dp" />
+            </LinearLayout>
+
+            <ImageButton
+                android:id="@+id/btnCancelDialog"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_close"
+                android:contentDescription="Cancel"
+                android:tint="@color/text_secondary" />
+
+        </RelativeLayout>
+
+        <!-- List of items -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerList"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:maxHeight="300dp"
+            android:scrollbars="vertical" />
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

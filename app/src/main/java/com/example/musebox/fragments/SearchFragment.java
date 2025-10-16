@@ -101,6 +101,7 @@ public class SearchFragment extends Fragment {
 
     private void setupRecyclerView() {
         adapter = new SongAdapter();
+        adapter.setDatabaseHelper(dbHelper); // Set database helper for favorite checking
         rvSearchResults.setLayoutManager(new LinearLayoutManager(requireContext()));
         rvSearchResults.setAdapter(adapter);
 
@@ -133,9 +134,12 @@ public class SearchFragment extends Fragment {
             }
 
             @Override
-            public void onAddToFavourite(Song song) {
+            public void onAddToFavourite(Song song, int position) {
                 SongActionUtils.toggleFavorite(requireContext(), song, dbHelper,
                         (s, isFavorite) -> {
+                            // Update only the specific item to refresh heart icon
+                            adapter.notifyItemChanged(position);
+
                             // Reload if we're filtering by favorites
                             if ("favorites".equals(currentFilter)) {
                                 loadSongs();

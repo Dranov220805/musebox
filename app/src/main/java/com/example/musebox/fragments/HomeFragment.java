@@ -15,7 +15,6 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
 import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -28,6 +27,7 @@ import com.example.musebox.database.SongDatabaseHelper;
 import com.example.musebox.models.Song;
 import com.example.musebox.utils.PlaylistDialogHelper;
 import com.example.musebox.utils.SongActionUtils;
+import com.example.musebox.utils.ThemedDialogUtils;
 import com.google.android.material.card.MaterialCardView;
 
 import java.io.File;
@@ -94,6 +94,7 @@ public class HomeFragment extends Fragment {
         LinearLayoutManager layoutManager = new LinearLayoutManager(requireContext());
         recyclerSongs.setLayoutManager(layoutManager);
         adapter = new SongAdapter(); // Using optimized adapter with DiffUtil
+        adapter.setDatabaseHelper(dbHelper); // Set database helper for favorite checking
         recyclerSongs.setAdapter(adapter);
 
         // Set the click listener for song items
@@ -119,9 +120,13 @@ public class HomeFragment extends Fragment {
             }
 
             @Override
-            public void onAddToFavourite(Song song) {
+            public void onAddToFavourite(Song song, int position) {
                 SongActionUtils.toggleFavorite(requireContext(), song, dbHelper,
-                        (s, isFavorite) -> loadFavorites());
+                        (s, isFavorite) -> {
+                            loadFavorites();
+                            // Refresh only the specific item to update the heart icon
+                            adapter.notifyItemChanged(position);
+                        });
             }
 
             @Override
@@ -154,31 +159,47 @@ public class HomeFragment extends Fragment {
             @Override
             public void onSongFileDeleted(Song song, int position) {
                 // Show a dialog asking if user wants to remove this song from the library
-                new AlertDialog.Builder(requireContext())
-                        .setTitle("Song File Not Found")
-                        .setMessage("The file for \"" + song.getTitle() + "\" was not found on your device. " +
-                                "It may have been moved or deleted. Do you want to remove it from your library?")
-                        .setPositiveButton("Remove", (dialog, which) -> {
-                            // Remove from database
-                            dbHelper.deleteSong(song.getId());
+                String message = "The file for \"" + song.getTitle() + "\" was not found on your device. " +
+                        "It may have been moved or deleted. What would you like to do?";
 
-                            // Remove from adapter
-                            adapter.removeSong(position);
+                String[] options = {
+                        "Remove from Library",
+                        "Keep in Library",
+                        "Refresh Library"
+                };
 
-                            // Update song count display
-                            updateSongCountDisplay();
+                ThemedDialogUtils.showListDialog(
+                        requireContext(),
+                        "Song File Not Found",
+                        options,
+                        -1, // No pre-selected item
+                        R.drawable.ic_warning,
+                        R.color.warning,
+                        (selectedIndex) -> {
+                            switch (selectedIndex) {
+                                case 0: // Remove from Library
+                                    // Remove from database
+                                    dbHelper.deleteSong(song.getId());
 
-                            Toast.makeText(requireContext(), "Removed from library", Toast.LENGTH_SHORT).show();
-                        })
-                        .setNegativeButton("Keep", (dialog, which) -> {
-                            // Do nothing - keep the song in the library even though file is missing
-                            dialog.dismiss();
-                        })
-                        .setNeutralButton("Refresh Library", (dialog, which) -> {
-                            // Trigger a full rescan of the music library
-                            checkPermissionAndScan();
-                        })
-                        .show();
+                                    // Remove from adapter
+                                    adapter.removeSong(position);
+
+                                    // Update song count display
+                                    updateSongCountDisplay();
+
+                                    Toast.makeText(requireContext(), "Removed from library", Toast.LENGTH_SHORT).show();
+                                    break;
+
+                                case 1: // Keep in Library
+                                    // Do nothing - keep the song in the library even though file is missing
+                                    break;
+
+                                case 2: // Refresh Library
+                                    // Trigger a full rescan of the music library
+                                    checkPermissionAndScan();
+                                    break;
+                            }
+                        });
             }
         });
 

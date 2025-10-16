@@ -280,22 +280,28 @@ public class SongActionUtils {
      */
     public static void showRemoveSongFromPlaylistDialog(Context context, Song song, String playlistId,
             PlaylistDatabaseHelper dbHelper, OnPlaylistSongRemovedListener onRemoved) {
-        new AlertDialog.Builder(context)
-                .setTitle("Remove Song")
-                .setMessage("Remove \"" + song.getTitle() + "\" from this playlist?")
-                .setPositiveButton("Remove", (dialog, which) -> {
-                    boolean removed = dbHelper.removeSongFromPlaylist(playlistId, song.getId());
-                    if (removed) {
-                        Toast.makeText(context, "Song removed", Toast.LENGTH_SHORT).show();
-                        if (onRemoved != null) {
-                            onRemoved.onSongRemoved(song);
+        ThemedDialogUtils.showSimpleDialog(
+                context,
+                "Remove Song",
+                "Remove \"" + song.getTitle() + "\" from this playlist?",
+                R.drawable.ic_delete,
+                android.R.color.holo_red_dark,
+                "Remove",
+                "Cancel",
+                new ThemedDialogUtils.OnDialogClickListener() {
+                    @Override
+                    public void onPositiveClick() {
+                        boolean removed = dbHelper.removeSongFromPlaylist(playlistId, song.getId());
+                        if (removed) {
+                            Toast.makeText(context, "Song removed", Toast.LENGTH_SHORT).show();
+                            if (onRemoved != null) {
+                                onRemoved.onSongRemoved(song);
+                            }
+                        } else {
+                            Toast.makeText(context, "Failed to remove song", Toast.LENGTH_SHORT).show();
                         }
-                    } else {
-                        Toast.makeText(context, "Failed to remove song", Toast.LENGTH_SHORT).show();
                     }
-                })
-                .setNegativeButton("Cancel", null)
-                .show();
+                });
     }
 
     // ==================== QUEUE OPERATIONS ====================

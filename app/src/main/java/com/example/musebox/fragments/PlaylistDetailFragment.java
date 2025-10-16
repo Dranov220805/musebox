@@ -11,6 +11,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.PopupMenu;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -278,6 +279,7 @@ public class PlaylistDetailFragment extends Fragment {
 
         // Initialize adapter with songs
         songAdapter = new SongAdapter();
+        songAdapter.setDatabaseHelper(songDbHelper); // Set database helper for favorite checking
         songAdapter.setSongs(songs);
         songAdapter.setCustomMenuResource(R.menu.menu_playlist_song_options); // Use playlist-specific menu
         recyclerSongs.setLayoutManager(new LinearLayoutManager(requireContext()));
@@ -324,9 +326,13 @@ public class PlaylistDetailFragment extends Fragment {
             }
 
             @Override
-            public void onAddToFavourite(Song song) {
+            public void onAddToFavourite(Song song, int position) {
                 // Toggle favorite status
-                SongActionUtils.toggleFavorite(requireContext(), song, songDbHelper, null);
+                SongActionUtils.toggleFavorite(requireContext(), song, songDbHelper,
+                        (s, isFavorite) -> {
+                            // Update only the specific item to refresh heart icon
+                            songAdapter.notifyItemChanged(position);
+                        });
             }
 
             @Override
@@ -373,13 +379,32 @@ public class PlaylistDetailFragment extends Fragment {
             Song song = songs.get(position);
             holder.tvTitle.setText(song.getTitle());
             holder.tvArtist.setText(song.getArtist());
-            holder.checkBox.setOnCheckedChangeListener(null);
-            holder.checkBox.setChecked(selectedSongs.contains(song));
-            holder.checkBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-                if (isChecked) {
-                    selectedSongs.add(song);
-                } else {
+            
+            // Load album cover
+            String albumCoverPath = song.getAlbumCoverPath();
+            if (albumCoverPath != null && !albumCoverPath.isEmpty()) {
+                com.bumptech.glide.Glide.with(holder.itemView.getContext())
+                        .load(albumCoverPath)
+                        .placeholder(R.drawable.ic_music_note)
+                        .error(R.drawable.ic_music_note)
+                        .centerCrop()
+                        .into(holder.ivAlbumCover);
+            } else {
+                holder.ivAlbumCover.setImageResource(R.drawable.ic_music_note);
+            }
+            
+            // Update check icon visibility
+            boolean isSelected = selectedSongs.contains(song);
+            holder.iconCheck.setVisibility(isSelected ? View.VISIBLE : View.GONE);
+            
+            // Handle entire item click to toggle selection
+            holder.itemView.setOnClickListener(v -> {
+                if (selectedSongs.contains(song)) {
                     selectedSongs.remove(song);
+                    holder.iconCheck.setVisibility(View.GONE);
+                } else {
+                    selectedSongs.add(song);
+                    holder.iconCheck.setVisibility(View.VISIBLE);
                 }
             });
         }
@@ -390,12 +415,13 @@ public class PlaylistDetailFragment extends Fragment {
         }
 
         class ViewHolder extends RecyclerView.ViewHolder {
-            android.widget.CheckBox checkBox;
+            ImageView ivAlbumCover, iconCheck;
             TextView tvTitle, tvArtist;
 
             ViewHolder(View itemView) {
                 super(itemView);
-                checkBox = itemView.findViewById(R.id.cbSelectSong);
+                ivAlbumCover = itemView.findViewById(R.id.ivAlbumCover);
+                iconCheck = itemView.findViewById(R.id.iconCheck);
                 tvTitle = itemView.findViewById(R.id.tvTitle);
                 tvArtist = itemView.findViewById(R.id.tvArtist);
             }

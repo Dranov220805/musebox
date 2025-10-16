@@ -5,6 +5,35 @@
     android:orientation="vertical"
     android:padding="24dp">
 
+    <!-- Header with Title and Cancel Button -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Create Playlist"
+            android:textStyle="bold"
+            android:textSize="20sp"
+            android:textColor="@color/spotify_green"
+            android:layout_centerVertical="true"
+            android:layout_alignParentStart="true" />
+
+        <ImageButton
+            android:id="@+id/btnCancelDialog"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_close"
+            android:contentDescription="Cancel"
+            android:tint="@color/text_secondary" />
+
+    </RelativeLayout>
+
     <EditText
         android:id="@+id/etPlaylistName"
         android:layout_width="match_parent"

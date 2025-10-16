@@ -40,45 +40,46 @@ public class PlaylistDialogHelper {
             return;
         }
 
-        // Create dialog
-        AlertDialog.Builder builder = new AlertDialog.Builder(context);
-        builder.setTitle("Add to Playlist");
-
         // Create list of playlist names
         String[] playlistNames = new String[playlists.size()];
         for (int i = 0; i < playlists.size(); i++) {
             playlistNames[i] = playlists.get(i).getName();
         }
 
-        builder.setItems(playlistNames, (dialog, which) -> {
-            Playlist selectedPlaylist = playlists.get(which);
+        // Use ThemedDialogUtils for list dialog
+        ThemedDialogUtils.showListDialog(
+                context,
+                "Add to Playlist",
+                playlistNames,
+                -1, // No pre-selected item
+                R.drawable.ic_playlist,
+                R.color.spotify_green,
+                (position) -> {
+                    Playlist selectedPlaylist = playlists.get(position);
 
-            // Add song to selected playlist
-            boolean success = dbHelper.addSongToPlaylist(selectedPlaylist.getId(), song);
+                    // Add song to selected playlist
+                    boolean success = dbHelper.addSongToPlaylist(selectedPlaylist.getId(), song);
 
-            if (success) {
-                Toast.makeText(context, "Added to " + selectedPlaylist.getName(), Toast.LENGTH_SHORT).show();
-                if (listener != null) {
-                    listener.onPlaylistSelected(selectedPlaylist, song);
-                }
-            } else {
-                Toast.makeText(context, "Song already in playlist or failed to add", Toast.LENGTH_SHORT).show();
-            }
-        });
-
-        builder.setNegativeButton("Cancel", null);
-        builder.show();
+                    if (success) {
+                        Toast.makeText(context, "Added to " + selectedPlaylist.getName(), Toast.LENGTH_SHORT).show();
+                        if (listener != null) {
+                            listener.onPlaylistSelected(selectedPlaylist, song);
+                        }
+                    } else {
+                        Toast.makeText(context, "Song already in playlist or failed to add", Toast.LENGTH_SHORT).show();
+                    }
+                });
     }
 
     /**
      * Show dialog when there are no playlists available
      */
     private static void showNoPlaylistsDialog(Context context) {
-        new AlertDialog.Builder(context)
-                .setTitle("No Playlists")
-                .setMessage("You don't have any playlists yet. Create a playlist first from the Playlist tab.")
-                .setPositiveButton("OK", null)
-                .show();
+        ThemedDialogUtils.showInfoDialog(
+                context,
+                "No Playlists",
+                "You don't have any playlists yet. Create a playlist first from the Playlist tab.",
+                null);
     }
 
     /**
@@ -86,17 +87,22 @@ public class PlaylistDialogHelper {
      */
     public static void showDeletePlaylistDialog(Context context, Playlist playlist,
             OnDeleteConfirmedListener listener) {
-        new AlertDialog.Builder(context)
-                .setTitle("Delete Playlist")
-                .setMessage(
-                        "Are you sure you want to delete \"" + playlist.getName() + "\"? This action cannot be undone.")
-                .setPositiveButton("Delete", (dialog, which) -> {
-                    if (listener != null) {
-                        listener.onDeleteConfirmed(playlist);
+        ThemedDialogUtils.showSimpleDialog(
+                context,
+                "Delete Playlist",
+                "Are you sure you want to delete \"" + playlist.getName() + "\"? This action cannot be undone.",
+                R.drawable.ic_delete_sweep,
+                android.R.color.holo_red_dark,
+                "Delete",
+                "Cancel",
+                new ThemedDialogUtils.OnDialogClickListener() {
+                    @Override
+                    public void onPositiveClick() {
+                        if (listener != null) {
+                            listener.onDeleteConfirmed(playlist);
+                        }
                     }
-                })
-                .setNegativeButton("Cancel", null)
-                .show();
+                });
     }
 
     /**

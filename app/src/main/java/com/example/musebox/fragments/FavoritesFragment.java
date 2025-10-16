@@ -88,6 +88,7 @@ public class FavoritesFragment extends Fragment {
         // Setup RecyclerView
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         adapter = new SongAdapter();
+        adapter.setDatabaseHelper(dbHelper); // Set database helper for favorite checking
         adapter.setOnSongClickListener(this::onSongClicked);
         adapter.setMenuActionOverride((song, position) -> {
             // Override menu to show "Remove from Favorites" instead of "Delete Song"

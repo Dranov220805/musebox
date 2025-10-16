@@ -82,6 +82,17 @@
             </LinearLayout>
         </LinearLayout>
 
+        <!-- Favorite Heart Icon -->
+        <ImageView
+            android:id="@+id/ivFavoriteHeart"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginEnd="8dp"
+            android:src="@drawable/ic_heart_filled"
+            android:visibility="gone"
+            app:tint="@color/favorite_red"
+            android:contentDescription="Favorite" />
+
         <!-- Menu Button -->
         <ImageButton
             android:id="@+id/btnMenu"
