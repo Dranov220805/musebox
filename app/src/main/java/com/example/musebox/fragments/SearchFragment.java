@@ -105,13 +105,13 @@ public class SearchFragment extends Fragment {
         rvSearchResults.setLayoutManager(new LinearLayoutManager(requireContext()));
         rvSearchResults.setAdapter(adapter);
 
-        // Handle song click - add to queue and show player
+        // Handle song click - play song immediately while keeping current queue
         adapter.setOnSongClickListener(song -> {
             if (getActivity() instanceof HomeActivity) {
                 HomeActivity homeActivity = (HomeActivity) getActivity();
 
-                // Add the song to the queue (this will start playing if nothing is playing)
-                homeActivity.addSongToQueue(song);
+                // Play the song now while keeping the current queue
+                homeActivity.playNowKeepQueue(song);
 
                 // Open FullPlayerActivity to show the player
                 Intent intent = new Intent(requireContext(), FullPlayerActivity.class);

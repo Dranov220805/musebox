@@ -32,8 +32,8 @@
                 android:padding="4dp">
 
                 <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
                     android:layout_gravity="center_vertical"
                     android:layout_marginStart="8dp"
                     android:src="@android:drawable/ic_menu_search"
@@ -50,7 +50,7 @@
                     android:hint="Search songs, artists..."
                     android:textColor="@android:color/white"
                     android:textColorHint="@color/spotify_light_gray"
-                    android:textSize="14sp"
+                    android:textSize="20sp"
                     android:inputType="text"
                     android:maxLines="1"
                     android:imeOptions="actionSearch" />

@@ -621,6 +621,70 @@ public class HomeActivity extends AppCompatActivity
         }
     }
 
+    // Storage for queue restoration after playing a searched song
+    private List<Song> savedQueue = null;
+    private int savedQueueIndex = -1;
+    private boolean shouldRestoreQueue = false;
+
+    /**
+     * Play a song immediately, then restore and continue the original queue.
+     * The song plays as a temporary interruption without modifying the queue.
+     */
+    public void playNowKeepQueue(Song song) {
+        if (musicService != null && song != null) {
+            List<Song> currentQueue = musicService.getPlaylist();
+            int currentIndex = musicService.getCurrentSongIndex();
+            
+            if (!currentQueue.isEmpty()) {
+                // Save the current queue and position to restore later
+                savedQueue = new ArrayList<>(currentQueue);
+                savedQueueIndex = currentIndex;
+                shouldRestoreQueue = true;
+                
+                android.util.Log.d("HomeActivity", "Saved queue: " + savedQueue.size() + 
+                    " songs, index: " + savedQueueIndex);
+            }
+            
+            // Create a temporary playlist with the searched song followed by the original queue
+            List<Song> tempPlaylist = new ArrayList<>();
+            tempPlaylist.add(song); // Add searched song first
+            
+            if (!currentQueue.isEmpty()) {
+                // Add remaining songs from current position onwards
+                for (int i = currentIndex; i < currentQueue.size(); i++) {
+                    tempPlaylist.add(currentQueue.get(i));
+                }
+            }
+            
+            // Set the temporary playlist and play from the beginning (the searched song)
+            musicService.setPlaylist(tempPlaylist, 0);
+            Uri songUri = Uri.parse(song.getUri());
+            musicService.playSong(songUri, song.getTitle(), song.getArtist());
+            
+            // Show mini player
+            miniPlayer.setVisibility(View.VISIBLE);
+            
+            // Reset circular progress
+            circularProgress.setProgress(0);
+            
+            // Update mini player UI
+            tvSongTitle.setText(song.getTitle());
+            tvArtistName.setText(song.getArtist());
+            btnPlayPause.setImageResource(R.drawable.ic_pause);
+            
+            // Start progress updates
+            progressHandler.post(progressRunnable);
+            
+            // Update fragments
+            updateMiniPlayer();
+            refreshCurrentFragment();
+            
+            Toast.makeText(this, "Playing: " + song.getTitle(), Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(this, "Music service not available", Toast.LENGTH_SHORT).show();
+        }
+    }
+
     // Method to toggle favorite status and sync with UI
     public void toggleFavorite(Song song) {
         if (song == null)
