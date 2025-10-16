@@ -40,7 +40,7 @@ public class FullPlayerActivity extends AppCompatActivity {
 
     private AudioManager audioManager;
     private boolean isMuted = false;
-    private int lastVolumeLevel = 70;
+    private int lastVolumeLevel = -1; // -1 means not yet initialized
     private float currentPlaybackSpeed = 1.0f;
     private BroadcastReceiver volumeReceiver;
 
@@ -341,6 +341,11 @@ public class FullPlayerActivity extends AppCompatActivity {
         if (currentVolume == 0) {
             btnVolumeToggle.setImageResource(R.drawable.ic_volume_off);
             isMuted = true;
+            // If lastVolumeLevel hasn't been initialized yet (user started with volume 0),
+            // set it to a minimal non-zero value (5% of max) for unmuting
+            if (lastVolumeLevel == -1) {
+                lastVolumeLevel = Math.max(1, maxVolume / 20); // 5% of max volume, minimum 1
+            }
         } else {
             btnVolumeToggle.setImageResource(R.drawable.ic_volume_up);
             isMuted = false;
@@ -406,6 +411,12 @@ public class FullPlayerActivity extends AppCompatActivity {
     private void toggleMute() {
         if (isMuted) {
             // Unmute - restore previous volume
+            // If lastVolumeLevel is still -1 (shouldn't happen but safety check),
+            // use a minimal non-zero value (5% of max volume)
+            if (lastVolumeLevel == -1) {
+                int maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+                lastVolumeLevel = Math.max(1, maxVolume / 20); // 5% of max volume, minimum 1
+            }
             audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, lastVolumeLevel, 0);
         } else {
             // Mute - save current volume and set to 0
