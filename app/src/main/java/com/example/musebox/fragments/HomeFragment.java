@@ -1,16 +1,10 @@
 package com.example.musebox.fragments;
 
 import android.Manifest;
-import android.content.ContentResolver;
-import android.content.ContentUris;
 import android.content.Context;
-import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.database.Cursor;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.provider.MediaStore;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -36,7 +30,6 @@ import com.example.musebox.utils.PlaylistDialogHelper;
 import com.google.android.material.card.MaterialCardView;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.List;
 
 public class HomeFragment extends Fragment {
