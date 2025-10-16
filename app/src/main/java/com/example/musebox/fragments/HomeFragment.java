@@ -27,6 +27,7 @@ import com.example.musebox.adapters.SongAdapter;
 import com.example.musebox.database.SongDatabaseHelper;
 import com.example.musebox.models.Song;
 import com.example.musebox.utils.PlaylistDialogHelper;
+import com.example.musebox.utils.SongActionUtils;
 import com.google.android.material.card.MaterialCardView;
 
 import java.io.File;
@@ -108,13 +109,19 @@ public class HomeFragment extends Fragment {
             @Override
             public void onAddToQueue(Song song) {
                 if (getActivity() instanceof com.example.musebox.activities.HomeActivity) {
-                    ((com.example.musebox.activities.HomeActivity) getActivity()).addSongToQueue(song);
+                    HomeActivity activity = (HomeActivity) getActivity();
+                    if (activity.isMusicServiceBound()) {
+                        SongActionUtils.addToQueue(requireContext(), song, activity.getMusicService());
+                    } else {
+                        Toast.makeText(requireContext(), "Music service not available", Toast.LENGTH_SHORT).show();
+                    }
                 }
             }
 
             @Override
             public void onAddToFavourite(Song song) {
-                toggleFavorite(song);
+                SongActionUtils.toggleFavorite(requireContext(), song, dbHelper,
+                        (s, isFavorite) -> loadFavorites());
             }
 
             @Override
@@ -125,7 +132,20 @@ public class HomeFragment extends Fragment {
 
             @Override
             public void onDeleteSong(Song song, int position) {
-                showDeleteConfirmationDialog(song, position);
+                SongActionUtils.showDeleteConfirmationDialog(requireContext(), song, position,
+                        new SongActionUtils.OnSongDeleteListener() {
+                            @Override
+                            public void onDeleteFromDevice(Song song, int position) {
+                                SongActionUtils.deleteSongFromDevice(requireContext(), song, dbHelper,
+                                        (deletedSong, success) -> loadSongsFromDatabase());
+                            }
+
+                            @Override
+                            public void onDeleteFromLibrary(Song song, int position) {
+                                SongActionUtils.deleteSongFromLibrary(requireContext(), song, dbHelper,
+                                        (deletedSong, success) -> loadSongsFromDatabase());
+                            }
+                        });
             }
         });
 
@@ -263,159 +283,6 @@ public class HomeFragment extends Fragment {
                 favoritesCard.setVisibility(View.VISIBLE);
                 String countText = favCount + " favorite" + (favCount != 1 ? "s" : "");
                 tvFavoritesCount.setText(countText);
-            });
-        }).start();
-    }
-
-    private void toggleFavorite(Song song) {
-        new Thread(() -> {
-            boolean isFavorite = dbHelper.toggleFavorite(song.getId());
-            song.setFavorite(isFavorite);
-
-            requireActivity().runOnUiThread(() -> {
-                String message = isFavorite ? "Added \"" + song.getTitle() + "\" to favorites"
-                        : "Removed \"" + song.getTitle() + "\" from favorites";
-                Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
-
-                // Reload favorites section
-                loadFavorites();
-            });
-        }).start();
-    }
-
-    private void showDeleteConfirmationDialog(Song song, int position) {
-        if (getContext() == null)
-            return;
-
-        // Inflate custom dialog layout
-        View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_remove_song, null);
-
-        AlertDialog dialog = new AlertDialog.Builder(getContext())
-                .setView(dialogView)
-                .create();
-
-        // Make dialog background transparent for rounded corners
-        if (dialog.getWindow() != null) {
-            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
-        }
-
-        // Set song title
-        TextView tvSongTitle = dialogView.findViewById(R.id.tvSongTitle);
-        tvSongTitle.setText(song.getTitle());
-
-        // Setup click listeners
-        dialogView.findViewById(R.id.btn_remove_device).setOnClickListener(v -> {
-            dialog.dismiss();
-            deleteSongFromDevice(song, position);
-        });
-
-        dialogView.findViewById(R.id.btn_remove_library).setOnClickListener(v -> {
-            dialog.dismiss();
-            deleteSongFromLibrary(song, position);
-        });
-
-        dialogView.findViewById(R.id.btn_cancel).setOnClickListener(v -> dialog.dismiss());
-
-        dialog.show();
-    }
-
-    private void deleteSongFromDevice(Song song, int position) {
-        new Thread(() -> {
-            boolean fileDeleted = false;
-            boolean dbDeleted = false;
-            String errorMessage = null;
-
-            try {
-                // First, try to delete the physical file
-                File file = new File(song.getUri());
-                if (file.exists()) {
-                    fileDeleted = file.delete();
-                    if (!fileDeleted) {
-                        errorMessage = "Failed to delete file. Check permissions or file may be in use.";
-                    }
-                } else {
-                    // File doesn't exist - maybe already deleted manually
-                    fileDeleted = true;
-                    errorMessage = "File not found on device";
-                }
-
-                // Always remove from database regardless of file deletion result
-                dbHelper.deleteSong(song.getId());
-                dbDeleted = true; // Assume success unless exception is thrown
-
-            } catch (Exception e) {
-                errorMessage = "Error: " + e.getMessage();
-                // Still try to remove from database even if file deletion failed
-                try {
-                    dbHelper.deleteSong(song.getId());
-                    dbDeleted = true;
-                } catch (Exception dbEx) {
-                    errorMessage += " | Database error: " + dbEx.getMessage();
-                    dbDeleted = false;
-                }
-            }
-
-            // Get updated count after database operation
-            int totalCount = dbHelper.getSongCount();
-
-            boolean finalFileDeleted = fileDeleted;
-            boolean finalDbDeleted = dbDeleted;
-            String finalErrorMessage = errorMessage;
-
-            requireActivity().runOnUiThread(() -> {
-                if (finalDbDeleted) {
-                    // Reload the entire song list to ensure correct positions
-                    loadSongsFromDatabase();
-
-                    // Show appropriate message
-                    String message;
-                    if (finalFileDeleted && finalErrorMessage == null) {
-                        message = "Successfully deleted \"" + song.getTitle() + "\" from device";
-                    } else if (finalFileDeleted) {
-                        message = "Deleted \"" + song.getTitle() + "\" (" + finalErrorMessage + ")";
-                    } else {
-                        message = "Removed from library only. " + finalErrorMessage;
-                    }
-                    Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show();
-                } else {
-                    Toast.makeText(requireContext(), "Failed to remove from database: " + finalErrorMessage,
-                            Toast.LENGTH_SHORT).show();
-                }
-            });
-        }).start();
-    }
-
-    private void deleteSongFromLibrary(Song song, int position) {
-        new Thread(() -> {
-            boolean success = false;
-            String errorMessage = null;
-
-            try {
-                // Only remove from database, keep the file on device
-                dbHelper.deleteSong(song.getId());
-                success = true; // Assume success unless exception is thrown
-            } catch (Exception e) {
-                errorMessage = "Database error: " + e.getMessage();
-                success = false;
-            }
-
-            // Get updated count after database operation
-            int totalCount = dbHelper.getSongCount();
-
-            boolean finalSuccess = success;
-            String finalErrorMessage = errorMessage;
-
-            requireActivity().runOnUiThread(() -> {
-                if (finalSuccess) {
-                    // Reload the entire song list to ensure correct positions
-                    loadSongsFromDatabase();
-
-                    Toast.makeText(requireContext(),
-                            "Removed \"" + song.getTitle() + "\" from library (file kept on device)",
-                            Toast.LENGTH_SHORT).show();
-                } else {
-                    Toast.makeText(requireContext(), finalErrorMessage, Toast.LENGTH_SHORT).show();
-                }
             });
         }).start();
     }

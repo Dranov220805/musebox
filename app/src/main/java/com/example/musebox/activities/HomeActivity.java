@@ -277,9 +277,6 @@ public class HomeActivity extends AppCompatActivity
 
         dbHelper = new SongDatabaseHelper(this);
 
-        // Check for songs without album art and offer to update them
-        checkAndOfferAlbumArtUpdate();
-
         if (savedInstanceState == null) {
             getSupportFragmentManager().beginTransaction()
                     .replace(R.id.content_container, new HomeFragment())
@@ -683,11 +680,6 @@ public class HomeActivity extends AppCompatActivity
     public void onImportMusicSelected(Uri folderUri) {
         // Check permissions first, just like HomeFragment does
         checkPermissionAndImport(folderUri);
-    }
-
-    @Override
-    public void onUpdateAlbumArtSelected() {
-        updateExistingSongsWithAlbumArt();
     }
 
     private void checkPermissionAndImport(Uri folderUri) {
@@ -1222,160 +1214,6 @@ public class HomeActivity extends AppCompatActivity
     // onSongSelected() is already implemented for
     // HomeFragment.OnSongSelectedListener
     // addSongToQueue() is already implemented as a public method above
-
-    /**
-     * Update existing songs in database with extracted embedded album art
-     * This method scans all existing songs and extracts/saves their embedded album
-     * art
-     */
-    public void updateExistingSongsWithAlbumArt() {
-        Toast.makeText(this, "Updating album art for existing songs...", Toast.LENGTH_SHORT).show();
-
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setCancelable(false);
-
-        final View progressView = getLayoutInflater().inflate(R.layout.dialog_import_progress, null);
-        builder.setView(progressView);
-
-        AlertDialog dialog = builder.create();
-
-        // Set transparent background to remove white background behind CardView
-        if (dialog.getWindow() != null) {
-            dialog.getWindow().setBackgroundDrawable(
-                    new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT));
-        }
-
-        dialog.show();
-
-        ProgressBar progressBar = progressView.findViewById(R.id.progressBar);
-        TextView textStatus = progressView.findViewById(R.id.textStatus);
-        TextView textCount = progressView.findViewById(R.id.textCount);
-
-        new Thread(() -> {
-            SongDatabaseHelper dbHelper = new SongDatabaseHelper(this);
-            List<Song> allSongs = dbHelper.getAllSongs();
-            int total = allSongs.size();
-            int processed = 0;
-            int updated = 0;
-
-            runOnUiThread(() -> {
-                progressBar.setMax(total);
-                textStatus.setText("Checking songs for album art...");
-                textCount.setText("0 / " + total);
-            });
-
-            for (Song song : allSongs) {
-                // Skip songs that already have saved album art
-                if (song.getAlbumCoverPath() != null && !song.getAlbumCoverPath().isEmpty()) {
-                    processed++;
-                    continue;
-                }
-
-                try {
-                    Uri audioUri = Uri.parse(song.getUri());
-                    android.media.MediaMetadataRetriever retriever = new android.media.MediaMetadataRetriever();
-                    retriever.setDataSource(this, audioUri);
-                    byte[] art = retriever.getEmbeddedPicture();
-
-                    if (art != null) {
-                        android.util.Log.d("AlbumArtUpdate", "✓ FOUND embedded art in: " + song.getTitle());
-
-                        // Save embedded art to storage
-                        String albumArtPath = saveEmbeddedAlbumArt(art, song.getTitle(), song.getArtist());
-                        if (albumArtPath != null) {
-                            // Update song in database with album art path
-                            song.setAlbumCoverPath(albumArtPath);
-                            dbHelper.updateSong(song);
-                            updated++;
-                            android.util.Log.d("AlbumArtUpdate", "✓ SAVED album art for: " + song.getTitle());
-                        }
-                    }
-
-                    retriever.release();
-                } catch (Exception e) {
-                    android.util.Log.w("AlbumArtUpdate",
-                            "Failed to extract art for: " + song.getTitle() + " - " + e.getMessage());
-                }
-
-                processed++;
-                final int finalProcessed = processed;
-                final int finalUpdated = updated;
-                runOnUiThread(() -> {
-                    textStatus.setText("Processing: " + song.getTitle());
-                    textCount.setText(finalProcessed + " / " + total + " (" + finalUpdated + " updated)");
-                    progressBar.setProgress(finalProcessed);
-                });
-            }
-
-            final int finalUpdated = updated;
-            runOnUiThread(() -> {
-                dialog.dismiss();
-                Toast.makeText(this, "Updated " + finalUpdated + " songs with album art!", Toast.LENGTH_LONG).show();
-
-                // Refresh the home fragment to show updated album art
-                refreshHomeFragment();
-            });
-        }).start();
-    }
-
-    /**
-     * Check if there are songs without album art and offer to update them
-     * automatically
-     */
-    private void checkAndOfferAlbumArtUpdate() {
-        new Thread(() -> {
-            SongDatabaseHelper dbHelper = new SongDatabaseHelper(this);
-            List<Song> allSongs = dbHelper.getAllSongs();
-
-            // Count songs without album art
-            int songsWithoutArt = 0;
-            for (Song song : allSongs) {
-                if (song.getAlbumCoverPath() == null || song.getAlbumCoverPath().isEmpty()) {
-                    songsWithoutArt++;
-                }
-            }
-
-            final int finalCount = songsWithoutArt;
-
-            // Only show dialog if there are songs without album art
-            if (finalCount > 0) {
-                runOnUiThread(() -> {
-                    showAlbumArtUpdateDialog(finalCount);
-                });
-            }
-        }).start();
-    }
-
-    /**
-     * Show dialog offering to update album art for songs that don't have it
-     */
-    private void showAlbumArtUpdateDialog(int songsWithoutArt) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Album Art Missing");
-        builder.setMessage("Found " + songsWithoutArt
-                + " songs without album art. Would you like to extract album art from these songs now?\n\nThis will scan your music files for embedded album artwork.");
-
-        builder.setPositiveButton("Update Now", (dialog, which) -> {
-            updateExistingSongsWithAlbumArt();
-        });
-
-        builder.setNegativeButton("Later", (dialog, which) -> {
-            dialog.dismiss();
-        });
-
-        builder.setNeutralButton("Don't Ask Again", (dialog, which) -> {
-            // Save preference to not ask again
-            android.content.SharedPreferences prefs = getSharedPreferences("musebox_prefs", MODE_PRIVATE);
-            prefs.edit().putBoolean("album_art_check_disabled", true).apply();
-            dialog.dismiss();
-        });
-
-        // Only show if user hasn't disabled this check
-        android.content.SharedPreferences prefs = getSharedPreferences("musebox_prefs", MODE_PRIVATE);
-        if (!prefs.getBoolean("album_art_check_disabled", false)) {
-            builder.show();
-        }
-    }
 
     /**
      * Load album art for mini player asynchronously using Glide with caching.

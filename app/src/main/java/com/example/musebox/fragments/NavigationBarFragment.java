@@ -24,8 +24,6 @@ public class NavigationBarFragment extends Fragment {
         void onCreatePlaylistSelected();
 
         void onImportMusicSelected(Uri folderUri);
-
-        void onUpdateAlbumArtSelected();
     }
 
     private OnNavigationItemSelectedListener listener;
@@ -158,12 +156,6 @@ public class NavigationBarFragment extends Fragment {
             // Directly call import with null URI since MediaStore scans all device music
             if (listener != null)
                 listener.onImportMusicSelected(null);
-        });
-
-        dialogView.findViewById(R.id.btn_update_album_art).setOnClickListener(v -> {
-            dialog.dismiss();
-            if (listener != null)
-                listener.onUpdateAlbumArtSelected();
         });
 
         dialog.show();

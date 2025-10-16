@@ -31,6 +31,7 @@ import com.example.musebox.adapters.SongAdapter;
 import com.example.musebox.database.SongDatabaseHelper;
 import com.example.musebox.models.Song;
 import com.example.musebox.utils.PlaylistDialogHelper;
+import com.example.musebox.utils.SongActionUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -122,22 +123,24 @@ public class SearchFragment extends Fragment {
             @Override
             public void onAddToQueue(Song song) {
                 if (getActivity() instanceof HomeActivity) {
-                    ((HomeActivity) getActivity()).addSongToQueue(song);
+                    HomeActivity activity = (HomeActivity) getActivity();
+                    if (activity.isMusicServiceBound()) {
+                        SongActionUtils.addToQueue(requireContext(), song, activity.getMusicService());
+                    } else {
+                        Toast.makeText(requireContext(), "Music service not available", Toast.LENGTH_SHORT).show();
+                    }
                 }
             }
 
             @Override
             public void onAddToFavourite(Song song) {
-                boolean isFavorite = dbHelper.toggleFavorite(song.getId());
-                song.setFavorite(isFavorite);
-
-                String message = isFavorite ? "Added to favorites" : "Removed from favorites";
-                Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
-
-                // Reload if we're filtering by favorites
-                if ("favorites".equals(currentFilter)) {
-                    loadSongs();
-                }
+                SongActionUtils.toggleFavorite(requireContext(), song, dbHelper,
+                        (s, isFavorite) -> {
+                            // Reload if we're filtering by favorites
+                            if ("favorites".equals(currentFilter)) {
+                                loadSongs();
+                            }
+                        });
             }
 
             @Override
@@ -148,16 +151,20 @@ public class SearchFragment extends Fragment {
 
             @Override
             public void onDeleteSong(Song song, int position) {
-                new AlertDialog.Builder(requireContext())
-                        .setTitle("Delete Song")
-                        .setMessage("Remove \"" + song.getTitle() + "\" from library?")
-                        .setPositiveButton("Delete", (dialog, which) -> {
-                            dbHelper.deleteSong(song.getId());
-                            Toast.makeText(requireContext(), "Song deleted", Toast.LENGTH_SHORT).show();
-                            loadSongs(); // Reload the list
-                        })
-                        .setNegativeButton("Cancel", null)
-                        .show();
+                SongActionUtils.showDeleteConfirmationDialog(requireContext(), song, position,
+                        new SongActionUtils.OnSongDeleteListener() {
+                            @Override
+                            public void onDeleteFromDevice(Song song, int position) {
+                                SongActionUtils.deleteSongFromDevice(requireContext(), song, dbHelper,
+                                        (deletedSong, success) -> loadSongs());
+                            }
+
+                            @Override
+                            public void onDeleteFromLibrary(Song song, int position) {
+                                SongActionUtils.deleteSongFromLibrary(requireContext(), song, dbHelper,
+                                        (deletedSong, success) -> loadSongs());
+                            }
+                        });
             }
         });
 

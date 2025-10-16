@@ -30,6 +30,7 @@ import com.example.musebox.models.Playlist;
 import com.example.musebox.models.Song;
 import com.example.musebox.services.MusicService;
 import com.example.musebox.utils.PlaylistDialogHelper;
+import com.example.musebox.utils.SongActionUtils;
 
 import java.util.List;
 
@@ -316,8 +317,7 @@ public class PlaylistDetailFragment extends Fragment {
             public void onAddToQueue(Song song) {
                 // Add to queue
                 if (serviceBound && musicService != null) {
-                    musicService.addToQueue(song);
-                    Toast.makeText(requireContext(), "Added to queue", Toast.LENGTH_SHORT).show();
+                    SongActionUtils.addToQueue(requireContext(), song, musicService);
                 } else {
                     Toast.makeText(requireContext(), "Music service not available", Toast.LENGTH_SHORT).show();
                 }
@@ -326,14 +326,7 @@ public class PlaylistDetailFragment extends Fragment {
             @Override
             public void onAddToFavourite(Song song) {
                 // Toggle favorite status
-                boolean isFavorite = songDbHelper.isFavorite(song.getId());
-                if (isFavorite) {
-                    songDbHelper.removeFromFavorites(song.getId());
-                    Toast.makeText(requireContext(), "Removed from favorites", Toast.LENGTH_SHORT).show();
-                } else {
-                    songDbHelper.addToFavorites(song.getId());
-                    Toast.makeText(requireContext(), "Added to favorites", Toast.LENGTH_SHORT).show();
-                }
+                SongActionUtils.toggleFavorite(requireContext(), song, songDbHelper, null);
             }
 
             @Override
@@ -349,26 +342,10 @@ public class PlaylistDetailFragment extends Fragment {
             @Override
             public void onDeleteSong(Song song, int position) {
                 // Remove from THIS playlist
-                showRemoveSongDialog(song, position);
+                SongActionUtils.showRemoveSongFromPlaylistDialog(requireContext(), song,
+                        playlistId, dbHelper, (removedSong) -> loadPlaylist());
             }
         });
-    }
-
-    private void showRemoveSongDialog(Song song, int position) {
-        new androidx.appcompat.app.AlertDialog.Builder(requireContext())
-                .setTitle("Remove Song")
-                .setMessage("Remove \"" + song.getTitle() + "\" from this playlist?")
-                .setPositiveButton("Remove", (dialog, which) -> {
-                    boolean removed = dbHelper.removeSongFromPlaylist(playlistId, song.getId());
-                    if (removed) {
-                        Toast.makeText(requireContext(), "Song removed", Toast.LENGTH_SHORT).show();
-                        loadPlaylist(); // Reload the playlist
-                    } else {
-                        Toast.makeText(requireContext(), "Failed to remove song", Toast.LENGTH_SHORT).show();
-                    }
-                })
-                .setNegativeButton("Cancel", null)
-                .show();
     }
 
     // Inner adapter for song selection with checkboxes
