@@ -30,7 +30,15 @@ import com.example.musebox.utils.SongActionUtils;
 import com.example.musebox.utils.ThemedDialogUtils;
 import com.google.android.material.card.MaterialCardView;
 
+import android.app.AlertDialog;
+import android.widget.RadioGroup;
+import android.widget.RadioButton;
+import com.example.musebox.adapters.ArtistFilterAdapter;
+
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 public class HomeFragment extends Fragment {
@@ -46,6 +54,8 @@ public class HomeFragment extends Fragment {
     private LinearLayout emptyView;
     private View scrollContent;
     private Button btnImport;
+    private Button btnSort;
+    private Button btnFilter;
     private TextView tvSongCount;
     private TextView tvFavoritesCount;
     private android.widget.ProgressBar progressBarLoading;
@@ -54,6 +64,11 @@ public class HomeFragment extends Fragment {
     private OnSongSelectedListener listener;
 
     private static final int REQUEST_PERMISSION = 200;
+
+    // Sort and filter state
+    private String currentSortOrder = "title";
+    private String currentFilter = "all";
+    private String currentArtistFilter = null;
 
     @Override
     public void onAttach(@NonNull Context context) {
@@ -75,6 +90,8 @@ public class HomeFragment extends Fragment {
         emptyView = view.findViewById(R.id.emptyView);
         scrollContent = view.findViewById(R.id.scrollContent);
         btnImport = view.findViewById(R.id.btnImport);
+        btnSort = view.findViewById(R.id.btnSort);
+        btnFilter = view.findViewById(R.id.btnFilter);
         tvSongCount = view.findViewById(R.id.tvSongCount);
         tvFavoritesCount = view.findViewById(R.id.tvFavoritesCount);
         progressBarLoading = view.findViewById(R.id.progressBarLoading);
@@ -82,6 +99,10 @@ public class HomeFragment extends Fragment {
         dbHelper = new SongDatabaseHelper(requireContext());
         // Ensure index exists for faster queries
         dbHelper.ensureIndexExists();
+
+        // Setup sort and filter buttons
+        setupSortButton();
+        setupFilterButton();
 
         // Setup favorites card click listener
         favoritesCard.setOnClickListener(v -> {
@@ -239,39 +260,224 @@ public class HomeFragment extends Fragment {
         }
     }
 
-    private void loadSongsFromDatabase() {
-        // Update song count
-        int totalCount = dbHelper.getSongCount();
-        if (totalCount == 0) {
-            scrollContent.setVisibility(View.GONE);
-            emptyView.setVisibility(View.VISIBLE);
-            tvSongCount.setText("0 songs");
-        } else {
-            scrollContent.setVisibility(View.VISIBLE);
-            emptyView.setVisibility(View.GONE);
-            tvSongCount.setText(totalCount + (totalCount == 1 ? " song" : " songs"));
+    private void setupSortButton() {
+        btnSort.setOnClickListener(v -> showSortDialog());
+    }
 
-            // Show loading indicator
-            if (progressBarLoading != null) {
-                progressBarLoading.setVisibility(View.VISIBLE);
+    private void showSortDialog() {
+        // Inflate custom layout
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_sort_options, null);
+
+        RadioGroup radioGroupSort = dialogView.findViewById(R.id.radioGroupSort);
+        RadioButton radioTitle = dialogView.findViewById(R.id.radioTitle);
+        RadioButton radioArtist = dialogView.findViewById(R.id.radioArtist);
+        RadioButton radioDuration = dialogView.findViewById(R.id.radioDuration);
+        RadioButton radioRecent = dialogView.findViewById(R.id.radioRecent);
+        Button btnCancel = dialogView.findViewById(R.id.btnCancel);
+        Button btnApply = dialogView.findViewById(R.id.btnApply);
+
+        // Set current selection
+        switch (currentSortOrder) {
+            case "title":
+                radioTitle.setChecked(true);
+                break;
+            case "artist":
+                radioArtist.setChecked(true);
+                break;
+            case "duration":
+                radioDuration.setChecked(true);
+                break;
+            case "recent":
+                radioRecent.setChecked(true);
+                break;
+        }
+
+        // Create dialog with custom view
+        AlertDialog dialog = new AlertDialog.Builder(requireContext())
+                .setView(dialogView)
+                .create();
+
+        // Set transparent background
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(
+                    new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT));
+        }
+
+        // Handle cancel button
+        btnCancel.setOnClickListener(view -> dialog.dismiss());
+
+        // Handle apply button
+        btnApply.setOnClickListener(view -> {
+            int selectedId = radioGroupSort.getCheckedRadioButtonId();
+            String newSortOrder = currentSortOrder;
+            String sortLabel = "";
+
+            if (selectedId == R.id.radioTitle) {
+                newSortOrder = "title";
+                sortLabel = "Title";
+            } else if (selectedId == R.id.radioArtist) {
+                newSortOrder = "artist";
+                sortLabel = "Artist";
+            } else if (selectedId == R.id.radioDuration) {
+                newSortOrder = "duration";
+                sortLabel = "Duration";
+            } else if (selectedId == R.id.radioRecent) {
+                newSortOrder = "recent";
+                sortLabel = "Recent";
             }
 
-            // Load all songs at once
-            new Thread(() -> {
-                long startTime = System.currentTimeMillis();
-                List<Song> songs = dbHelper.getAllSongs();
-                long loadTime = System.currentTimeMillis() - startTime;
+            currentSortOrder = newSortOrder;
+            btnSort.setText("Sort: " + sortLabel);
+            loadSongsFromDatabase();
+            dialog.dismiss();
+        });
 
-                android.util.Log.d("HomeFragment",
-                        "Loaded " + songs.size() + " songs in " + loadTime + "ms");
+        dialog.show();
+    }
+
+    private void setupFilterButton() {
+        btnFilter.setOnClickListener(v -> showFilterDialog());
+    }
+
+    private void showFilterDialog() {
+        // Inflate custom layout
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_filter_options, null);
+
+        Button btnFilterAll = dialogView.findViewById(R.id.btnFilterAll);
+        Button btnFilterFavorites = dialogView.findViewById(R.id.btnFilterFavorites);
+        RecyclerView rvArtists = dialogView.findViewById(R.id.rvArtists);
+        TextView tvArtistsLabel = dialogView.findViewById(R.id.tvArtistsLabel);
+        Button btnClose = dialogView.findViewById(R.id.btnClose);
+
+        // Create dialog with custom view
+        AlertDialog dialog = new AlertDialog.Builder(requireContext())
+                .setView(dialogView)
+                .create();
+
+        // Set transparent background
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(
+                    new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT));
+        }
+
+        // Highlight current filter
+        updateFilterButtonStyle(btnFilterAll, "all".equals(currentFilter));
+        updateFilterButtonStyle(btnFilterFavorites, "favorites".equals(currentFilter));
+
+        // Handle "All Songs" button
+        btnFilterAll.setOnClickListener(view -> {
+            currentFilter = "all";
+            currentArtistFilter = null;
+            btnFilter.setText("Filter: All");
+            loadSongsFromDatabase();
+            dialog.dismiss();
+        });
+
+        // Handle "Favorites" button
+        btnFilterFavorites.setOnClickListener(view -> {
+            currentFilter = "favorites";
+            currentArtistFilter = null;
+            btnFilter.setText("Filter: Favorites");
+            loadSongsFromDatabase();
+            dialog.dismiss();
+        });
+
+        // Setup artist list in background thread
+        new Thread(() -> {
+            List<String> artists = dbHelper.getAllArtists();
+
+            requireActivity().runOnUiThread(() -> {
+                if (artists.isEmpty()) {
+                    tvArtistsLabel.setVisibility(View.GONE);
+                    rvArtists.setVisibility(View.GONE);
+                } else {
+                    tvArtistsLabel.setVisibility(View.VISIBLE);
+                    rvArtists.setVisibility(View.VISIBLE);
+
+                    ArtistFilterAdapter artistAdapter = new ArtistFilterAdapter(artists);
+                    rvArtists.setLayoutManager(new LinearLayoutManager(requireContext()));
+                    rvArtists.setAdapter(artistAdapter);
+
+                    artistAdapter.setOnArtistClickListener(artist -> {
+                        currentFilter = "artist";
+                        currentArtistFilter = artist;
+                        btnFilter.setText("Filter: " + artist);
+                        loadSongsFromDatabase();
+                        dialog.dismiss();
+                    });
+                }
+            });
+        }).start();
+
+        // Handle close button
+        btnClose.setOnClickListener(view -> dialog.dismiss());
+
+        dialog.show();
+    }
+
+    private void updateFilterButtonStyle(Button button, boolean isSelected) {
+        if (isSelected) {
+            button.setBackgroundTintList(
+                    android.content.res.ColorStateList.valueOf(
+                            getResources().getColor(R.color.spotify_green, null)));
+        } else {
+            button.setBackgroundTintList(
+                    android.content.res.ColorStateList.valueOf(
+                            getResources().getColor(R.color.spotify_black, null)));
+        }
+    }
+
+    private void sortSongsList(List<Song> songs) {
+        switch (currentSortOrder) {
+            case "title":
+                Collections.sort(songs, (s1, s2) -> s1.getTitle().compareToIgnoreCase(s2.getTitle()));
+                break;
+            case "artist":
+                Collections.sort(songs, (s1, s2) -> s1.getArtist().compareToIgnoreCase(s2.getArtist()));
+                break;
+            case "duration":
+                Collections.sort(songs, (s1, s2) -> Long.compare(s2.getDuration(), s1.getDuration()));
+                break;
+            case "recent":
+                Collections.sort(songs, (s1, s2) -> s2.getId().compareTo(s1.getId()));
+                break;
+        }
+    }
+
+    private void loadSongsFromDatabase() {
+        // Update total song count
+        int totalCount = dbHelper.getSongCount();
+        tvSongCount.setText(totalCount + (totalCount == 1 ? " song" : " songs"));
+
+        if (totalCount == 0) {
+            recyclerSongs.setVisibility(View.GONE);
+            emptyView.setVisibility(View.VISIBLE);
+        } else {
+            recyclerSongs.setVisibility(View.VISIBLE);
+            emptyView.setVisibility(View.GONE);
+
+            // Load songs in background thread
+            new Thread(() -> {
+                List<Song> songs;
+
+                // Apply filter first
+                if ("favorites".equals(currentFilter)) {
+                    // Get favorites
+                    songs = dbHelper.getFavoriteSongs();
+                    // Sort manually (favorites query doesn't support sorting)
+                    sortSongsList(songs);
+
+                } else if ("artist".equals(currentFilter) && currentArtistFilter != null) {
+                    // Get songs by artist
+                    songs = dbHelper.getSongsByArtist(currentArtistFilter, currentSortOrder);
+
+                } else {
+                    // Get all songs with sorting
+                    songs = dbHelper.getAllSongsSorted(currentSortOrder);
+                }
 
                 requireActivity().runOnUiThread(() -> {
                     adapter.setSongs(songs);
-
-                    // Hide loading indicator
-                    if (progressBarLoading != null) {
-                        progressBarLoading.setVisibility(View.GONE);
-                    }
                 });
             }).start();
         }
@@ -302,8 +508,8 @@ public class HomeFragment extends Fragment {
             requireActivity().runOnUiThread(() -> {
                 // Always show favorites card, even with 0 count
                 favoritesCard.setVisibility(View.VISIBLE);
-                String countText = favCount + " favorite" + (favCount != 1 ? "s" : "");
-                tvFavoritesCount.setText(countText);
+                // Display just the number
+                tvFavoritesCount.setText(String.valueOf(favCount));
             });
         }).start();
     }

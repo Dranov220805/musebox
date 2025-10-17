@@ -80,6 +80,7 @@ public class FavoritesFragment extends Fragment {
         recyclerView = view.findViewById(R.id.recyclerFavorites);
         emptyView = view.findViewById(R.id.emptyView);
         tvEmptyMessage = view.findViewById(R.id.tvEmptyMessage);
+        tvFavoritesCount = view.findViewById(R.id.tvFavoritesCount);
         btnBack = view.findViewById(R.id.btnBack); // May be null in portrait mode
 
         // Initialize database helper
@@ -108,10 +109,8 @@ public class FavoritesFragment extends Fragment {
                                 }
                             }
 
-                            // Update count if view exists
-                            if (tvFavoritesCount != null) {
-                                tvFavoritesCount.setText(String.valueOf(favoriteSongs.size()));
-                            }
+                            // Update count
+                            updateFavoritesCount();
                         } else {
                             // If position is invalid, reload the entire list to sync
                             loadFavorites();
@@ -163,9 +162,15 @@ public class FavoritesFragment extends Fragment {
             }
         }
 
-        // Update count if view exists
+        // Update count with proper formatting
+        updateFavoritesCount();
+    }
+
+    private void updateFavoritesCount() {
         if (tvFavoritesCount != null) {
-            tvFavoritesCount.setText(String.valueOf(favoriteSongs.size()));
+            int count = favoriteSongs.size();
+            String countText = count + (count == 1 ? " song" : " songs");
+            tvFavoritesCount.setText(countText);
         }
     }
 
@@ -214,10 +219,8 @@ public class FavoritesFragment extends Fragment {
                         }
                     }
 
-                    // Update count if view exists
-                    if (tvFavoritesCount != null) {
-                        tvFavoritesCount.setText(String.valueOf(favoriteSongs.size()));
-                    }
+                    // Update count
+                    updateFavoritesCount();
                 });
     }
 }
