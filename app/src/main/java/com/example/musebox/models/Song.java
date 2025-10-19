@@ -11,28 +11,18 @@ public class Song {
     private boolean isFavorite;
     private String albumCoverPath;
 
-    public Song(String title, String artist, String uri, long duration) {
+    /**
+     * Constructor for creating new songs (generates UUID automatically).
+     * Use this when importing new songs from media library or folders.
+     * 
+     * @param title Song title
+     * @param artist Artist name
+     * @param uri Content URI or file path
+     * @param duration Duration in milliseconds
+     * @param albumCoverPath Path to album cover image (can be null)
+     */
+    public Song(String title, String artist, String uri, long duration, String albumCoverPath) {
         this.id = UUID.randomUUID().toString();
-        this.title = title;
-        this.artist = artist;
-        this.uri = uri;
-        this.duration = duration;
-        this.isFavorite = false;
-        this.albumCoverPath = null;
-    }
-
-    public Song(String id, String title, String artist, String uri, long duration) {
-        this.id = id;
-        this.title = title;
-        this.artist = artist;
-        this.uri = uri;
-        this.duration = duration;
-        this.isFavorite = false;
-        this.albumCoverPath = null;
-    }
-
-    public Song(String id, String title, String artist, String uri, long duration, String albumCoverPath) {
-        this.id = id;
         this.title = title;
         this.artist = artist;
         this.uri = uri;
@@ -41,8 +31,19 @@ public class Song {
         this.albumCoverPath = albumCoverPath;
     }
 
-    public Song(String title, String artist, String uri, long duration, String albumCoverPath) {
-        this.id = UUID.randomUUID().toString();
+    /**
+     * Constructor for loading existing songs from database.
+     * Use this when reading songs that already have an ID.
+     * 
+     * @param id Existing song ID from database
+     * @param title Song title
+     * @param artist Artist name
+     * @param uri Content URI or file path
+     * @param duration Duration in milliseconds
+     * @param albumCoverPath Path to album cover image (can be null)
+     */
+    public Song(String id, String title, String artist, String uri, long duration, String albumCoverPath) {
+        this.id = id;
         this.title = title;
         this.artist = artist;
         this.uri = uri;

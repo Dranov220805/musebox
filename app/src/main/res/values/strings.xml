@@ -11,4 +11,7 @@
     <string name="album_art">Album art</string>
     <string name="play_pause">Play/Pause</string>
     <string name="menu">Menu</string>
-    <string name="no_favorites">No favorite songs yet</string>`n</resources>
+    <string name="no_favorites">No favorite songs yet</string>
+    <string name="no_playlists">No playlists</string>
+    <string name="create_new_playlist">Create new playlist</string>
+</resources>

@@ -207,7 +207,7 @@
             android:text="Cancel"
             android:textSize="16sp"
             android:textStyle="bold"
-            android:textColor="@color/musebox_green"
+            android:textColor="@color/spotify_green"
             android:padding="12dp"
             android:background="?android:attr/selectableItemBackgroundBorderless"
             android:clickable="true"

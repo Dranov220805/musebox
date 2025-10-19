@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <!-- Header with Title and Cancel Button -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Create Playlist"
+            android:textStyle="bold"
+            android:textSize="20sp"
+            android:textColor="@color/spotify_green"
+            android:layout_centerVertical="true"
+            android:layout_alignParentStart="true" />
+
+        <ImageButton
+            android:id="@+id/btnCancelDialog"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_close"
+            android:contentDescription="Cancel"
+            android:tint="@color/text_secondary" />
+
+    </RelativeLayout>
+
+    <EditText
+        android:id="@+id/etPlaylistName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Playlist Name"
+        android:inputType="textPersonName"
+        android:maxLines="1"
+        android:textColor="@color/text_primary"
+        android:textColorHint="@color/text_tertiary"
+        android:backgroundTint="@color/spotify_green"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="12dp" />
+
+    <EditText
+        android:id="@+id/etPlaylistDescription"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Description (optional)"
+        android:inputType="textMultiLine"
+        android:minLines="2"
+        android:maxLines="4"
+        android:layout_marginTop="12dp"
+        android:textColor="@color/text_primary"
+        android:textColorHint="@color/text_tertiary"
+        android:backgroundTint="@color/spotify_green"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="12dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Select songs to add"
+        android:textStyle="bold"
+        android:textSize="16sp"
+        android:textColor="@color/text_primary"
+        android:layout_marginTop="20dp"
+        android:layout_marginBottom="8dp" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerSongs"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:scrollbars="vertical"
+        android:background="@color/light_surface"
+        android:padding="8dp" />
+
+    <Button
+        android:id="@+id/btnConfirmCreatePlaylist"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Create Playlist"
+        android:layout_marginTop="20dp"
+        android:backgroundTint="@color/spotify_green"
+        android:textColor="@color/white"
+        android:textStyle="bold"
+        android:textSize="15sp"
+        android:paddingTop="14dp"
+        android:paddingBottom="14dp"
+        android:elevation="2dp" />
+
+</LinearLayout>

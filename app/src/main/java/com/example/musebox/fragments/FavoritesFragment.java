@@ -1,7 +1,6 @@
 package com.example.musebox.fragments;
 
 import android.content.Context;
-import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -22,6 +21,7 @@ import com.example.musebox.adapters.SongAdapter;
 import com.example.musebox.database.SongDatabaseHelper;
 import com.example.musebox.models.Song;
 import com.example.musebox.services.MusicService;
+import com.example.musebox.utils.SongActionUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -45,7 +45,7 @@ public class FavoritesFragment extends Fragment {
 
         boolean isMusicServiceBound();
 
-        void onSongSelected(Song song);
+        void onSongSelected(Song song, List<Song> displayedSongs);
 
         void onFavoriteSongSelected(Song song, List<Song> favoritesPlaylist);
 
@@ -80,6 +80,7 @@ public class FavoritesFragment extends Fragment {
         recyclerView = view.findViewById(R.id.recyclerFavorites);
         emptyView = view.findViewById(R.id.emptyView);
         tvEmptyMessage = view.findViewById(R.id.tvEmptyMessage);
+        tvFavoritesCount = view.findViewById(R.id.tvFavoritesCount);
         btnBack = view.findViewById(R.id.btnBack); // May be null in portrait mode
 
         // Initialize database helper
@@ -88,11 +89,60 @@ public class FavoritesFragment extends Fragment {
         // Setup RecyclerView
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         adapter = new SongAdapter();
+        adapter.setDatabaseHelper(dbHelper); // Set database helper for favorite checking
         adapter.setOnSongClickListener(this::onSongClicked);
-        adapter.setMenuActionOverride((song, position) -> {
-            // Override menu to show "Remove from Favorites" instead of "Delete Song"
-            removeFromFavorites(song, position);
+
+        // Set the menu listener for song options (same as HomeFragment)
+        adapter.setOnSongMenuListener(new SongAdapter.OnSongMenuListener() {
+            @Override
+            public void onAddToQueue(Song song) {
+                if (listener != null && listener.isMusicServiceBound()) {
+                    SongActionUtils.addToQueue(requireContext(), song, listener.getMusicService());
+                } else {
+                    Toast.makeText(requireContext(), "Music service not available", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onAddToFavourite(Song song, int position) {
+                // Toggle favorite status (will remove from favorites since we're in favorites)
+                SongActionUtils.toggleFavorite(requireContext(), song, dbHelper,
+                        (s, isFavorite) -> {
+                            if (!isFavorite) {
+                                // Song was removed from favorites, update the list
+                                loadFavorites();
+                            } else {
+                                // Just refresh the item to update heart icon
+                                adapter.notifyItemChanged(position);
+                            }
+                        });
+            }
+
+            @Override
+            public void onAddToPlaylist(Song song) {
+                // Show dialog to select playlist
+                com.example.musebox.utils.PlaylistDialogHelper.showAddToPlaylistDialog(requireContext(), song, null);
+            }
+
+            @Override
+            public void onDeleteSong(Song song, int position) {
+                SongActionUtils.showDeleteConfirmationDialog(requireContext(), song, position,
+                        new SongActionUtils.OnSongDeleteListener() {
+                            @Override
+                            public void onDeleteFromDevice(Song song, int position) {
+                                SongActionUtils.deleteSongFromDevice(requireContext(), song, dbHelper,
+                                        (deletedSong, success) -> loadFavorites());
+                            }
+
+                            @Override
+                            public void onDeleteFromLibrary(Song song, int position) {
+                                SongActionUtils.deleteSongFromLibrary(requireContext(), song, dbHelper,
+                                        (deletedSong, success) -> loadFavorites());
+                            }
+                        });
+            }
         });
+
         recyclerView.setAdapter(adapter);
 
         // Back button
@@ -138,47 +188,16 @@ public class FavoritesFragment extends Fragment {
             }
         }
 
-        // Update count if view exists
-        if (tvFavoritesCount != null) {
-            tvFavoritesCount.setText(String.valueOf(favoriteSongs.size()));
-        }
+        // Update count with proper formatting
+        updateFavoritesCount();
     }
 
-    private void removeFromFavorites(Song song, int position) {
-        new Thread(() -> {
-            boolean success = dbHelper.removeFromFavorites(song.getId());
-            if (getActivity() != null) {
-                getActivity().runOnUiThread(() -> {
-                    if (success) {
-                        // Validate position before removal to prevent crashes
-                        if (position >= 0 && position < favoriteSongs.size()) {
-                            favoriteSongs.remove(position);
-                            adapter.removeSong(position);
-
-                            if (favoriteSongs.isEmpty()) {
-                                if (recyclerView != null) {
-                                    recyclerView.setVisibility(View.GONE);
-                                }
-                                if (emptyView != null) {
-                                    emptyView.setVisibility(View.VISIBLE);
-                                }
-                            }
-
-                            // Update count if view exists
-                            if (tvFavoritesCount != null) {
-                                tvFavoritesCount.setText(String.valueOf(favoriteSongs.size()));
-                            }
-
-                            Toast.makeText(getContext(), "Removed from favorites", Toast.LENGTH_SHORT).show();
-                        } else {
-                            // If position is invalid, reload the entire list to sync
-                            loadFavorites();
-                            Toast.makeText(getContext(), "Removed from favorites", Toast.LENGTH_SHORT).show();
-                        }
-                    }
-                });
-            }
-        }).start();
+    private void updateFavoritesCount() {
+        if (tvFavoritesCount != null) {
+            int count = favoriteSongs.size();
+            String countText = count + (count == 1 ? " song" : " songs");
+            tvFavoritesCount.setText(countText);
+        }
     }
 
     // Public method to refresh favorites from parent activity
@@ -186,14 +205,17 @@ public class FavoritesFragment extends Fragment {
         loadFavorites();
     }
 
-    // Public method to add/remove favorite
+    // Public method to add/remove favorite using utility
     public void toggleFavorite(Song song) {
-        new Thread(() -> {
-            boolean isFavorite = dbHelper.isFavorite(song.getId());
-            if (getActivity() != null) {
-                getActivity().runOnUiThread(() -> {
+        SongActionUtils.toggleFavorite(requireContext(), song, dbHelper,
+                (s, isFavorite) -> {
                     if (isFavorite) {
-                        dbHelper.removeFromFavorites(song.getId());
+                        // Add to current list
+                        favoriteSongs.add(song);
+                        if (adapter != null) {
+                            adapter.addSongs(List.of(song));
+                        }
+                    } else {
                         // Remove from current list if it exists
                         for (int i = 0; i < favoriteSongs.size(); i++) {
                             if (favoriteSongs.get(i).getId() == song.getId()) {
@@ -203,13 +225,6 @@ public class FavoritesFragment extends Fragment {
                                 }
                                 break;
                             }
-                        }
-                    } else {
-                        dbHelper.addToFavorites(song.getId());
-                        // Add to current list
-                        favoriteSongs.add(song);
-                        if (adapter != null) {
-                            adapter.addSongs(List.of(song));
                         }
                     }
 
@@ -230,12 +245,8 @@ public class FavoritesFragment extends Fragment {
                         }
                     }
 
-                    // Update count if view exists
-                    if (tvFavoritesCount != null) {
-                        tvFavoritesCount.setText(String.valueOf(favoriteSongs.size()));
-                    }
+                    // Update count
+                    updateFavoritesCount();
                 });
-            }
-        }).start();
     }
 }

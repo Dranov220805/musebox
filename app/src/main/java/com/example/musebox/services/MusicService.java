@@ -6,8 +6,6 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.media.MediaPlayer;
 import android.os.Binder;
 import android.os.Build;
@@ -468,7 +466,16 @@ public class MusicService extends Service {
 
             case NORMAL:
             default:
-                currentSongIndex = (currentSongIndex + 1) % playlist.size();
+                // In NORMAL mode, stop at the end of the playlist
+                if (currentSongIndex < playlist.size() - 1) {
+                    currentSongIndex++;
+                } else {
+                    // Reached the end, stop playback
+                    if (mediaPlayer != null && mediaPlayer.isPlaying()) {
+                        mediaPlayer.pause();
+                    }
+                    return; // Don't play next song
+                }
                 break;
         }
 
@@ -497,7 +504,17 @@ public class MusicService extends Service {
 
             case NORMAL:
             default:
-                currentSongIndex = (currentSongIndex - 1 + playlist.size()) % playlist.size();
+                // In NORMAL mode, stop at the beginning of the playlist
+                if (currentSongIndex > 0) {
+                    currentSongIndex--;
+                } else {
+                    // Already at the beginning, restart current song
+                    if (mediaPlayer != null) {
+                        mediaPlayer.seekTo(0);
+                        mediaPlayer.start();
+                    }
+                    return; // Don't play previous song
+                }
                 break;
         }
 

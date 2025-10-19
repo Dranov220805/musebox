@@ -3,20 +3,24 @@
     <item
         android:id="@+id/menu_add_to_queue"
         android:title="Add to Queue"
-        android:icon="@drawable/ic_queue_music" />
+        android:icon="@drawable/ic_queue_music"
+        android:iconTint="@color/text_primary" />
     
     <item
         android:id="@+id/menu_add_to_favourite"
-        android:title="Add to Favourites"
-        android:icon="@drawable/ic_favorite" />
+        android:title="Toggle Favourite"
+        android:icon="@drawable/ic_favorite"
+        android:iconTint="@color/favorite_red" />
     
     <item
         android:id="@+id/menu_add_to_playlist"
         android:title="Add to Playlist"
-        android:icon="@drawable/ic_add_circle" />
+        android:icon="@drawable/ic_add_circle"
+        android:iconTint="@color/spotify_green" />
 
     <item
         android:id="@+id/menu_delete_song"
         android:title="Delete Song"
-        android:icon="@android:drawable/ic_menu_delete" />
+        android:icon="@android:drawable/ic_menu_delete"
+        android:iconTint="@color/error" />
 </menu>

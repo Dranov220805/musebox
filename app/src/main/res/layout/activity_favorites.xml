@@ -24,15 +24,31 @@
             android:contentDescription="Back"
             app:tint="@color/white" />
 
-        <TextView
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Favorites"
-            android:textSize="20sp"
-            android:textStyle="bold"
-            android:textColor="@color/white"
-            android:layout_marginStart="8dp" />
+            android:orientation="vertical"
+            android:layout_marginStart="8dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Favorites"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:textColor="@color/white" />
+
+            <TextView
+                android:id="@+id/tvFavoritesCount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0 songs"
+                android:textSize="13sp"
+                android:textColor="@color/white"
+                android:alpha="0.8"
+                android:layout_marginTop="2dp" />
+        </LinearLayout>
 
     </LinearLayout>
 

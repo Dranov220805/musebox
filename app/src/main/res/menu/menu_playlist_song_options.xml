@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/menu_add_to_queue"
+        android:title="Add to Queue"
+        android:icon="@drawable/ic_queue_music"
+        android:iconTint="@color/text_primary" />
+    
+    <item
+        android:id="@+id/menu_add_to_favourite"
+        android:title="Toggle Favourite"
+        android:icon="@drawable/ic_favorite"
+        android:iconTint="@color/favorite_red" />
+    
+    <item
+        android:id="@+id/menu_remove_from_playlist"
+        android:title="Remove from Playlist"
+        android:icon="@drawable/ic_remove_circle"
+        android:iconTint="@color/error" />
+    
+    <item
+        android:id="@+id/menu_add_to_playlist"
+        android:title="Add to Another Playlist"
+        android:icon="@drawable/ic_add_circle"
+        android:iconTint="@color/spotify_green" />
+</menu>

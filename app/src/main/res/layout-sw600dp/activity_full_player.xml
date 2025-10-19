@@ -4,7 +4,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/black"
-    android:padding="@dimen/player_padding">
+    android:padding="@dimen/player_padding"
+    android:fitsSystemWindows="true">
 
     <!-- Close/Minimize Button -->
     <ImageButton
@@ -21,46 +22,47 @@
     <!-- Centered content container for better tablet layout -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:layout_marginTop="16dp"
-        app:layout_constraintWidth_max="@dimen/max_content_width"
-        app:layout_constraintTop_toBottomOf="@id/btnClose"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="48dp"
+        android:layout_marginEnd="48dp"
         app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
+        app:layout_constraintTop_toBottomOf="@id/btnClose"
+        app:layout_constraintWidth_max="600dp">
 
         <!-- Album Art -->
         <ImageView
             android:id="@+id/imgAlbumArt"
             android:layout_width="0dp"
             android:layout_height="0dp"
-            android:layout_marginTop="@dimen/album_art_margin_top"
-            android:src="@drawable/ic_music_note"
+            android:layout_marginTop="16dp"
             android:background="@drawable/circle_background"
+            android:contentDescription="Album Art"
             android:scaleType="centerCrop"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
+            android:src="@drawable/ic_music_note"
             app:layout_constraintDimensionRatio="1:1"
-            app:layout_constraintWidth_percent="0.25"
-            android:contentDescription="Album Art" />
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintWidth_percent="0.50" />
 
         <!-- Song Title -->
         <TextView
             android:id="@+id/txtFullSongTitle"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/content_margin_top"
-            android:text="Song Title"
-            android:textColor="@color/white"
-            android:textSize="@dimen/text_size_title"
-            android:textStyle="bold"
+            android:layout_marginTop="24dp"
+            android:ellipsize="end"
             android:gravity="center"
             android:maxLines="2"
-            android:ellipsize="end"
-            app:layout_constraintTop_toBottomOf="@id/imgAlbumArt"
+            android:text="Song Title"
+            android:textColor="@color/white"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent" />
+            app:layout_constraintTop_toBottomOf="@id/imgAlbumArt" />
 
         <!-- Artist Name -->
         <TextView
@@ -68,26 +70,26 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
+            android:gravity="center"
             android:text="Artist Name"
             android:textColor="@color/gray"
-            android:textSize="@dimen/text_size_artist"
-            android:gravity="center"
-            app:layout_constraintTop_toBottomOf="@id/txtFullSongTitle"
+            android:textSize="18sp"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent" />
+            app:layout_constraintTop_toBottomOf="@id/txtFullSongTitle" />
 
         <!-- Progress SeekBar -->
         <SeekBar
             android:id="@+id/seekBarProgress"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/content_margin_top"
+            android:layout_marginTop="24dp"
+            android:progressBackgroundTint="@color/gray"
             android:progressTint="@color/white"
             android:thumbTint="@color/white"
-            android:progressBackgroundTint="@color/gray"
-            app:layout_constraintTop_toBottomOf="@id/txtFullArtist"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent" />
+            app:layout_constraintTop_toBottomOf="@id/txtFullArtist" />
 
         <!-- Time Labels -->
         <TextView
@@ -96,9 +98,9 @@
             android:layout_height="wrap_content"
             android:text="0:00"
             android:textColor="@color/gray"
-            android:textSize="12sp"
-            app:layout_constraintTop_toBottomOf="@id/seekBarProgress"
-            app:layout_constraintStart_toStartOf="@id/seekBarProgress" />
+            android:textSize="14sp"
+            app:layout_constraintStart_toStartOf="@id/seekBarProgress"
+            app:layout_constraintTop_toBottomOf="@id/seekBarProgress" />
 
         <TextView
             android:id="@+id/txtTotalTime"
@@ -106,109 +108,131 @@
             android:layout_height="wrap_content"
             android:text="0:00"
             android:textColor="@color/gray"
-            android:textSize="12sp"
-            app:layout_constraintTop_toBottomOf="@id/seekBarProgress"
-            app:layout_constraintEnd_toEndOf="@id/seekBarProgress" />
+            android:textSize="14sp"
+            app:layout_constraintEnd_toEndOf="@id/seekBarProgress"
+            app:layout_constraintTop_toBottomOf="@id/seekBarProgress" />
 
-        <!-- Volume Control -->
+        <!-- Controls Row: Volume, Skip, Speed -->
         <LinearLayout
-            android:id="@+id/volumeControls"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            app:layout_constraintTop_toBottomOf="@id/txtCurrentTime"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent">
-
-            <ImageButton
-                android:id="@+id/btnVolumeToggle"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:src="@drawable/ic_volume_up"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                app:tint="@color/white"
-                android:contentDescription="Mute/Unmute" />
-
-            <SeekBar
-                android:id="@+id/seekBarVolume"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginStart="8dp"
-                android:layout_marginEnd="8dp"
-                android:max="100"
-                android:progress="70"
-                android:progressTint="@color/white"
-                android:thumbTint="@color/white"
-                android:progressBackgroundTint="@color/gray" />
-
-            <TextView
-                android:id="@+id/txtVolumeLevel"
-                android:layout_width="32dp"
-                android:layout_height="wrap_content"
-                android:text="70%"
-                android:textColor="@color/gray"
-                android:textSize="12sp"
-                android:gravity="center" />
-
-        </LinearLayout>
-
-        <!-- Skip/Seek Controls -->
-        <LinearLayout
-            android:id="@+id/skipControls"
+            android:id="@+id/controlsRow"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="32dp"
+            android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:gravity="center"
-            app:layout_constraintTop_toBottomOf="@id/volumeControls"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent">
+            app:layout_constraintTop_toBottomOf="@id/txtCurrentTime">
 
-            <ImageButton
-                android:id="@+id/btnSkipBackward"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:src="@drawable/ic_skip_backward"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                app:tint="@color/white"
-                android:contentDescription="Skip backward 10s" />
-
-            <TextView
+            <!-- Volume Control Group -->
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="4dp"
-                android:layout_marginEnd="8dp"
-                android:text="10s"
-                android:textColor="@color/gray"
-                android:textSize="10sp" />
+                android:layout_marginEnd="32dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
 
-            <ImageButton
-                android:id="@+id/btnSkipForward"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:src="@drawable/ic_skip_forward"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                app:tint="@color/white"
-                android:contentDescription="Skip forward 10s" />
+                <ImageButton
+                    android:id="@+id/btnVolumeToggle"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="Mute/Unmute"
+                    android:src="@drawable/ic_volume_up"
+                    app:tint="@color/white" />
 
-            <TextView
+                <TextView
+                    android:id="@+id/txtVolumeLevel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:gravity="center"
+                    android:minWidth="48dp"
+                    android:text="70%"
+                    android:textColor="@color/gray"
+                    android:textSize="16sp" />
+            </LinearLayout>
+
+            <!-- Skip Backward -->
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:layout_marginEnd="4dp"
-                android:text="Speed:"
-                android:textColor="@color/gray"
-                android:textSize="12sp" />
+                android:layout_marginEnd="16dp"
+                android:gravity="center"
+                android:orientation="vertical">
 
-            <Spinner
-                android:id="@+id/spinnerPlaybackSpeed"
+                <ImageButton
+                    android:id="@+id/btnSkipBackward"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="Skip backward 10s"
+                    android:src="@drawable/ic_skip_backward"
+                    app:tint="@color/white" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="10s"
+                    android:textColor="@color/gray"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <!-- Skip Forward -->
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:background="@drawable/dialog_bg"
-                android:popupBackground="@color/dark_gray" />
+                android:layout_marginEnd="32dp"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <ImageButton
+                    android:id="@+id/btnSkipForward"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="Skip forward 10s"
+                    android:src="@drawable/ic_skip_forward"
+                    app:tint="@color/white" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="10s"
+                    android:textColor="@color/gray"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <!-- Speed Control -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    android:text="Speed:"
+                    android:textColor="@color/gray"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:id="@+id/btnPlaybackSpeed"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:minWidth="56dp"
+                    android:padding="8dp"
+                    android:text="1.0x"
+                    android:textColor="@color/white"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
 
         </LinearLayout>
 
@@ -217,66 +241,66 @@
             android:id="@+id/playbackControls"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="24dp"
             android:gravity="center"
             android:orientation="horizontal"
-            app:layout_constraintTop_toBottomOf="@id/skipControls"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent">
+            app:layout_constraintTop_toBottomOf="@id/controlsRow">
 
             <!-- Shuffle Button -->
             <ImageButton
                 android:id="@+id/btnFullShuffle"
-                android:layout_width="@dimen/button_size_small"
-                android:layout_height="@dimen/button_size_small"
-                android:src="@drawable/ic_shuffle"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                app:tint="@color/gray"
-                android:contentDescription="Shuffle" />
+                android:contentDescription="Shuffle"
+                android:src="@drawable/ic_shuffle"
+                app:tint="@color/gray" />
 
             <!-- Previous Button -->
             <ImageButton
                 android:id="@+id/btnFullPrevious"
-                android:layout_width="@dimen/button_size_medium"
-                android:layout_height="@dimen/button_size_medium"
-                android:layout_marginStart="12dp"
-                android:src="@drawable/ic_skip_previous"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:layout_marginStart="16dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                app:tint="@color/white"
-                android:contentDescription="Previous" />
+                android:contentDescription="Previous"
+                android:src="@drawable/ic_skip_previous"
+                app:tint="@color/white" />
 
             <!-- Play/Pause Button -->
             <ImageButton
                 android:id="@+id/btnFullPlayPause"
-                android:layout_width="@dimen/button_size_large"
-                android:layout_height="@dimen/button_size_large"
-                android:layout_marginStart="12dp"
-                android:layout_marginEnd="12dp"
-                android:src="@drawable/ic_play"
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="16dp"
                 android:background="@drawable/circle_background"
-                app:tint="@color/white"
-                android:contentDescription="Play/Pause" />
+                android:contentDescription="Play/Pause"
+                android:src="@drawable/ic_play"
+                app:tint="@color/white" />
 
             <!-- Next Button -->
             <ImageButton
                 android:id="@+id/btnFullNext"
-                android:layout_width="@dimen/button_size_medium"
-                android:layout_height="@dimen/button_size_medium"
-                android:layout_marginEnd="12dp"
-                android:src="@drawable/ic_skip_next"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:layout_marginEnd="16dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                app:tint="@color/white"
-                android:contentDescription="Next" />
+                android:contentDescription="Next"
+                android:src="@drawable/ic_skip_next"
+                app:tint="@color/white" />
 
             <!-- Repeat Button -->
             <ImageButton
                 android:id="@+id/btnFullRepeat"
-                android:layout_width="@dimen/button_size_small"
-                android:layout_height="@dimen/button_size_small"
-                android:src="@drawable/ic_repeat_all"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                app:tint="@color/gray"
-                android:contentDescription="Repeat" />
+                android:contentDescription="Repeat"
+                android:src="@drawable/ic_repeat_all"
+                app:tint="@color/gray" />
 
         </LinearLayout>
 

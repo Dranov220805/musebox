@@ -3,10 +3,7 @@ package com.example.musebox.activities;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Build;
-import android.view.View;
-import android.view.WindowInsets;
-import android.view.WindowInsetsController;
+
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.musebox.R;

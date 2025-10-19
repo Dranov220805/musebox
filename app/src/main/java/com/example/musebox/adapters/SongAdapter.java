@@ -22,6 +22,7 @@ import com.bumptech.glide.request.target.Target;
 import android.graphics.drawable.Drawable;
 import androidx.annotation.Nullable;
 import com.example.musebox.R;
+import com.example.musebox.database.SongDatabaseHelper;
 import com.example.musebox.models.Song;
 
 import java.io.File;
@@ -41,9 +42,16 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.SongViewHolder> {
     private OnSongMenuListener menuListener;
     private MenuActionOverride menuActionOverride; // For custom menu actions (like in FavoritesActivity)
     private OnSongFileDeletedListener fileDeletedListener;
+    private int customMenuResource = R.menu.menu_song_options; // Default menu
+    private SongDatabaseHelper dbHelper; // For checking favorite status
 
     public SongAdapter() {
         super(new SongDiffCallback());
+    }
+
+    public SongAdapter(SongDatabaseHelper dbHelper) {
+        super(new SongDiffCallback());
+        this.dbHelper = dbHelper;
     }
 
     @NonNull
@@ -61,25 +69,23 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.SongViewHolder> {
         // Check if the song file still exists before binding
         if (!isFileExists(song.getUri())) {
             android.util.Log.w("SongAdapter", "Song file no longer exists: " + song.getUri() + " - " + song.getTitle());
-            
+
             // Notify the listener about the deleted file
             if (fileDeletedListener != null) {
                 // Use Handler to post to main thread to avoid any potential issues
-                new Handler(Looper.getMainLooper()).post(() -> 
-                    fileDeletedListener.onSongFileDeleted(song, position)
-                );
+                new Handler(Looper.getMainLooper()).post(() -> fileDeletedListener.onSongFileDeleted(song, position));
             }
-            
+
             // Still show the song but indicate it's unavailable
             holder.tvTitle.setText(song.getTitle() + " (Unavailable)");
             holder.tvArtist.setText(song.getArtist());
             holder.tvDuration.setText("--:--");
             holder.ivAlbumArt.setImageResource(R.drawable.ic_music_note);
-            
+
             // Disable click listeners for unavailable songs
             holder.itemView.setOnClickListener(null);
             holder.btnMenu.setOnClickListener(null);
-            
+
             // Gray out the item to indicate it's unavailable
             holder.itemView.setAlpha(0.5f);
             return;
@@ -87,7 +93,7 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.SongViewHolder> {
 
         // Reset appearance for available songs
         holder.itemView.setAlpha(1.0f);
-        
+
         holder.tvTitle.setText(song.getTitle());
         holder.tvArtist.setText(song.getArtist());
 
@@ -95,6 +101,14 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.SongViewHolder> {
         long minutes = (durationMs / 1000) / 60;
         long seconds = (durationMs / 1000) % 60;
         holder.tvDuration.setText(String.format("%d:%02d", minutes, seconds));
+
+        // Check if song is in favorites and show/hide heart icon
+        if (dbHelper != null) {
+            boolean isFavorite = dbHelper.isFavorite(song.getId());
+            holder.ivFavoriteHeart.setVisibility(isFavorite ? View.VISIBLE : View.GONE);
+        } else {
+            holder.ivFavoriteHeart.setVisibility(View.GONE);
+        }
 
         // Load album art asynchronously with Glide (with caching)
         loadAlbumArt(holder.ivAlbumArt, song);
@@ -114,7 +128,16 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.SongViewHolder> {
 
             // Default menu behavior
             PopupMenu popup = new PopupMenu(v.getContext(), v);
-            popup.inflate(R.menu.menu_song_options);
+            popup.inflate(customMenuResource);
+
+            // Update menu item text based on favorite status
+            if (dbHelper != null) {
+                boolean isFavorite = dbHelper.isFavorite(song.getId());
+                android.view.MenuItem favoriteItem = popup.getMenu().findItem(R.id.menu_add_to_favourite);
+                if (favoriteItem != null) {
+                    favoriteItem.setTitle(isFavorite ? "Remove from Favourites" : "Add to Favourites");
+                }
+            }
 
             popup.setOnMenuItemClickListener(item -> {
                 if (menuListener != null) {
@@ -123,10 +146,14 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.SongViewHolder> {
                         menuListener.onAddToQueue(song);
                         return true;
                     } else if (itemId == R.id.menu_add_to_favourite) {
-                        menuListener.onAddToFavourite(song);
+                        menuListener.onAddToFavourite(song, position);
                         return true;
                     } else if (itemId == R.id.menu_add_to_playlist) {
                         menuListener.onAddToPlaylist(song);
+                        return true;
+                    } else if (itemId == R.id.menu_remove_from_playlist) {
+                        // Handle remove from playlist (same as delete in playlist context)
+                        menuListener.onDeleteSong(song, position);
                         return true;
                     } else if (itemId == R.id.menu_delete_song) {
                         menuListener.onDeleteSong(song, position);
@@ -168,8 +195,9 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.SongViewHolder> {
                                 boolean isFirstResource) {
                             android.util.Log.d("AlbumArt", "Custom album cover FAILED for: " + song.getTitle()
                                     + ", falling back to embedded art");
-                            
-                            // Use Handler to post fallback request to main thread to avoid Glide callback restriction
+
+                            // Use Handler to post fallback request to main thread to avoid Glide callback
+                            // restriction
                             new Handler(Looper.getMainLooper()).post(() -> {
                                 // Check if file still exists before attempting to load
                                 if (isFileExists(song.getUri())) {
@@ -213,7 +241,7 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.SongViewHolder> {
             if (filePath == null || filePath.isEmpty()) {
                 return false;
             }
-            
+
             Uri uri = Uri.parse(filePath);
             if ("file".equals(uri.getScheme())) {
                 // For file:// URIs, check if file exists
@@ -257,12 +285,12 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.SongViewHolder> {
                             boolean isFirstResource) {
                         android.util.Log.d("AlbumArt",
                                 "✗ FAILED to load embedded album art from: " + audioUri.toString());
-                        
+
                         // Log the reason for failure without causing crashes
                         if (e != null) {
                             android.util.Log.w("AlbumArt", "Glide load failed: " + e.getMessage());
                         }
-                        
+
                         // Don't start any new Glide requests here - just let it show the error drawable
                         return false; // Let Glide handle showing error drawable
                     }
@@ -312,6 +340,15 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.SongViewHolder> {
         submitList(new ArrayList<>());
     }
 
+    /**
+     * Get all currently displayed songs in the adapter
+     * 
+     * @return List of songs currently shown
+     */
+    public List<Song> getAllSongs() {
+        return new ArrayList<>(getCurrentList());
+    }
+
     public interface OnSongClickListener {
         void onSongClick(Song song);
     }
@@ -319,7 +356,7 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.SongViewHolder> {
     public interface OnSongMenuListener {
         void onAddToQueue(Song song);
 
-        void onAddToFavourite(Song song);
+        void onAddToFavourite(Song song, int position);
 
         void onAddToPlaylist(Song song);
 
@@ -342,6 +379,10 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.SongViewHolder> {
         this.menuListener = menuListener;
     }
 
+    public void setCustomMenuResource(int menuResource) {
+        this.customMenuResource = menuResource;
+    }
+
     public void setMenuActionOverride(MenuActionOverride override) {
         this.menuActionOverride = override;
     }
@@ -350,14 +391,20 @@ public class SongAdapter extends ListAdapter<Song, SongAdapter.SongViewHolder> {
         this.fileDeletedListener = listener;
     }
 
+    public void setDatabaseHelper(SongDatabaseHelper dbHelper) {
+        this.dbHelper = dbHelper;
+    }
+
     static class SongViewHolder extends RecyclerView.ViewHolder {
         ImageView ivAlbumArt;
+        ImageView ivFavoriteHeart;
         TextView tvTitle, tvArtist, tvDuration;
         ImageButton btnMenu;
 
         public SongViewHolder(@NonNull View itemView) {
             super(itemView);
             ivAlbumArt = itemView.findViewById(R.id.ivAlbumArt);
+            ivFavoriteHeart = itemView.findViewById(R.id.ivFavoriteHeart);
             tvTitle = itemView.findViewById(R.id.tvTitle);
             tvArtist = itemView.findViewById(R.id.tvArtist);
             tvDuration = itemView.findViewById(R.id.tvDuration);

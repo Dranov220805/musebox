@@ -43,7 +43,7 @@
                         android:layout_height="match_parent"
                         android:scaleType="centerCrop"
                         android:src="@drawable/ic_account_circle"
-                        android:background="@color/white"
+                        android:background="@color/black"
                         android:contentDescription="User Avatar" />
                 </com.google.android.material.card.MaterialCardView>
 
