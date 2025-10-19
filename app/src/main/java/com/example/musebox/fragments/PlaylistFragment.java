@@ -149,6 +149,13 @@ public class PlaylistFragment extends Fragment {
 
     private void loadPlaylists() {
         List<Playlist> playlists = dbHelper.getAllPlaylists();
+
+        // Load songs for each playlist to get the first song's album cover
+        for (Playlist playlist : playlists) {
+            List<com.example.musebox.models.Song> songs = dbHelper.getSongsForPlaylist(playlist.getId());
+            playlist.setSongs(songs);
+        }
+
         adapter.setPlaylists(playlists);
         updateEmptyState(playlists.isEmpty());
     }
@@ -271,7 +278,7 @@ public class PlaylistFragment extends Fragment {
                     final List<com.example.musebox.models.Song> selected) {
                 tvTitle.setText(song.getTitle());
                 tvArtist.setText(song.getArtist());
-                
+
                 // Load album cover
                 String albumCoverPath = song.getAlbumCoverPath();
                 if (albumCoverPath != null && !albumCoverPath.isEmpty()) {
@@ -284,11 +291,11 @@ public class PlaylistFragment extends Fragment {
                 } else {
                     ivAlbumCover.setImageResource(R.drawable.ic_music_note);
                 }
-                
+
                 // Update check icon visibility
                 boolean isSelected = selected.contains(song);
                 iconCheck.setVisibility(isSelected ? View.VISIBLE : View.GONE);
-                
+
                 // Handle entire item click to toggle selection
                 itemView.setOnClickListener(v -> {
                     if (selected.contains(song)) {

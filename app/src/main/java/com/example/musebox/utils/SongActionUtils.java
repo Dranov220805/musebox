@@ -60,26 +60,6 @@ public class SongActionUtils {
     }
 
     /**
-     * Add song to favorites with UI feedback
-     * 
-     * @param context  Context for database and Toast
-     * @param song     Song to add
-     * @param dbHelper Database helper instance
-     */
-    public static void addToFavorites(Context context, Song song, SongDatabaseHelper dbHelper) {
-        new Thread(() -> {
-            boolean success = dbHelper.addToFavorites(song.getId());
-            if (context instanceof Activity) {
-                ((Activity) context).runOnUiThread(() -> {
-                    if (success) {
-                        Toast.makeText(context, "Added to favorites", Toast.LENGTH_SHORT).show();
-                    }
-                });
-            }
-        }).start();
-    }
-
-    /**
      * Remove song from favorites with UI feedback
      * 
      * @param context     Context for database and Toast

@@ -91,32 +91,58 @@ public class FavoritesFragment extends Fragment {
         adapter = new SongAdapter();
         adapter.setDatabaseHelper(dbHelper); // Set database helper for favorite checking
         adapter.setOnSongClickListener(this::onSongClicked);
-        adapter.setMenuActionOverride((song, position) -> {
-            // Override menu to show "Remove from Favorites" instead of "Delete Song"
-            SongActionUtils.removeFromFavorites(requireContext(), song, dbHelper,
-                    (removedSong) -> {
-                        // Validate position before removal to prevent crashes
-                        if (position >= 0 && position < favoriteSongs.size()) {
-                            favoriteSongs.remove(position);
-                            adapter.removeSong(position);
 
-                            if (favoriteSongs.isEmpty()) {
-                                if (recyclerView != null) {
-                                    recyclerView.setVisibility(View.GONE);
-                                }
-                                if (emptyView != null) {
-                                    emptyView.setVisibility(View.VISIBLE);
-                                }
+        // Set the menu listener for song options (same as HomeFragment)
+        adapter.setOnSongMenuListener(new SongAdapter.OnSongMenuListener() {
+            @Override
+            public void onAddToQueue(Song song) {
+                if (listener != null && listener.isMusicServiceBound()) {
+                    SongActionUtils.addToQueue(requireContext(), song, listener.getMusicService());
+                } else {
+                    Toast.makeText(requireContext(), "Music service not available", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onAddToFavourite(Song song, int position) {
+                // Toggle favorite status (will remove from favorites since we're in favorites)
+                SongActionUtils.toggleFavorite(requireContext(), song, dbHelper,
+                        (s, isFavorite) -> {
+                            if (!isFavorite) {
+                                // Song was removed from favorites, update the list
+                                loadFavorites();
+                            } else {
+                                // Just refresh the item to update heart icon
+                                adapter.notifyItemChanged(position);
+                            }
+                        });
+            }
+
+            @Override
+            public void onAddToPlaylist(Song song) {
+                // Show dialog to select playlist
+                com.example.musebox.utils.PlaylistDialogHelper.showAddToPlaylistDialog(requireContext(), song, null);
+            }
+
+            @Override
+            public void onDeleteSong(Song song, int position) {
+                SongActionUtils.showDeleteConfirmationDialog(requireContext(), song, position,
+                        new SongActionUtils.OnSongDeleteListener() {
+                            @Override
+                            public void onDeleteFromDevice(Song song, int position) {
+                                SongActionUtils.deleteSongFromDevice(requireContext(), song, dbHelper,
+                                        (deletedSong, success) -> loadFavorites());
                             }
 
-                            // Update count
-                            updateFavoritesCount();
-                        } else {
-                            // If position is invalid, reload the entire list to sync
-                            loadFavorites();
-                        }
-                    });
+                            @Override
+                            public void onDeleteFromLibrary(Song song, int position) {
+                                SongActionUtils.deleteSongFromLibrary(requireContext(), song, dbHelper,
+                                        (deletedSong, success) -> loadFavorites());
+                            }
+                        });
+            }
         });
+
         recyclerView.setAdapter(adapter);
 
         // Back button
