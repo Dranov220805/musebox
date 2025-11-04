@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/spotify_black"
+    tools:context=".fragments.HomeFragment">
+
+    <!-- Header Section with Title and Song Count -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="@color/musebox_green"
+        android:padding="16dp"
+        android:elevation="4dp"
+        android:gravity="center_vertical">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="My Music"
+                android:textSize="28sp"
+                android:textStyle="bold"
+                android:textColor="@color/white" />
+
+            <TextView
+                android:id="@+id/tvSongCount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0 songs"
+                android:textSize="14sp"
+                android:textColor="@color/white"
+                android:alpha="0.8"
+                android:layout_marginTop="4dp" />
+        </LinearLayout>
+
+        <!-- Compact Favorites Button -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/favoritesCard"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="2dp"
+            app:cardBackgroundColor="@color/spotify_dark_gray">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
+                android:gravity="center_vertical">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_heart_filled"
+                    app:tint="@color/favorite_red" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Favourite"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/white"
+                    android:layout_marginStart="6dp" />
+
+                <TextView
+                    android:id="@+id/tvFavoritesCount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/favorite_red"
+                    android:layout_marginStart="6dp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+    </LinearLayout>
+
+    <!-- Filter and Sort Controls -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="8dp">
+
+        <Button
+            android:id="@+id/btnSort"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="4dp"
+            android:text="Sort"
+            android:textColor="@android:color/white"
+            android:textSize="13sp"
+            android:backgroundTint="@color/spotify_dark_gray"
+            android:drawableStart="@android:drawable/ic_menu_sort_by_size"
+            android:drawablePadding="4dp"
+            app:drawableTint="@color/spotify_green" />
+
+        <Button
+            android:id="@+id/btnFilter"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="4dp"
+            android:text="Filter"
+            android:textColor="@android:color/white"
+            android:textSize="13sp"
+            android:backgroundTint="@color/spotify_dark_gray"
+            android:drawableStart="@android:drawable/ic_menu_agenda"
+            android:drawablePadding="4dp"
+            app:drawableTint="@color/spotify_green" />
+        
+        <Button
+            android:id="@+id/btnDiscover"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="4dp"
+            android:text="Discover"
+            android:textColor="@android:color/white"
+            android:textSize="13sp"
+            android:backgroundTint="@color/spotify_dark_gray"
+            android:drawableStart="@android:drawable/ic_menu_search"
+            android:drawablePadding="4dp"
+            app:drawableTint="@color/spotify_green" />
+    </LinearLayout>
+
+    <!-- Songs RecyclerView (Direct, like SearchFragment) -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerSongs"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:paddingBottom="100dp" />
+
+    <!-- Empty State -->
+    <LinearLayout
+        android:id="@+id/emptyView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:visibility="gone">
+
+        <ImageView
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:src="@drawable/ic_music_note"
+            android:alpha="0.3"
+            app:tint="@color/spotify_light_gray" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="Your music library is empty"
+            android:textColor="@color/spotify_light_gray"
+            android:textSize="16sp" />
+
+        <Button
+            android:id="@+id/btnImport"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="Import Songs"
+            android:textStyle="bold"
+            android:textColor="@color/white"
+            android:backgroundTint="@color/spotify_green"
+            android:paddingStart="24dp"
+            android:paddingEnd="24dp" />
+    </LinearLayout>
+
+    <!-- Hidden views for compatibility -->
+    <View
+        android:id="@+id/scrollContent"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone" />
+
+    <ProgressBar
+        android:id="@+id/progressBarLoading"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone" />
+
+</LinearLayout>

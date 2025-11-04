@@ -23,8 +23,10 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.musebox.R;
 import com.example.musebox.activities.HomeActivity;
 import com.example.musebox.adapters.SongAdapter;
+import com.example.musebox.api.JamendoApiService;
 import com.example.musebox.database.SongDatabaseHelper;
 import com.example.musebox.models.Song;
+import com.example.musebox.models.MusicRecommendation;
 import com.example.musebox.utils.PlaylistDialogHelper;
 import com.example.musebox.utils.SongActionUtils;
 import com.example.musebox.utils.ThemedDialogUtils;
@@ -47,6 +49,8 @@ public class HomeFragment extends Fragment {
         void onSongSelected(Song song, List<Song> displayedSongs);
 
         void onFavoritesClicked();
+
+        void onDiscoverClicked();
     }
 
     private RecyclerView recyclerSongs;
@@ -56,6 +60,7 @@ public class HomeFragment extends Fragment {
     private Button btnImport;
     private Button btnSort;
     private Button btnFilter;
+    private Button btnDiscover;
     private TextView tvSongCount;
     private TextView tvFavoritesCount;
     private android.widget.ProgressBar progressBarLoading;
@@ -83,7 +88,7 @@ public class HomeFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater,
             @Nullable ViewGroup container,
             @Nullable Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_home, container, false);
+        View view = inflater.inflate(R.layout.fragment_discover, container, false);
 
         recyclerSongs = view.findViewById(R.id.recyclerSongs);
         favoritesCard = view.findViewById(R.id.favoritesCard);
@@ -92,6 +97,7 @@ public class HomeFragment extends Fragment {
         btnImport = view.findViewById(R.id.btnImport);
         btnSort = view.findViewById(R.id.btnSort);
         btnFilter = view.findViewById(R.id.btnFilter);
+        btnDiscover = view.findViewById(R.id.btnDiscover);
         tvSongCount = view.findViewById(R.id.tvSongCount);
         tvFavoritesCount = view.findViewById(R.id.tvFavoritesCount);
         progressBarLoading = view.findViewById(R.id.progressBarLoading);
@@ -103,6 +109,7 @@ public class HomeFragment extends Fragment {
         // Setup sort and filter buttons
         setupSortButton();
         setupFilterButton();
+        setupDiscoverButton();
 
         // Setup favorites card click listener
         favoritesCard.setOnClickListener(v -> {
@@ -534,5 +541,16 @@ public class HomeFragment extends Fragment {
         // Reload from database
         loadSongsFromDatabase();
         loadFavorites(); // Also reload favorites
+    }
+
+    /**
+     * Setup Discover button with Jamendo API features
+     */
+    private void setupDiscoverButton() {
+        btnDiscover.setOnClickListener(v -> {
+            if (listener != null) {
+                listener.onDiscoverClicked();
+            }
+        });
     }
 }

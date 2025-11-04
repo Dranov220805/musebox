@@ -34,6 +34,7 @@ import com.example.musebox.R;
 import com.example.musebox.database.SongDatabaseHelper;
 import com.example.musebox.fragments.*;
 import com.example.musebox.models.Song;
+import com.example.musebox.models.MusicRecommendation;
 import com.example.musebox.services.MusicService;
 
 import java.util.ArrayList;
@@ -43,7 +44,8 @@ public class HomeActivity extends AppCompatActivity
         implements NavigationBarFragment.OnNavigationItemSelectedListener,
         HomeFragment.OnSongSelectedListener,
         QueueFragment.OnQueueFragmentListener,
-        FavoritesFragment.OnFavoritesFragmentListener {
+        FavoritesFragment.OnFavoritesFragmentListener,
+        DiscoverFragment.OnDiscoverFragmentListener {
 
     private SongDatabaseHelper dbHelper;
 
@@ -335,25 +337,50 @@ public class HomeActivity extends AppCompatActivity
     private void setupSwipeGesture() {
         miniPlayer.setOnTouchListener(new android.view.View.OnTouchListener() {
             private float startY;
-            private static final int MIN_DISTANCE = 100;
+            private float startX;
+            private static final int MIN_SWIPE_DISTANCE = 80;
+            private static final int SWIPE_THRESHOLD = 15;
+            private boolean isSwiping = false;
 
             @Override
             public boolean onTouch(android.view.View v, android.view.MotionEvent event) {
+                float deltaX;
+                float deltaY;
                 switch (event.getAction()) {
                     case android.view.MotionEvent.ACTION_DOWN:
                         startY = event.getY();
-                        return false;
+                        startX = event.getX();
+                        isSwiping = false;
+                        return false; // Don't consume yet, let click events pass through
+
+                    case android.view.MotionEvent.ACTION_MOVE:
+                        deltaY = event.getY() - startY;
+                        deltaX = Math.abs(event.getX() - startX);
+
+                        // Start swiping if moved vertically more than threshold and less horizontal
+                        // movement
+                        if (Math.abs(deltaY) > SWIPE_THRESHOLD && Math.abs(deltaY) > deltaX) {
+                            isSwiping = true;
+
+                            // Provide visual feedback during swipe down only
+                            if (deltaY > 0) {
+                                miniPlayer.setTranslationY(deltaY);
+                                float alpha = 1f - (deltaY / (miniPlayer.getHeight() * 2));
+                                miniPlayer.setAlpha(Math.max(0.5f, alpha));
+                                return true; // Now consume the event
+                            }
+                        }
+                        break;
 
                     case android.view.MotionEvent.ACTION_UP:
-                        float endY = event.getY();
-                        float deltaY = endY - startY;
+                        deltaY = event.getY() - startY;
 
-                        if (deltaY > MIN_DISTANCE) {
-                            // Swiped down - animate and dismiss
+                        if (isSwiping && deltaY > MIN_SWIPE_DISTANCE) {
+                            // Swiped down far enough - dismiss
                             miniPlayer.animate()
                                     .translationY(miniPlayer.getHeight())
                                     .alpha(0f)
-                                    .setDuration(300)
+                                    .setDuration(200)
                                     .withEndAction(() -> {
                                         if (musicService != null) {
                                             musicService.stopPlaybackAndRemoveNotification();
@@ -363,6 +390,27 @@ public class HomeActivity extends AppCompatActivity
                                         miniPlayer.setAlpha(1f);
                                         progressHandler.removeCallbacks(progressRunnable);
                                     })
+                                    .start();
+                            return true;
+                        } else if (isSwiping) {
+                            // Swipe cancelled - reset position
+                            miniPlayer.animate()
+                                    .translationY(0)
+                                    .alpha(1f)
+                                    .setDuration(200)
+                                    .start();
+                            return true;
+                        }
+                        // If not swiping, let the click event pass through
+                        break;
+
+                    case android.view.MotionEvent.ACTION_CANCEL:
+                        if (isSwiping) {
+                            // Reset position
+                            miniPlayer.animate()
+                                    .translationY(0)
+                                    .alpha(1f)
+                                    .setDuration(200)
                                     .start();
                             return true;
                         }
@@ -514,6 +562,16 @@ public class HomeActivity extends AppCompatActivity
         FavoritesFragment favoritesFragment = new FavoritesFragment();
         getSupportFragmentManager().beginTransaction()
                 .replace(R.id.content_container, favoritesFragment)
+                .addToBackStack(null)
+                .commit();
+    }
+
+    @Override
+    public void onDiscoverClicked() {
+        // Navigate to discover fragment
+        DiscoverFragment discoverFragment = new DiscoverFragment();
+        getSupportFragmentManager().beginTransaction()
+                .replace(R.id.content_container, discoverFragment)
                 .addToBackStack(null)
                 .commit();
     }
@@ -1424,5 +1482,36 @@ public class HomeActivity extends AppCompatActivity
         if (fragment instanceof HomeFragment) {
             ((HomeFragment) fragment).refreshSongs();
         }
+    }
+
+    // DiscoverFragment.OnDiscoverFragmentListener implementation
+    @Override
+    public void onSearchClicked() {
+        // Search functionality is handled within DiscoverFragment
+    }
+
+    @Override
+    public void onMusicSelected(MusicRecommendation music) {
+        // Show info about selected music
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle(music.getTrackName())
+                .setMessage("Artist: " + music.getArtistName() + "\n" +
+                        "Album: " + music.getAlbumName() + "\n" +
+                        "Duration: " + formatDuration(music.getDuration()) + "\n\n" +
+                        "This is a Jamendo track. Streaming functionality can be added in future updates.")
+                .setPositiveButton("OK", null)
+                .setNegativeButton("Close", (dialog, which) -> dialog.dismiss())
+                .show();
+    }
+
+    @Override
+    public void onGenreSelected(String genre) {
+        // Genre selection is handled within DiscoverFragment
+    }
+
+    private String formatDuration(int seconds) {
+        int minutes = seconds / 60;
+        int secs = seconds % 60;
+        return String.format("%d:%02d", minutes, secs);
     }
 }
