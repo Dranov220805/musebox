@@ -1491,12 +1491,17 @@ public class HomeActivity extends AppCompatActivity
     }
 
     @Override
-    public void onMusicSelected(MusicRecommendation music) {
-        // Show info about selected music
+    public void onMusicSelected(MusicRecommendation music, String genre) {
+        // Show info about selected music with genre context
+        String genreDisplay = genre != null && !genre.isEmpty()
+                ? genre.substring(0, 1).toUpperCase() + genre.substring(1)
+                : "Unknown";
+
         new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle(music.getTrackName())
                 .setMessage("Artist: " + music.getArtistName() + "\n" +
                         "Album: " + music.getAlbumName() + "\n" +
+                        "Genre: " + genreDisplay + "\n" +
                         "Duration: " + formatDuration(music.getDuration()) + "\n\n" +
                         "This is a Jamendo track. Streaming functionality can be added in future updates.")
                 .setPositiveButton("OK", null)

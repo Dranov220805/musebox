@@ -1,7 +1,6 @@
 package com.example.musebox.fragments;
 
 import android.content.Context;
-import android.content.res.Configuration;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -9,22 +8,21 @@ import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
-import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.musebox.R;
-import com.example.musebox.adapters.GenreCardAdapter;
-import com.example.musebox.adapters.MusicCardAdapter;
+import com.example.musebox.adapters.GenreSectionAdapter;
 import com.example.musebox.api.JamendoApiService;
+import com.example.musebox.models.GenreSection;
 import com.example.musebox.models.MusicRecommendation;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -32,14 +30,16 @@ public class DiscoverFragment extends Fragment {
 
     private ImageButton btnBack;
     private LinearLayout searchBar;
-    private RecyclerView recyclerPopular;
-    private RecyclerView recyclerGenres;
-    private RecyclerView recyclerRecommended;
+    private RecyclerView recyclerGenreSections;
     private ProgressBar progressBarLoading;
 
-    private MusicCardAdapter popularAdapter;
-    private MusicCardAdapter recommendedAdapter;
-    private GenreCardAdapter genreAdapter;
+    private GenreSectionAdapter genreSectionAdapter;
+    private List<String> genres = Arrays.asList(
+            "rock", "pop", "electronic", "jazz",
+            "metal", "classical", "hiphop", "ambient",
+            "indie", "blues");
+
+    private int loadedGenresCount = 0;
 
     // Interface for communicating with parent activity
     public interface OnDiscoverFragmentListener {
@@ -47,7 +47,7 @@ public class DiscoverFragment extends Fragment {
 
         void onSearchClicked();
 
-        void onMusicSelected(MusicRecommendation music);
+        void onMusicSelected(MusicRecommendation music, String genre);
 
         void onGenreSelected(String genre);
     }
@@ -79,60 +79,33 @@ public class DiscoverFragment extends Fragment {
         // Initialize views
         btnBack = view.findViewById(R.id.btnBack);
         searchBar = view.findViewById(R.id.searchBar);
-        recyclerPopular = view.findViewById(R.id.recyclerPopular);
-        recyclerGenres = view.findViewById(R.id.recyclerGenres);
-        recyclerRecommended = view.findViewById(R.id.recyclerRecommended);
+        recyclerGenreSections = view.findViewById(R.id.recyclerGenreSections);
         progressBarLoading = view.findViewById(R.id.progressBarLoading);
 
-        setupRecyclerViews();
+        setupRecyclerView();
         setupClickListeners();
-        loadData();
+        loadGenreSections();
 
         return view;
     }
 
-    private void setupRecyclerViews() {
-        // Popular tracks - horizontal scroll
-        popularAdapter = new MusicCardAdapter();
-        popularAdapter.setOnMusicCardClickListener(music -> {
-            if (listener != null) {
-                listener.onMusicSelected(music);
-            }
-        });
-        LinearLayoutManager popularLayoutManager = new LinearLayoutManager(getContext(),
-                LinearLayoutManager.HORIZONTAL, false);
-        recyclerPopular.setLayoutManager(popularLayoutManager);
-        recyclerPopular.setAdapter(popularAdapter);
+    private void setupRecyclerView() {
+        genreSectionAdapter = new GenreSectionAdapter();
+        recyclerGenreSections.setLayoutManager(new LinearLayoutManager(getContext()));
+        recyclerGenreSections.setAdapter(genreSectionAdapter);
 
-        // Genres - vertical grid (2 columns for portrait, 4 columns for landscape)
-        genreAdapter = new GenreCardAdapter();
-        genreAdapter.setOnGenreCardClickListener(genre -> {
+        // Set click listeners
+        genreSectionAdapter.setOnMusicClickListener((music, genre) -> {
+            showMusicDetail(music, genre);
+        });
+
+        genreSectionAdapter.setOnSeeAllClickListener(genre -> {
             if (listener != null) {
                 listener.onGenreSelected(genre);
             } else {
-                // If no listener, show genre tracks directly
-                showGenreTracks(genre);
+                Toast.makeText(getContext(), "See all " + genre + " tracks", Toast.LENGTH_SHORT).show();
             }
         });
-
-        // Determine grid columns based on orientation
-        int orientation = getResources().getConfiguration().orientation;
-        int spanCount = (orientation == Configuration.ORIENTATION_LANDSCAPE) ? 4 : 2;
-        GridLayoutManager genreLayoutManager = new GridLayoutManager(getContext(), spanCount);
-        recyclerGenres.setLayoutManager(genreLayoutManager);
-        recyclerGenres.setAdapter(genreAdapter);
-
-        // Recommended - horizontal scroll
-        recommendedAdapter = new MusicCardAdapter();
-        recommendedAdapter.setOnMusicCardClickListener(music -> {
-            if (listener != null) {
-                listener.onMusicSelected(music);
-            }
-        });
-        LinearLayoutManager recommendedLayoutManager = new LinearLayoutManager(getContext(),
-                LinearLayoutManager.HORIZONTAL, false);
-        recyclerRecommended.setLayoutManager(recommendedLayoutManager);
-        recyclerRecommended.setAdapter(recommendedAdapter);
     }
 
     private void setupClickListeners() {
@@ -155,59 +128,74 @@ public class DiscoverFragment extends Fragment {
         });
     }
 
-    private void loadData() {
-        loadPopularTracks();
-        loadGenres();
-        loadRecommendedTracks();
-    }
-
-    private void loadPopularTracks() {
+    private void loadGenreSections() {
         progressBarLoading.setVisibility(View.VISIBLE);
+        List<GenreSection> sections = new ArrayList<>();
+        loadedGenresCount = 0;
 
-        JamendoApiService.getPopularTracks(20, new JamendoApiService.MusicRecommendationCallback() {
-            @Override
-            public void onSuccess(List<MusicRecommendation> recommendations) {
-                if (getActivity() != null && isAdded()) {
-                    progressBarLoading.setVisibility(View.GONE);
-                    popularAdapter.setMusicList(recommendations);
-                }
-            }
+        for (String genre : genres) {
+            JamendoApiService.getTracksByGenre(genre, 10, new JamendoApiService.MusicRecommendationCallback() {
+                @Override
+                public void onSuccess(List<MusicRecommendation> recommendations) {
+                    if (getActivity() != null && isAdded() && !recommendations.isEmpty()) {
+                        sections.add(new GenreSection(genre, recommendations));
+                        loadedGenresCount++;
 
-            @Override
-            public void onError(String error) {
-                if (getActivity() != null && isAdded()) {
-                    progressBarLoading.setVisibility(View.GONE);
-                    Toast.makeText(getContext(), "Error loading popular tracks: " + error,
-                            Toast.LENGTH_SHORT).show();
-                }
-            }
-        });
-    }
+                        // Update adapter when all genres are loaded or after each load
+                        genreSectionAdapter.setGenreSections(new ArrayList<>(sections));
 
-    private void loadGenres() {
-        // Set preset genres
-        List<String> genres = Arrays.asList(
-                "rock", "pop", "electronic", "jazz",
-                "metal", "classical", "hiphop", "ambient");
-        genreAdapter.setGenreList(genres);
-    }
-
-    private void loadRecommendedTracks() {
-        // Load a different set of tracks for recommended section
-        JamendoApiService.getTracksByGenre("electronic", 20,
-                new JamendoApiService.MusicRecommendationCallback() {
-                    @Override
-                    public void onSuccess(List<MusicRecommendation> recommendations) {
-                        if (getActivity() != null && isAdded()) {
-                            recommendedAdapter.setMusicList(recommendations);
+                        if (loadedGenresCount >= genres.size()) {
+                            progressBarLoading.setVisibility(View.GONE);
                         }
                     }
+                }
 
-                    @Override
-                    public void onError(String error) {
-                        // Silent fail for recommended section
+                @Override
+                public void onError(String error) {
+                    loadedGenresCount++;
+                    if (loadedGenresCount >= genres.size()) {
+                        if (getActivity() != null && isAdded()) {
+                            progressBarLoading.setVisibility(View.GONE);
+                        }
                     }
-                });
+                }
+            });
+        }
+    }
+
+    private void showMusicDetail(MusicRecommendation music, String genre) {
+        MusicDetailBottomSheet bottomSheet = MusicDetailBottomSheet.newInstance(music, genre);
+        bottomSheet.setActionListener(new MusicDetailBottomSheet.OnMusicActionListener() {
+            @Override
+            public void onPlayMusic(MusicRecommendation music) {
+                if (listener != null) {
+                    listener.onMusicSelected(music, genre);
+                }
+                Toast.makeText(getContext(), "Playing: " + music.getTrackName(), Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onAddToFavorites(MusicRecommendation music) {
+                Toast.makeText(getContext(), "Added to favorites", Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onAddToQueue(MusicRecommendation music) {
+                Toast.makeText(getContext(), "Added to queue", Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onGoToArtist(String artistName) {
+                Toast.makeText(getContext(), "Go to artist: " + artistName, Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onMusicSelected(MusicRecommendation music) {
+                // Recursive call to show detail for newly selected music
+                showMusicDetail(music, genre);
+            }
+        });
+        bottomSheet.show(getParentFragmentManager(), "MusicDetailBottomSheet");
     }
 
     private void showSearchDialog() {
@@ -244,10 +232,11 @@ public class DiscoverFragment extends Fragment {
                         Toast.makeText(getContext(), "No results found for '" + query + "'",
                                 Toast.LENGTH_SHORT).show();
                     } else {
-                        // Show results in popular section
-                        popularAdapter.setMusicList(recommendations);
-                        // Scroll to top
-                        recyclerPopular.smoothScrollToPosition(0);
+                        // Show results as a new section at top
+                        List<GenreSection> currentSections = new ArrayList<>();
+                        currentSections.add(new GenreSection("Search: " + query, recommendations));
+                        genreSectionAdapter.setGenreSections(currentSections);
+                        recyclerGenreSections.smoothScrollToPosition(0);
                         Toast.makeText(getContext(), "Found " + recommendations.size() + " results",
                                 Toast.LENGTH_SHORT).show();
                     }
@@ -259,40 +248,6 @@ public class DiscoverFragment extends Fragment {
                 if (getActivity() != null && isAdded()) {
                     progressBarLoading.setVisibility(View.GONE);
                     Toast.makeText(getContext(), "Search error: " + error,
-                            Toast.LENGTH_SHORT).show();
-                }
-            }
-        });
-    }
-
-    private void showGenreTracks(String genre) {
-        progressBarLoading.setVisibility(View.VISIBLE);
-
-        JamendoApiService.getTracksByGenre(genre, 20, new JamendoApiService.MusicRecommendationCallback() {
-            @Override
-            public void onSuccess(List<MusicRecommendation> recommendations) {
-                if (getActivity() != null && isAdded()) {
-                    progressBarLoading.setVisibility(View.GONE);
-                    if (recommendations.isEmpty()) {
-                        Toast.makeText(getContext(), "No tracks found in genre '" + genre + "'",
-                                Toast.LENGTH_SHORT).show();
-                    } else {
-                        // Show results in popular section
-                        popularAdapter.setMusicList(recommendations);
-                        // Scroll to top
-                        recyclerPopular.smoothScrollToPosition(0);
-                        String displayGenre = genre.substring(0, 1).toUpperCase() + genre.substring(1);
-                        Toast.makeText(getContext(), displayGenre + " tracks loaded",
-                                Toast.LENGTH_SHORT).show();
-                    }
-                }
-            }
-
-            @Override
-            public void onError(String error) {
-                if (getActivity() != null && isAdded()) {
-                    progressBarLoading.setVisibility(View.GONE);
-                    Toast.makeText(getContext(), "Error loading genre: " + error,
                             Toast.LENGTH_SHORT).show();
                 }
             }

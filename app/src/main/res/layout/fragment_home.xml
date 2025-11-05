@@ -80,103 +80,33 @@
 
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Popular Tracks Section -->
-        <LinearLayout
+        <!-- Genre Sections (Spotify-like) -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerGenreSections"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:paddingStart="16dp"
-            android:paddingEnd="16dp"
-            android:paddingBottom="16dp">
+            android:clipToPadding="false"
+            android:paddingTop="8dp"
+            android:paddingBottom="100dp" />
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:paddingBottom="12dp">
+        <!-- Hidden views for compatibility -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerPopular"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone" />
 
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Popular Right Now"
-                    android:textColor="@color/text_primary"
-                    android:textSize="20sp"
-                    android:textStyle="bold" />
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerGenres"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone" />
 
-                <TextView
-                    android:id="@+id/tvSeeAllPopular"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="See all"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="12sp"
-                    android:background="?attr/selectableItemBackground"
-                    android:padding="4dp" />
-
-            </LinearLayout>
-
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/recyclerPopular"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:clipToPadding="false"
-                android:paddingBottom="8dp" />
-
-        </LinearLayout>
-
-        <!-- Browse by Genre Section -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:paddingStart="16dp"
-            android:paddingEnd="16dp"
-            android:paddingBottom="16dp">
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Browse by Genre"
-                android:textColor="@color/text_primary"
-                android:textSize="20sp"
-                android:textStyle="bold"
-                android:paddingBottom="12dp" />
-
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/recyclerGenres"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:clipToPadding="false" />
-
-        </LinearLayout>
-
-        <!-- Recently Played/Recommended Section -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:paddingStart="16dp"
-            android:paddingEnd="16dp"
-            android:paddingBottom="100dp">
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Recommended for You"
-                android:textColor="@color/text_primary"
-                android:textSize="20sp"
-                android:textStyle="bold"
-                android:paddingBottom="12dp" />
-
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/recyclerRecommended"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:clipToPadding="false" />
-
-        </LinearLayout>
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerRecommended"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone" />
 
         <!-- Loading Indicator -->
         <ProgressBar

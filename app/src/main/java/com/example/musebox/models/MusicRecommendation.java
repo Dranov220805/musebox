@@ -1,6 +1,10 @@
 package com.example.musebox.models;
 
-public class MusicRecommendation {
+import java.io.Serializable;
+
+public class MusicRecommendation implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     private String trackName;
     private String artistName;
     private String albumName;
