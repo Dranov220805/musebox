@@ -305,7 +305,7 @@ public class HomeActivity extends AppCompatActivity
 
         if (savedInstanceState == null) {
             getSupportFragmentManager().beginTransaction()
-                    .replace(R.id.content_container, new HomeFragment())
+                    .replace(R.id.content_container, new DiscoverFragment())
                     .commit();
 
             getSupportFragmentManager().beginTransaction()
@@ -786,7 +786,28 @@ public class HomeActivity extends AppCompatActivity
         Fragment selected = null;
         switch (item) {
             case "home":
+                // Home now shows DiscoverFragment (YouTube Music-like home)
+                selected = new DiscoverFragment();
+                break;
+            case "create":
+                // Create - show create/import dialog
+                showCreateDialog();
+                return; // Don't navigate, just show dialog
+            case "explore":
+                // Explore - using SearchFragment
+                selected = new SearchFragment();
+                break;
+            case "library":
+                // Library shows playlists
+                selected = new PlaylistFragment();
+                break;
+            case "offline":
+                // Offline shows local music (old HomeFragment)
                 selected = new HomeFragment();
+                break;
+            // Keep old cases for backward compatibility
+            case "samples":
+                selected = new SearchFragment();
                 break;
             case "search":
                 selected = new SearchFragment();
@@ -813,20 +834,27 @@ public class HomeActivity extends AppCompatActivity
         }
     }
 
-    @Override
-    public void onCreatePlaylistSelected() {
-        // Navigate to PlaylistFragment and auto-open the create playlist dialog
-        Fragment playlistFragment = com.example.musebox.fragments.PlaylistFragment.newInstance(true);
-        getSupportFragmentManager().beginTransaction()
-                .replace(R.id.content_container, playlistFragment)
-                .addToBackStack(null)
-                .commit();
-    }
+    private void showCreateDialog() {
+        // Show create bottom sheet dialog
+        CreateBottomSheetFragment createSheet = CreateBottomSheetFragment.newInstance();
+        createSheet.setOnCreateActionListener(new CreateBottomSheetFragment.OnCreateActionListener() {
+            @Override
+            public void onCreatePlaylist() {
+                // Create playlist
+                Fragment playlistFragment = PlaylistFragment.newInstance(true);
+                getSupportFragmentManager().beginTransaction()
+                        .replace(R.id.content_container, playlistFragment)
+                        .addToBackStack(null)
+                        .commit();
+            }
 
-    @Override
-    public void onImportMusicSelected(Uri folderUri) {
-        // Check permissions first, just like HomeFragment does
-        checkPermissionAndImport(folderUri);
+            @Override
+            public void onImportMusic() {
+                // Import music
+                scanAllDeviceMusic();
+            }
+        });
+        createSheet.show(getSupportFragmentManager(), "CreateBottomSheet");
     }
 
     private void checkPermissionAndImport(Uri folderUri) {
@@ -1488,6 +1516,18 @@ public class HomeActivity extends AppCompatActivity
     @Override
     public void onSearchClicked() {
         // Search functionality is handled within DiscoverFragment
+    }
+
+    @Override
+    public void onProfileClicked() {
+        // Show profile in a dialog (YouTube Music style)
+        showProfileDialog();
+    }
+
+    private void showProfileDialog() {
+        // Create and show ProfileFragment in a bottom sheet dialog
+        ProfileFragment profileFragment = new ProfileFragment();
+        profileFragment.show(getSupportFragmentManager(), "ProfileBottomSheet");
     }
 
     @Override

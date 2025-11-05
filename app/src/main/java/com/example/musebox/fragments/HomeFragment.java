@@ -258,10 +258,9 @@ public class HomeFragment extends Fragment {
      * method
      */
     private void scanDeviceForAudioFiles() {
-        // Delegate to HomeActivity's importMusicFromMediaStore which now scans all
-        // volumes
+        // Delegate to HomeActivity's scanAllDeviceMusic which scans all volumes
         if (getActivity() instanceof HomeActivity) {
-            ((HomeActivity) getActivity()).onImportMusicSelected(null);
+            ((HomeActivity) getActivity()).scanAllDeviceMusic();
         } else {
             Toast.makeText(requireContext(), "Error: Unable to access import functionality", Toast.LENGTH_SHORT).show();
         }

@@ -1,11 +1,9 @@
 package com.example.musebox.fragments;
 
 import android.content.Context;
-import android.net.Uri;
 import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -20,14 +18,10 @@ public class NavigationBarFragment extends Fragment {
 
     public interface OnNavigationItemSelectedListener {
         void onNavigationItemSelected(String item);
-
-        void onCreatePlaylistSelected();
-
-        void onImportMusicSelected(Uri folderUri);
     }
 
     private OnNavigationItemSelectedListener listener;
-    private LinearLayout navHome, navSearch, navCreate, navPlaylist, navProfile;
+    private LinearLayout navHome, navCreate, navExplore, navLibrary, navOffline;
     private String currentSelection = "home";
 
     @Override
@@ -55,32 +49,40 @@ public class NavigationBarFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_navigation_bar, container, false);
 
         navHome = view.findViewById(R.id.nav_home);
-        navSearch = view.findViewById(R.id.nav_search);
         navCreate = view.findViewById(R.id.nav_create);
-        navPlaylist = view.findViewById(R.id.nav_playlist);
-        navProfile = view.findViewById(R.id.nav_profile);
+        navExplore = view.findViewById(R.id.nav_explore);
+        navLibrary = view.findViewById(R.id.nav_library);
+        navOffline = view.findViewById(R.id.nav_offline);
 
         navHome.setOnClickListener(v -> {
             setSelected("home");
             if (listener != null)
                 listener.onNavigationItemSelected("home");
         });
-        navSearch.setOnClickListener(v -> {
-            setSelected("search");
+
+        navCreate.setOnClickListener(v -> {
+            setSelected("create");
             if (listener != null)
-                listener.onNavigationItemSelected("search");
+                listener.onNavigationItemSelected("create");
         });
-        navPlaylist.setOnClickListener(v -> {
-            setSelected("playlist");
+
+        navExplore.setOnClickListener(v -> {
+            setSelected("explore");
             if (listener != null)
-                listener.onNavigationItemSelected("playlist");
+                listener.onNavigationItemSelected("explore");
         });
-        navProfile.setOnClickListener(v -> {
-            setSelected("profile");
+
+        navLibrary.setOnClickListener(v -> {
+            setSelected("library");
             if (listener != null)
-                listener.onNavigationItemSelected("profile");
+                listener.onNavigationItemSelected("library");
         });
-        navCreate.setOnClickListener(v -> showCreateDialog());
+
+        navOffline.setOnClickListener(v -> {
+            setSelected("offline");
+            if (listener != null)
+                listener.onNavigationItemSelected("offline");
+        });
 
         // Set initial selection
         setSelected(currentSelection);
@@ -88,29 +90,32 @@ public class NavigationBarFragment extends Fragment {
         return view;
     }
 
-    private void setSelected(String item) {
+    public void setSelected(String item) {
         currentSelection = item;
 
         // Reset all selections
         setNavItemSelected(navHome, false);
-        setNavItemSelected(navSearch, false);
         setNavItemSelected(navCreate, false);
-        setNavItemSelected(navPlaylist, false);
-        setNavItemSelected(navProfile, false);
+        setNavItemSelected(navExplore, false);
+        setNavItemSelected(navLibrary, false);
+        setNavItemSelected(navOffline, false);
 
         // Set current selection
         switch (item) {
             case "home":
                 setNavItemSelected(navHome, true);
                 break;
-            case "search":
-                setNavItemSelected(navSearch, true);
+            case "create":
+                setNavItemSelected(navCreate, true);
                 break;
-            case "playlist":
-                setNavItemSelected(navPlaylist, true);
+            case "explore":
+                setNavItemSelected(navExplore, true);
                 break;
-            case "profile":
-                setNavItemSelected(navProfile, true);
+            case "library":
+                setNavItemSelected(navLibrary, true);
+                break;
+            case "offline":
+                setNavItemSelected(navOffline, true);
                 break;
         }
     }
@@ -126,38 +131,5 @@ public class NavigationBarFragment extends Fragment {
                 child.setSelected(selected);
             }
         }
-    }
-
-    private void showCreateDialog() {
-        if (getContext() == null)
-            return;
-
-        // Inflate custom dialog layout
-        View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_create_options, null);
-
-        AlertDialog dialog = new AlertDialog.Builder(getContext())
-                .setView(dialogView)
-                .create();
-
-        // Make dialog background transparent for rounded corners
-        if (dialog.getWindow() != null) {
-            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
-        }
-
-        // Setup click listeners for the cards
-        dialogView.findViewById(R.id.btn_create_playlist).setOnClickListener(v -> {
-            dialog.dismiss();
-            if (listener != null)
-                listener.onCreatePlaylistSelected();
-        });
-
-        dialogView.findViewById(R.id.btn_import_music).setOnClickListener(v -> {
-            dialog.dismiss();
-            // Directly call import with null URI since MediaStore scans all device music
-            if (listener != null)
-                listener.onImportMusicSelected(null);
-        });
-
-        dialog.show();
     }
 }

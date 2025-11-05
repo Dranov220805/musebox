@@ -2,6 +2,7 @@ package com.example.musebox.fragments;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.Dialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
@@ -10,6 +11,7 @@ import android.provider.MediaStore;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -19,7 +21,6 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
-import androidx.fragment.app.Fragment;
 
 import com.bumptech.glide.Glide;
 import com.example.musebox.R;
@@ -27,15 +28,18 @@ import com.example.musebox.activities.LoginActivity;
 import com.example.musebox.database.SongDatabaseHelper;
 import com.example.musebox.utils.SessionManager;
 import com.example.musebox.utils.ThemedDialogUtils;
+import com.google.android.material.bottomsheet.BottomSheetBehavior;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
+import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
 import com.google.android.material.card.MaterialCardView;
 
-public class ProfileFragment extends Fragment {
+public class ProfileFragment extends BottomSheetDialogFragment {
 
     private ImageView ivAvatar;
     private TextView tvUsername, tvEmail, tvCurrentTheme;
-    private MaterialCardView cardUploadAvatar, cardTheme, cardHomeWidget, cardLanguage, 
-                            cardMusicFolder, cardClearCache, cardClearData, cardLogout;
-    
+    private MaterialCardView cardUploadAvatar, cardTheme, cardHomeWidget, cardLanguage,
+            cardMusicFolder, cardClearCache, cardClearData, cardLogout;
+
     private SessionManager sessionManager;
     private SongDatabaseHelper dbHelper;
     private ActivityResultLauncher<Intent> imagePickerLauncher;
@@ -52,39 +56,38 @@ public class ProfileFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        
+
         // Initialize session manager
         sessionManager = new SessionManager(requireContext());
-        
+
         // Initialize database helper
         dbHelper = new SongDatabaseHelper(requireContext());
-        
+
         // Initialize image picker launcher
         imagePickerLauncher = registerForActivityResult(
-            new ActivityResultContracts.StartActivityForResult(),
-            result -> {
-                if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
-                    Uri imageUri = result.getData().getData();
-                    if (imageUri != null) {
-                        ivAvatar.setImageURI(imageUri);
-                        // Here you could save the image URI to preferences or upload to server
-                        Toast.makeText(getContext(), "Avatar updated successfully!", Toast.LENGTH_SHORT).show();
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
+                        Uri imageUri = result.getData().getData();
+                        if (imageUri != null) {
+                            ivAvatar.setImageURI(imageUri);
+                            // Here you could save the image URI to preferences or upload to server
+                            Toast.makeText(getContext(), "Avatar updated successfully!", Toast.LENGTH_SHORT).show();
+                        }
                     }
-                }
-            }
-        );
-        
+                });
+
         // Initialize permission launcher
         permissionLauncher = registerForActivityResult(
-            new ActivityResultContracts.RequestPermission(),
-            isGranted -> {
-                if (isGranted) {
-                    openImagePicker();
-                } else {
-                    Toast.makeText(getContext(), "Permission denied. Cannot access gallery.", Toast.LENGTH_SHORT).show();
-                }
-            }
-        );
+                new ActivityResultContracts.RequestPermission(),
+                isGranted -> {
+                    if (isGranted) {
+                        openImagePicker();
+                    } else {
+                        Toast.makeText(getContext(), "Permission denied. Cannot access gallery.", Toast.LENGTH_SHORT)
+                                .show();
+                    }
+                });
     }
 
     @Override
@@ -95,7 +98,7 @@ public class ProfileFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        
+
         initViews(view);
         loadUserData();
         setupClickListeners();
@@ -106,7 +109,7 @@ public class ProfileFragment extends Fragment {
         tvUsername = view.findViewById(R.id.tvUsername);
         tvEmail = view.findViewById(R.id.tvEmail);
         tvCurrentTheme = view.findViewById(R.id.tvCurrentTheme);
-        
+
         cardUploadAvatar = view.findViewById(R.id.cardUploadAvatar);
         cardTheme = view.findViewById(R.id.cardTheme);
         cardHomeWidget = view.findViewById(R.id.cardHomeWidget);
@@ -121,7 +124,7 @@ public class ProfileFragment extends Fragment {
         if (sessionManager.isLoggedIn()) {
             String username = sessionManager.getUserName();
             String email = sessionManager.getUserEmail();
-            
+
             tvUsername.setText(username != null ? username : "Unknown User");
             tvEmail.setText(email != null ? email : "No email");
         } else {
@@ -142,8 +145,8 @@ public class ProfileFragment extends Fragment {
     }
 
     private void handleUploadAvatar() {
-        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.READ_EXTERNAL_STORAGE) 
-                == PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(requireContext(),
+                Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
             openImagePicker();
         } else {
             permissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE);
@@ -157,25 +160,24 @@ public class ProfileFragment extends Fragment {
     }
 
     private void handleThemeSelection() {
-        String[] themeOptions = {"Light Mode", "Dark Mode", "Use System Setting"};
+        String[] themeOptions = { "Light Mode", "Dark Mode", "Use System Setting" };
         int currentSelection = getCurrentThemeSelection();
-        
+
         ThemedDialogUtils.showListDialog(
-            requireContext(),
-            "Select Theme",
-            themeOptions,
-            currentSelection,
-            R.drawable.ic_palette,
-            R.color.musebox_green,
-            (selectedIndex) -> {
-                String selectedTheme = themeOptions[selectedIndex];
-                tvCurrentTheme.setText(selectedTheme.toLowerCase());
-                
-                // Here you would implement theme changing logic
-                // For example: ThemeManager.setTheme(selectedIndex);
-                Toast.makeText(getContext(), "Theme set to: " + selectedTheme, Toast.LENGTH_SHORT).show();
-            }
-        );
+                requireContext(),
+                "Select Theme",
+                themeOptions,
+                currentSelection,
+                R.drawable.ic_palette,
+                R.color.musebox_green,
+                (selectedIndex) -> {
+                    String selectedTheme = themeOptions[selectedIndex];
+                    tvCurrentTheme.setText(selectedTheme.toLowerCase());
+
+                    // Here you would implement theme changing logic
+                    // For example: ThemeManager.setTheme(selectedIndex);
+                    Toast.makeText(getContext(), "Theme set to: " + selectedTheme, Toast.LENGTH_SHORT).show();
+                });
     }
 
     private int getCurrentThemeSelection() {
@@ -186,38 +188,36 @@ public class ProfileFragment extends Fragment {
 
     private void handleFutureFeature(String featureName) {
         ThemedDialogUtils.showSimpleDialog(
-            requireContext(),
-            "Coming Soon",
-            featureName + " will be available in a future update. Stay tuned!",
-            R.drawable.ic_info,
-            R.color.musebox_green,
-            "OK",
-            null,
-            new ThemedDialogUtils.OnDialogClickListener() {
-                @Override
-                public void onPositiveClick() {
-                    // Dialog will close automatically
-                }
-            }
-        );
+                requireContext(),
+                "Coming Soon",
+                featureName + " will be available in a future update. Stay tuned!",
+                R.drawable.ic_info,
+                R.color.musebox_green,
+                "OK",
+                null,
+                new ThemedDialogUtils.OnDialogClickListener() {
+                    @Override
+                    public void onPositiveClick() {
+                        // Dialog will close automatically
+                    }
+                });
     }
 
     private void handleClearCache() {
         ThemedDialogUtils.showSimpleDialog(
-            requireContext(),
-            "Clear Cache",
-            "This will clear temporary files and cached data. Your music library will not be affected.",
-            R.drawable.ic_clear_cache,
-            R.color.musebox_green,
-            "Clear",
-            "Cancel",
-            new ThemedDialogUtils.OnDialogClickListener() {
-                @Override
-                public void onPositiveClick() {
-                    performClearCache();
-                }
-            }
-        );
+                requireContext(),
+                "Clear Cache",
+                "This will clear temporary files and cached data. Your music library will not be affected.",
+                R.drawable.ic_clear_cache,
+                R.color.musebox_green,
+                "Clear",
+                "Cancel",
+                new ThemedDialogUtils.OnDialogClickListener() {
+                    @Override
+                    public void onPositiveClick() {
+                        performClearCache();
+                    }
+                });
     }
 
     private void performClearCache() {
@@ -231,14 +231,14 @@ public class ProfileFragment extends Fragment {
                         android.util.Log.w("ProfileFragment", "Failed to clear Glide disk cache: " + e.getMessage());
                     }
                 }).start();
-                
+
                 // Clear memory cache on main thread
                 Glide.get(getContext()).clearMemory();
             }
-            
+
             // Clear app cache directory
             clearAppCache();
-            
+
             Toast.makeText(getContext(), "Cache cleared successfully!", Toast.LENGTH_SHORT).show();
         } catch (Exception e) {
             android.util.Log.e("ProfileFragment", "Failed to clear cache: " + e.getMessage(), e);
@@ -248,20 +248,19 @@ public class ProfileFragment extends Fragment {
 
     private void handleClearData() {
         ThemedDialogUtils.showSimpleDialog(
-            requireContext(),
-            "Clear All Data",
-            "This will remove all songs from your library. This action cannot be undone. Are you sure?",
-            R.drawable.ic_delete_sweep,
-            android.R.color.holo_red_dark,
-            "Clear All",
-            "Cancel",
-            new ThemedDialogUtils.OnDialogClickListener() {
-                @Override
-                public void onPositiveClick() {
-                    performClearData();
-                }
-            }
-        );
+                requireContext(),
+                "Clear All Data",
+                "This will remove all songs from your library. This action cannot be undone. Are you sure?",
+                R.drawable.ic_delete_sweep,
+                android.R.color.holo_red_dark,
+                "Clear All",
+                "Cancel",
+                new ThemedDialogUtils.OnDialogClickListener() {
+                    @Override
+                    public void onPositiveClick() {
+                        performClearData();
+                    }
+                });
     }
 
     private void performClearData() {
@@ -270,16 +269,16 @@ public class ProfileFragment extends Fragment {
         progressDialog.setMessage("Clearing all data...");
         progressDialog.setCancelable(false);
         progressDialog.show();
-        
+
         // Perform clearing in background thread
         new Thread(() -> {
             try {
                 // Clear all songs from the database
                 dbHelper.deleteAllSongs();
-                
+
                 // Also clear favorites table manually since deleteAllSongs() doesn't clear it
                 clearAllFavorites();
-                
+
                 // Also clear Glide cache to remove cached album art
                 if (getContext() != null) {
                     try {
@@ -288,41 +287,43 @@ public class ProfileFragment extends Fragment {
                         android.util.Log.w("ProfileFragment", "Failed to clear Glide disk cache: " + e.getMessage());
                     }
                 }
-                
+
                 // Clear app cache directory as well
                 clearAppCache();
-                
+
                 // Update UI on main thread
                 if (getActivity() != null) {
                     getActivity().runOnUiThread(() -> {
                         progressDialog.dismiss();
-                        
+
                         // Clear memory cache on main thread
                         if (getContext() != null) {
                             Glide.get(getContext()).clearMemory();
                         }
-                        
-                        Toast.makeText(getContext(), "All music library data cleared successfully!", Toast.LENGTH_SHORT).show();
-                        
+
+                        Toast.makeText(getContext(), "All music library data cleared successfully!", Toast.LENGTH_SHORT)
+                                .show();
+
                         // Refresh the home fragment if it exists
                         refreshHomeFragment();
                     });
                 }
-                
+
             } catch (Exception e) {
                 android.util.Log.e("ProfileFragment", "Failed to clear data: " + e.getMessage(), e);
-                
+
                 // Update UI on main thread
                 if (getActivity() != null) {
                     getActivity().runOnUiThread(() -> {
                         progressDialog.dismiss();
-                        Toast.makeText(getContext(), "Failed to clear data: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getContext(), "Failed to clear data: " + e.getMessage(), Toast.LENGTH_SHORT)
+                                .show();
                     });
                 }
             }
         }).start();
     }
-    
+
     private void clearAllFavorites() {
         try {
             // Clear all favorites from the database
@@ -332,7 +333,7 @@ public class ProfileFragment extends Fragment {
             android.util.Log.w("ProfileFragment", "Failed to clear favorites: " + e.getMessage());
         }
     }
-    
+
     private void clearAppCache() {
         try {
             java.io.File cacheDir = requireContext().getCacheDir();
@@ -343,7 +344,7 @@ public class ProfileFragment extends Fragment {
             android.util.Log.w("ProfileFragment", "Failed to clear app cache: " + e.getMessage());
         }
     }
-    
+
     private boolean deleteDirectory(java.io.File dir) {
         if (dir != null && dir.isDirectory()) {
             String[] children = dir.list();
@@ -361,14 +362,14 @@ public class ProfileFragment extends Fragment {
         }
         return false;
     }
-    
+
     private void refreshHomeFragment() {
         try {
             if (getActivity() instanceof com.example.musebox.activities.HomeActivity) {
                 // Try to refresh the home fragment
                 androidx.fragment.app.Fragment homeFragment = getActivity().getSupportFragmentManager()
-                    .findFragmentByTag("HOME_FRAGMENT");
-                
+                        .findFragmentByTag("HOME_FRAGMENT");
+
                 if (homeFragment instanceof com.example.musebox.fragments.HomeFragment) {
                     ((com.example.musebox.fragments.HomeFragment) homeFragment).refreshSongs();
                 }
@@ -380,35 +381,52 @@ public class ProfileFragment extends Fragment {
 
     private void handleLogout() {
         ThemedDialogUtils.showSimpleDialog(
-            requireContext(),
-            "Log Out",
-            "Are you sure you want to log out? You'll need to sign in again to access your account.",
-            R.drawable.ic_logout,
-            android.R.color.holo_red_dark,
-            "Log Out",
-            "Cancel",
-            new ThemedDialogUtils.OnDialogClickListener() {
-                @Override
-                public void onPositiveClick() {
-                    performLogout();
-                }
-            }
-        );
+                requireContext(),
+                "Log Out",
+                "Are you sure you want to log out? You'll need to sign in again to access your account.",
+                R.drawable.ic_logout,
+                android.R.color.holo_red_dark,
+                "Log Out",
+                "Cancel",
+                new ThemedDialogUtils.OnDialogClickListener() {
+                    @Override
+                    public void onPositiveClick() {
+                        performLogout();
+                    }
+                });
     }
 
     private void performLogout() {
         // Clear session
         sessionManager.logout();
-        
+
         // Navigate to login activity
         Intent intent = new Intent(getActivity(), LoginActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
-        
+
         if (getActivity() != null) {
             getActivity().finish();
         }
-        
+
         Toast.makeText(getContext(), "Logged out successfully", Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        // Expand the bottom sheet fully by default (especially important in landscape
+        // mode)
+        Dialog dialog = getDialog();
+        if (dialog != null) {
+            BottomSheetDialog bottomSheetDialog = (BottomSheetDialog) dialog;
+            FrameLayout bottomSheet = bottomSheetDialog
+                    .findViewById(com.google.android.material.R.id.design_bottom_sheet);
+            if (bottomSheet != null) {
+                BottomSheetBehavior<FrameLayout> behavior = BottomSheetBehavior.from(bottomSheet);
+                behavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+                behavior.setSkipCollapsed(true);
+            }
+        }
     }
 }
